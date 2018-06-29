@@ -27,7 +27,8 @@ messages, which update information about a channel. There can only be
 one valid `channel_announcement` for any channel, but at least two
 `channel_update` messages are expected.
 
-channel discoveryをサポートするために、ネットワーク内のpeersは、2つのnodes間の新しいchannelsに関する情報を含むchannel_announcement messagesを交換する。
+channel discoveryをサポートするために、3つのgossip messagesがサポートされています。
+ネットワーク内のpeersは、2つのnodes間の新しいchannelsに関する情報を含むchannel_announcement messagesを交換する。
 （peersは隣接する2つのnodesを強調した表現か？？？）
 また、channelに関する情報をupdateするchannel_update messagesを交換することもできる。
 任意のchannelに対して有効なchannel_announcementは1つだけですが、少なくとも2つのchannel_update messagesが必要である。
@@ -144,7 +145,7 @@ each on-chain Bitcoin key to the associated Lightning node key, and vice-versa.
 The channel is not practically usable until at least one side has announced
 its fee levels and expiry, using `channel_update`.
 
-このmessageには、channelに関する所有権情報が含まれています。
+このgossip messageには、channelに関する所有権情報が含まれている。
 それは各オンチェーンのBitcoin keyと関連するLightning node keyを結び付け、逆もまた同様である。
 このchannelは、channel_updateを使用して少なくとも片側がfeeレベルとexpiryをannounceするまで、実際には使用できません。
 
@@ -168,7 +169,7 @@ accomplished by a node finding the output given by the `short_channel_id` and
 verifying that it is indeed a P2WSH funding transaction output for those keys
 specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 
-すべてのnodesがunspent transaction outputsを知っていると仮定すると、
+全てのnodesがunspent transaction outputsを知っていると仮定すると、
 （？？？）
 nodeによる、short_channel_idから与えられるoutputの発見と、それが実際に[BOLT #3]で指定されたように、
 それらのkeysのP2WSH funding transaction outputであることの確認により、最初の証明は達成される。
@@ -401,7 +402,7 @@ This gossip message allows a node to indicate extra data associated with it, in
 addition to its public key. To avoid trivial denial of service attacks,
 nodes not associated with an already known channel are ignored.
 
-このmessageは、nodeが公開鍵に加えて、それに関連する追加のデータを示すことを可能にする。
+このgossip messageは、nodeが公開鍵に加えて、それに関連する追加のデータを示すことを可能にする。
 DoS攻撃を回避するために、既知のchannelに関連付けられていないnodesは無視されます。
 
 1. type: 257 (`node_announcement`)
@@ -693,7 +694,7 @@ of *relaying* payments, not *sending* payments. When making a payment
  the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
-このchannel_update messageが有用なのは、支払いを中継するコンテキストであり、
+このchannel_update gossip messageが有用なのは、支払いを中継するコンテキストであり、
 支払いを送信するコンテキストではないことに注意してください。
 （送信（send）というのはfunderからの隣接するnodeへの支払い？？？）
 A -> B -> C -> Dの支払いを作るとき、B -> C（Bによって発表）とC -> D （Cによって発表）のchannelに関係するchannel_updateのみが関わります。
@@ -912,9 +913,14 @@ Note that the `initial_routing_sync` feature is overridden (and should
 be considered equal to 0) by the `gossip_queries` feature if the
 latter is negotiated.
 
+注：initial_routing_sync featureはgossip_queries featureによって、
+もし後者がネゴシエートされている場合、オーバーライドされます（そして、0に等しいと見なす必要があります）。
+
 Note that `gossip_queries` won't work with older nodes, so the
 value of `initial_routing_sync` is still important to control
 interactions with them.
+
+注：gossip_queriesは古いノードとは動作しないので、initial_routing_syncの値はまだ、彼らとの相互作用を制御ために重要です。
 
 ### Requirements
 
@@ -923,7 +929,11 @@ endpoint node：
 （？？？）
 
   - if the `gossip_queries` feature is negotiated:
-	- MUST NOT relay any gossip messages unless explicitly requested.
+	  - MUST NOT relay any gossip messages unless explicitly requested.
+
+  - gossip_queries機能がネゴシエートされている場合：
+    - 明示的に要求されない限り、gossip messagesを中継してはならない。
+
   - otherwise:
     - if it requires a full copy of the other endpoint's routing state:
       - SHOULD set the `initial_routing_sync` flag to 1.
@@ -936,9 +946,14 @@ endpoint node：
       - SHOULD resume normal operation, as specified in the following
       [Rebroadcasting](#rebroadcasting) section.
 
+  - そうでなければ：
+    - 他のendpointのルーティング状態の完全なコピーが必要な場合は次のようにする：
+      - initial_routing_syncフラグを1に設定すべきである。
+    - initial_routing_syncフラグが1にセットされたinit messageを受信すると：
+      - 全ての既知のchannelsとnodesについて、受信したばかりのようにgossip messagesを送信すべきである。
   - initial_routing_syncフラグが0に設定されているか、または初期同期が完了した場合：
-    次の[Rebroadcasting]セクションで指定されているように、normal operationを再開すべきである。
-    （Initial Sync以降をnormal operationと言っているのであろう。）
+    - 次の[Rebroadcasting]セクションで指定されているように、normal operationを再開すべきである。
+      （Initial Sync以降をnormal operationと言っているのであろう。）
 
 ## Rebroadcasting
 
@@ -976,13 +991,17 @@ An endpoint node:
 endpoint node：
 
   - if the `gossip_queries` feature is negotiated:
-	- MUST not send gossip until it receives `gossip_timestamp_range`.
+	  - MUST not send gossip until it receives `gossip_timestamp_range`.
+
+  - gossip_queries機能がネゴシエートされている場合：
+    - gossip_timestamp_rangeが受信されるまでgossipを送信してはならない。
+
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
     duplicated).
 
-  - announcementsの到着時刻とは無関係に、60秒おきに、発信announcementsをフラッシュすべきである。
+  - messagesの到着時刻とは無関係に、60秒おきに、発信gossip messagesをフラッシュすべきである。
   （一度reboroadcastingで送ったannouncementsは以降同じnodesには送らない？？？）
     注：これにより、staggeredなannouncementsが一意に（重複しないように）なる。
     （staggeredって重複しているのに意味があるのでは？？？）
@@ -998,7 +1017,7 @@ endpoint node：
     `node_announcement` AND `channel_update` messages.
 
   - 接続確立時：
-    - すべてのchannel_announcement messageを送信し、続けて最新のnode_announcementとchannel_update messagesを送信すべきである。
+    - 全てのchannel_announcement messageを送信し、続けて最新のnode_announcementとchannel_update messagesを送信すべきである。
     (Initial Syncを行う？？？)
 
 ### Rationale
@@ -1010,18 +1029,22 @@ regular intervals: such a store-and-delayed-forward broadcast is called a
 _staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
 
-announcementが処理されると、処理nodeのpeers向けの発信announcementsのリストに追加され、
+gossip messageが処理されると、処理nodeのpeers向けの発信messagesのリストに追加され、
 元の起点nodeからの古いupdatesが置き換えられます。
-このannouncementsのリストは定期的にフラッシュされる。
+このgossip messagesのリストは定期的にフラッシュされる。
 そのようなstore-and-delayed-forward broadcastは、staggered broadcastと呼ばれる。
 （ちょっと違くない？？？[staggered broadcast](https://pdfs.semanticscholar.org/0888/3486a96150da7664d8c4dd932f27272c0d7f.pdf
 )特定のpeers間でのことでなくて、ネットワーク全体でこんな動きになるということ？？？）
-また、そのようなannouncementsのバッチ処理は、低いオーバヘッドで自然なレート制限を形成する。
+また、そのようなバッチ処理は、低いオーバヘッドで自然なレート制限を形成する。
 
 The sending of all gossip on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
+
+再接続時に全てのgossipを送信するのは素朴ですが、簡単で、新しいnodesのブートストラップと、
+しばらくの間オフラインだったnodesのupdateが可能である。
+gossip_queriesオプションにより、より洗練された同期が可能になります。
 
 ## Query Messages
 
@@ -1029,22 +1052,40 @@ Negotiating the `gossip_queries` option enables a number of extended
 queries for gossip synchronization.  These explicitly request what
 gossip should be received.
 
+このgossip_queriesオプションをネゴシエートすることにより、gossip同期のための多数の拡張クエリが可能になる。
+これらは、どのようなgossipを受け取るべきかを明示的に要求する。
+
 There are several messages which contain a long array of
 `short_channel_id`s (called `encoded_short_ids`) so we utilize a
 simple compression scheme: the first byte indicates the encoding, the
 rest contains the data.
 
+short_channel_idsの長い配列（encoded_short_idsと呼ばれる）を含むいくつかのmessagesがあり、
+簡単な圧縮スキームを使用する。
+最初のバイトはエンコーディングを示し、残りはデータを含む。
+
 Encoding types:
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
 * `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
 
+エンコードタイプ：
+* 0：short_channel_idタイプの非圧縮配列、昇順。
+* 1：short_channel_idタイプの配列、昇順、zlib deflateで圧縮
+
 Note that a 65535-byte zlib message can decompress into 67632120
-bytes<sup>[2](#reference-2)</sup>, but since the only valid contents 
+bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
 contents could decompress to more then 3669960 bytes.
 
+注意：65535バイトのzlib messageは67632120バイトに展開されるが、有効な内容は一意の8バイト値だけなので、
+ストリームを通して重複するのは14バイト未満である：
+各重複は少なくとも2ビットを用し、有効なコンテンツは3669960バイト以上に展開されることはない。
+（short_channel_idは8バイト）
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_done` Messages
+
+(reply_short_channel_ids_endの間違い？？？)
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
 2. data:
@@ -1063,35 +1104,101 @@ usually either because it sees a `channel_update` for which it has no
 `channel_announcement` or because it has obtained them from
 `reply_channel_range`.
 
+これはノードが特定のshort_channel_idのchannel_announcementとchannel_updateを問い合わせるための一般的なメカニズムである；
+通常、channel_announcementのないchannel_updateを見る場合か、reply_channel_rangeからそれらを得た場合である。
+
 #### Requirements
 
 The sender:
+送信者：
+
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
+
+  - このpeerに前回query_short_channel_idsを送信し、reply_short_channel_ids_endを受信していない場合は、
+  query_short_channel_idsを送信してはならない。
+
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
+
+  - chain_hashに、short_channel_idが参照するチェーンを一意に識別する32バイトのハッシュを設定する必要しなければならない。
+
   - MUST set the first byte of `encoded_short_ids` to the encoding type.
+
+  - encoded_short_idsの最初のバイトを符号化タイプに設定しなければならない。
+
   - MUST encode a whole number of `short_channel_id`s to `encoded_short_ids`
+
+  - encoded_short_idsに、short_channel_idの全数をエンコードしなければならない
+
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
+
+  - channel_announcementを持たないshort_channel_idのchannel_updateを受信した場合は、それを送ってよい。
+  （encoded_short_idsにshort_channel_idを含めて送って良いということであろう。）
+
   - SHOULD NOT send this if the channel referred to is not an unspent output.
 
+  - 参照されたchannelがUTXOでない場合、これを送信すべきではない。
+  （encoded_short_idsにshort_channel_idを含めて送ってはいけないということであろう。）
+
 The receiver:
+受信者：
+
   - if the first byte of `encoded_short_ids` is not a known encoding type:
     - MAY fail the connection
+
+  - encoded_short_idsの最初のバイトが既知のエンコーディングタイプでない場合：
+    - 接続に失敗して良い
+
   - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
     - MAY fail the connection.
+
+  - encoded_short_idsをshort_channel_idの全数にデコードしない場合：
+  （encoded_short_idsはshort_channel_id8バイトの配列なので、
+  デコードしたときにそのようなものに展開できなかったらということであろう）
+    - 接続に失敗して良い。
+
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
     - MAY fail the connection.
+
+  - この送信者から前に受信したquery_short_channel_idに対してreply_short_channel_ids_endを送信していない場合：
+    - 接続に失敗して良い。
+
   - MUST respond to each known `short_channel_id` with a `channel_announcement`
     and the latest `channel_update`s for each end
+
+  - 既知のshort_channel_idそれぞれに、channel_announcementと各端の最新のchannel_updateを持って応答しなければならない
+
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
+
+  - これらを送信するために次の発信gossipのフラッシュを待つべきではない。
+  (Rebroadcastingのように周期的に遅延して応答するのでなく、すぐに応答すべきということであろう)
+
   - MUST follow with any `node_announcement`s for each `channel_announcement`
+
+  - それぞれのchannel_announcementに続けて、node_announcementを送るべきである
+
 	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+
+  - 単一のquery_short_channel_idの応答として、重複したnode_announcementの送信を避けるべきである。
+  （異なるchannelsでnodesがかぶっても冗長に送らない。）
+
   - MUST follow these responses with `reply_short_channel_ids_end`.
+
+  - これらの応答に続けてreply_short_channel_ids_endを送らなければならない。
+
   - if does not maintain up-to-date channel information for `chain_hash`:
-	- MUST set `complete` to 0.
+	  - MUST set `complete` to 0.
+
+  - chain_hashの最新のチャンネル情報を保持しない場合：
+  （Rationale参照）
+    - completeに、0を設定すべきである。
+
   - otherwise:
-	- SHOULD set `complete` to 1.
+	  - SHOULD set `complete` to 1.
+
+  - そうでなければ：
+    - completeに、1を設定すべきである。
 
 #### Rationale
 
@@ -1100,9 +1207,19 @@ complete information on unknown `chain_hash` chains.  While this `complete`
 field cannot be trusted, a 0 does indicate that the sender should search
 elsewhere for additional data.
 
+将来のnodesには完全な情報がないかもしれない：
+彼らは確かに未知のchain_hashチェーンに関する完全な情報を持っていないであろう。
+（なんでchain_hashに言及？？？）
+このcompleteフィールドは信頼できないが、0は送信者が追加のデータを他の場所で検索する必要があることを示している。
+（1の場合は？？？）
+
 The explicit `reply_short_channel_ids_end` message means that the receiver can
 indicate it doesn't know anything, and the sender doesn't need to rely on
-timeouts.  It also causes a natural ratelimiting of queries.
+timeouts.  It also causes a natural rate limiting of queries.
+
+明示的なreply_short_channel_ids_end messageは、受信者が何も知らないことを示すことができ、
+（「これ以上は」何も知らないということか？？？）
+送信者はタイムアウトに頼る必要がないことを意味する。それはまた、クエリの自然なレート制限をもたらす。
 
 ### The `query_channel_range` and `reply_channel_range` Messages
 
@@ -1123,21 +1240,47 @@ timeouts.  It also causes a natural ratelimiting of queries.
 
 This allows a query for channels within specific blocks.
 
+これにより、特定のブロック内のchannelsのクエリが可能になる。
+
 #### Requirements
 
 The sender of `query_channel_range`:
+query_channel_rangeの送信者：
+
   - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
+
+  - 前のquery_channel_rangeがこのpeerに送られ、全てのreply_channel_range応答を受け取っていないなら、これを送ってはいけない。
+
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the `reply_channel_range` to refer to
+
+  - chain_hashに、それが必要とするreply_channel_rangeが参照するチェーンを一意に識別する32バイトのハッシュに設定しなければならない
+
   - MUST set `first_blocknum` to the first block it wants to know channels for
+
+  - first_blocknumは、channlesを知りたい最初のブロックを設定しなければならない
+
   - MUST set `number_of_blocks` to 1 or greater.
 
+  - number_of_blocksは、1以上に設定しなければならない。
+
 The receiver of `query_channel_range`:
+query_channel_rangeの受信者：
+
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
     - MAY fail the connection.
+
+  - この送信者からの前に受信したquery_channel_rangeに対する全てのreply_channel_rangeを送信していない場合：
+    - 接続に失敗して良い。
+
   - MUST respond with one or more `reply_channel_range` whose combined range
 	cover the requested `first_blocknum` to `first_blocknum` plus
 	`number_of_blocks` minus one.
+
+  - リクエストされたfirst_blocknumから first_blocknum + number_of_blocks - 1 を、
+  その組み合わせられた範囲がカバーする、
+  1つ以上のreply_channel_rangeで応答しなければならない。
+
   - For each `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
     - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
@@ -1148,11 +1291,27 @@ The receiver of `query_channel_range`:
     - otherwise:
       - SHOULD set `complete` to 1.
 
+  - それぞれのreply_channel_rangeついて：
+    - chain_hashに、query_channel_rangeのそれと同じに設定しなければならない。
+    - short_channel_idに、first_blocknumから first_blocknum + number_of_blocks - 1のブロックの中で知っている、
+    全てのオープンなchannelをエンコードしなければならない。
+    - number_of_blocksを、ブロックの結果（ブロックに含まれるshort_channel_id）がencoded_short_idsに収まるように、
+    ブロックの最大数に制限しなければならない
+    - chain_hashの最新のチャンネル情報を保持しない場合：
+      - completeに、0を設定すべきである。
+    - そうでなければ：
+      - completeに、1を設定すべきである。
+
 #### Rationale
 
 A single response might be too large for a single packet, and also a peer can
 store canned results for (say) 1000-block ranges, and simply offer each reply
 which overlaps the ranges of the request.
+
+1つのパケットに対して1つの応答が大きすぎる可能性があるので、peerは1000ブロックの範囲で封じた結果を格納し、
+単純に要求の範囲と重複する各応答を提供する可能性があります。
+（前もって結果を固めて準備するので、query_channel_rangeに対して、
+reply_channel_rangeは大雑把に範囲が重なるようにして返すことがある、できる？？？）
 
 ### The `gossip_timestamp_filter` Message
 
@@ -1167,36 +1326,76 @@ a specific range.  A node which wants any gossip messages would have
 to send this, otherwise `gossip_queries` negotiation means no gossip
 messages would be received.
 
+このmessageは、nodeが将来のgossip messagesを特定の範囲に制限することを可能にする。
+gossip messagesを必要とするnodeは、これを送信しなければならず、
+さもなければ、gossip_queriesネゴシエーションは、gossip messagesが受信されないことを意味する。
+（このmessageはgossip messagesを受信する場合にはMUSTなのか？？？）
+
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
 
+注：このフィルタは以前のフィルタを置き換えるので、複数回使用してpeerからgossipを変更することができる。
+
 #### Requirements
 
-The sender`:
+The sender:
+送信者：
+
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the gossip to refer to.
 
+  - chain_hashは、gossipが参照するチェーンを一意に識別する32バイトのハッシュに設定しなければならない。
+
 The receiver:
+受信者：
+
   - SHOULD send all gossip messages whose `timestamp` is greater or
     equal to `first_timestamp`, and less than `first_timestamp` plus
     `timestamp_range`.
+
+  - timestampがfirst_timestamp以上でかつfirst_timestamp + timestamp_range未満の全てのgossip messagesを送るべきである。
+  。
+
 	- MAY wait for the next outgoing gossip flush to send these.
+
+  - これら（gossip messages）を送るために次の発信gossipフラッシュを待ってよい。
+  (gossip_timestamp_filterを受信したからといって、即座にgossip messagesを送る必要はないということであろう。)
+
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
     `first_timestamp` plus `timestamp_range`.
+
+  - 将来のgossip messagesをそれらのtimestampがfirst_timestamp以上でかつfirst_timestamp + timestamp_range未満に制限すべきである。
+
   - If a `channel_announcement` has no corresponding `channel_update`s:
-	- MUST NOT send the `channel_announcement`.
+    - MUST NOT send the `channel_announcement`.
+
+  - channel_announcementに対応するchannel_updatesがない場合：
+    - channel_announcementを送信してはいけない。
+
   - Otherwise:
 	  - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
 	  - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
+
+  - そうでなければ：
+    - channel_announcementのtimestampは、対応するのchannel_updateのtimestampであると見なさなければならない。
+    - channel_announcementを送信するかどうかは、最初の対応するchannel_updateを受信した後に考えなければならない。
+
   - If a `channel_announcement` is sent:
 	  - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
+
+  - channel_announcementが送信される場合：
+    - 対応するchannel_updateとnode_announcementに先立ってchannel_announcementを送らなければならない。
 
 #### Rationale
 
 Since `channel_announcement` doesn't have a timestamp, we generate a likely
 one.  If there's no `channel_update` then it is not sent at all, which is most
 likely in the case of pruned channels.
+
+channel_announcementにはtimestampがないので、可能性のあるものを生成する。
+channel_updateがない場合はまったく送信されないが、これは刈り取られたchannelsの場合に最も可能性が高い。
+（timestampが2週間を越えるとchannel_announcementは残したまま、channel_updateのみを刈り取るのか？？？）
 
 Otherwise the `channel_announcement` is usually followed immediately by a
 `channel_update`, which serves as a fairly good timestamp for new channels.
@@ -1205,8 +1404,19 @@ new nodes on the network wouldn't know that, and would require that timestamp
 to be stored.  Instead, we allow any update to be used, which is simple to
 implement.
 
+そうでなければ（channel_updateが刈り取られているのでなければ）、channel_announcementは通常直後にchannel_updateが続き、
+これは新しいchannelsのtimestampとしては非常に役立つ。
+理想的には、我々は最初のchannel_updateを使用することを指定するが、
+ネットワーク上の新しいnodesはそれを知らず、保存するためのtimestampを要求する（必要とする？？？）であろう。
+（具体的にどうする？？？）
+代わりに、任意の更新を使用することができ、これは実装が簡単である。
+（具体的にどうする？？？）
+
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
+
+それでもなおchannel_announcementが欠けている場合、
+それを取得するためにquery_short_channel_idsを使用することができる。
 
 ## HTLC Fees
 
@@ -1319,7 +1529,7 @@ along the route.
 目的の受信者にルーティングしてcltv_expiry_deltaを合計するだけでルートが計算された場合、
 中間nodesはルート内の位置を推測することができる。
 HTLCのCLTV、周囲のネットワークトポロジ、およびcltv_expiry_deltasを知ることで、攻撃者は意図された受信者を推測することができる。
-したがって、意図された受信者が受信するCLTVにランダムオフセットを追加することが非常に望ましく、これはルートに沿ってすべてのCLTVを押し上げます。
+したがって、意図された受信者が受信するCLTVにランダムオフセットを追加することが非常に望ましく、これはルートに沿って全てのCLTVを押し上げます。
 
 In order to create a plausible offset, the origin node MAY start a limited
 random walk on the graph, starting from the intended recipient and summing the
@@ -1357,7 +1567,7 @@ A     C
 Each advertises the following `cltv_expiry_delta` on its end of every
 channel:
 
-それぞれは、すべてのチャンネルの最後に、次のcltv_expiry_deltaをadvetiseする。
+それぞれは、全てのチャンネルの最後に、次のcltv_expiry_deltaをadvetiseする。
 
 1. A: 10 blocks
 2. B: 20 blocks
