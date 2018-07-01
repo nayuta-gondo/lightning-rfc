@@ -27,11 +27,11 @@ messages, which update information about a channel. There can only be
 one valid `channel_announcement` for any channel, but at least two
 `channel_update` messages are expected.
 
-channel discoveryをサポートするために、3つのgossip messagesがサポートされています。
+channel discoveryをサポートするために、3つのgossip messagesがサポートされている。
 ネットワーク内のpeersは、2つのnodes間の新しいchannelsに関する情報を含むchannel_announcement messagesを交換する。
 （peersは隣接する2つのnodesを強調した表現か？？？）
 また、channelに関する情報をupdateするchannel_update messagesを交換することもできる。
-任意のchannelに対して有効なchannel_announcementは1つだけですが、少なくとも2つのchannel_update messagesが必要である。
+任意のchannelに対して有効なchannel_announcementは1つだけだが、少なくとも2つのchannel_update messagesが必要である。
 
 To support node discovery, peers exchange `node_announcement`
 messages, which supply additional information about the nodes. There may be
@@ -61,7 +61,7 @@ It contains the necessary signatures, by the sender, to construct the `channel_a
 
 これは、channelの2つのendpoints間のdirect messageで、channelのannouncementをネットワークの他の部分に許可するオプトインメカニズムを提供する。
 （送られなければオプトインされないということか？？？なんでchannel_flagsだけで表さないのか？？？）
-これには送信者がchannel_announcement messageを作成するために必要なsignaturesが含まれています。
+これには送信者がchannel_announcement messageを作成するために必要なsignaturesが含まれている。
 
 1. type: 259 (`announcement_signatures`)
 2. data:
@@ -91,7 +91,7 @@ It is constructed as follows:
   3. the least significant 2 bytes: indicating the output index that pays to the channel.
 
 short_channel_idはfunding transactionの一意な記述である。
-それは次のように構築されます：
+それは次のように構築される：
   1. 最上位3バイト：ブロックの高さを示す
   2. 次の3バイト：ブロック内のtransactionインデックスを示す
   3. 最下位2バイト：channelに支払うoutputインデックスを示す。
@@ -187,7 +187,7 @@ announcement message: this is accomplished by having a signature from each
 `node_id` (`node_signature_1` and `node_signature_2`) signing the message.
 
 また、node_1とnode_2が共にannouncement messageに合意していることを証明する必要がある：
-各node_idがmessageにしたsignature（node_signature_1とnode_signature_2）を持つことによって達成されます。
+各node_idがmessageにしたsignature（node_signature_1とnode_signature_2）を持つことによって達成される。
 
 1. type: 256 (`channel_announcement`)
 2. data:
@@ -244,7 +244,7 @@ The origin node:
     including any future fields appended to the end.
 
   - 位置256から始まり、messageの最後までのdouble-SHA256ハッシュhを計算しなければならない。
-    - 注：ハッシュは4つのsignaturesをスキップしますが、最後に追加される将来のフィールドも含め、残りのmessageをハッシュする。
+    - 注：ハッシュは4つのsignaturesをスキップするが、最後に追加される将来のフィールドも含め、残りのmessageをハッシュする。
 
   - MUST set `node_signature_1` and `node_signature_2` to valid
     signatures of the hash `h` (using `node_id_1` and `node_id_2`'s respective
@@ -375,7 +375,7 @@ requirement against rebroadcasting only applies if the transaction has not moved
 to a different block.
 
 channelsは十分に深くなる前にadvertiseすべきではありませんが、再ブロードキャストに対する要件は、
-transactionが別のブロックに移動していない場合にのみ適用されます。
+transactionが別のブロックに移動していない場合にのみ適用される。
 （送信者が確認したものとは異なるブロックで確定した、つまりリオーガニゼーションが発生して確定してしまった場合には再ブロードキャストをする機会が失われたということか？？？short_channel_idが合うことがないので）
 
 In order to avoid storing excessively large messages, yet still allow for
@@ -383,7 +383,7 @@ reasonable future expansion, nodes are permitted to restrict rebroadcasting
 (perhaps statistically).
 
 過度に大きなmessagesを格納することを避けるために、将来の合理的な拡張を可能にするために、
-nodesは再ブロードキャスティングを制限する（おそらく統計的に）ことが許可されています。
+nodesは再ブロードキャスティングを制限する（おそらく統計的に）ことが許可されている。
 
 New channel features are possible in the future: backwards compatible (or
 optional) features will have _odd_ feature bits, while incompatible features
@@ -392,7 +392,7 @@ will have _even_ feature bits
 Incompatible features will result in the announcement not being forwarded by
 nodes that do not understand them.
 
-将来的には新しいchannel機能が可能です：後方互換性のある（またはオプションの）機能は奇数のfeatureビットを持ち、
+将来的には新しいchannel機能が可能である：後方互換性のある（またはオプションの）機能は奇数のfeatureビットを持ち、
 互換性のないfeatureは偶数のfeatureビットを持つ（「奇妙であることは問題ない！」）。
 互換性のない機能は、そのannouncementが、それらを理解していないnodesによって転送されない結果になる。
 
@@ -403,7 +403,7 @@ addition to its public key. To avoid trivial denial of service attacks,
 nodes not associated with an already known channel are ignored.
 
 このgossip messageは、nodeが公開鍵に加えて、それに関連する追加のデータを示すことを可能にする。
-DoS攻撃を回避するために、既知のchannelに関連付けられていないnodesは無視されます。
+DoS攻撃を回避するために、既知のchannelに関連付けられていないnodesは無視される。
 
 1. type: 257 (`node_announcement`)
 2. data:
@@ -431,12 +431,12 @@ node. The first byte describes the address type and is followed by the
 appropriate number of bytes for that type.
 
 addressesはnodeに、ネットワーク接続を受け入れる意思をannounceすることができ：
-それはnodeに接続するための一連のaddress descriptorを含みます。
-最初のバイトはアドレスタイプを記述し、そのタイプの適切なバイト数が続きます。
+それはnodeに接続するための一連のaddress descriptorを含む。
+最初のバイトはアドレスタイプを記述し、そのタイプの適切なバイト数が続く。
 
 The following `address descriptor` types are defined:
 
-次のaddress descriptorタイプが定義されています：
+次のaddress descriptorタイプが定義されている：
 
    * `0`: padding; data = none (length 0)
    * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
@@ -697,10 +697,10 @@ of *relaying* payments, not *sending* payments. When making a payment
 このchannel_update gossip messageが有用なのは、支払いを中継するコンテキストであり、
 支払いを送信するコンテキストではないことに注意してください。
 （送信（send）というのはfunderからの隣接するnodeへの支払い？？？）
-A -> B -> C -> Dの支払いを作るとき、B -> C（Bによって発表）とC -> D （Cによって発表）のchannelに関係するchannel_updateのみが関わります。
+A -> B -> C -> Dの支払いを作るとき、B -> C（Bによって発表）とC -> D （Cによって発表）のchannelに関係するchannel_updateのみが関わる。
 （最後のC->Dも関係ないのでは？？？）
 ルートを構築する際には、HTLCの金額と有効期限をdestinationからsourceまで逆方向に計算する必要がある。
-ルートの最後のHTLCに使用される正確なamount_msatのための初期値とcltv_expiryのための最小値は、支払い要求で提供されます（BOLT＃11を参照）。
+ルートの最後のHTLCに使用される正確なamount_msatのための初期値とcltv_expiryのための最小値は、支払い要求で提供される（BOLT＃11を参照）。
 
 1. type: 258 (`channel_update`)
 2. data:
@@ -719,10 +719,10 @@ identifies the node that this update originated from and signals various options
 concerning the channel. The following table specifies the meaning of its
 individual bits:
 
-flagsビットフィールドは、channelの方向を示すために使用されます：
+flagsビットフィールドは、channelの方向を示すために使用される：
 このビットフィールドは、このアップデートが発生したnodeを識別し、
 channelに関するさまざまなオプションを通知する。
-次の表は、個々のビットの意味を示しています。
+次の表は、個々のビットの意味を示している。
 （channelを無効にできる！）
 
 | Bit Position  | Name        | Meaning                          |
@@ -758,7 +758,7 @@ The origin node:
   - channelがまだannounceされていなくてもchannel_updateを終点nodeにchannelパラメータを伝えるために作成できる（すなわち、announce_channelビットがセットされていなくても）。
   （yetがわからない？？？channel announcementなしでchannel_updateのみというのがありそう。隣接するnodeへのみ。）
     - プライバシーの理由から、そのようなchannel_updateを他のpeersに転送してはいけません。
-    - 注：channel_announcementが前に無いようなchannel_updateは、他のpeerにとって無効であり破棄されます。
+    - 注：channel_announcementが前に無いようなchannel_updateは、他のpeerにとって無効であり破棄される。
 
   - MUST set `signature` to the signature of the double-SHA256 of the entire
   remaining packet after `signature`, using its own `node_id`.
@@ -903,8 +903,8 @@ makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
 of two `channel_update`s within a single second.
 
 このtimestampフィールドは、未来にあまりにも遠すぎるかまたは2週間updateされていないchannel_updateのプルーニングのために、
-nodesによって使用されます。
-UNIX timestamp（つまり、UTC 1970-01-01以降の秒数）にすることは理にかなっています。
+nodesによって使用される。
+UNIX timestamp（つまり、UTC 1970-01-01以降の秒数）にすることは理にかなっている。
 1秒間に2つchannel_updateがあるとしても、これは厳しい要件ではありません。
 
 ## Initial Sync
@@ -914,13 +914,13 @@ be considered equal to 0) by the `gossip_queries` feature if the
 latter is negotiated.
 
 注：initial_routing_sync featureはgossip_queries featureによって、
-もし後者がネゴシエートされている場合、オーバーライドされます（そして、0に等しいと見なす必要があります）。
+もし後者がネゴシエートされている場合、オーバーライドされる（そして、0に等しいと見なす必要がある）。
 
 Note that `gossip_queries` won't work with older nodes, so the
 value of `initial_routing_sync` is still important to control
 interactions with them.
 
-注：gossip_queriesは古いノードとは動作しないので、initial_routing_syncの値はまだ、彼らとの相互作用を制御ために重要です。
+注：gossip_queriesは古いノードとは動作しないので、initial_routing_syncの値はまだ、彼らとの相互作用を制御ために重要である。
 
 ### Requirements
 
@@ -1030,7 +1030,7 @@ _staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
 
 gossip messageが処理されると、処理nodeのpeers向けの発信messagesのリストに追加され、
-元の起点nodeからの古いupdatesが置き換えられます。
+元の起点nodeからの古いupdatesが置き換えられる。
 このgossip messagesのリストは定期的にフラッシュされる。
 そのようなstore-and-delayed-forward broadcastは、staggered broadcastと呼ばれる。
 （ちょっと違くない？？？[staggered broadcast](https://pdfs.semanticscholar.org/0888/3486a96150da7664d8c4dd932f27272c0d7f.pdf
@@ -1042,9 +1042,9 @@ and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
 
-再接続時に全てのgossipを送信するのは素朴ですが、簡単で、新しいnodesのブートストラップと、
+再接続時に全てのgossipを送信するのは素朴であるが、簡単で、新しいnodesのブートストラップと、
 しばらくの間オフラインだったnodesのupdateが可能である。
-gossip_queriesオプションにより、より洗練された同期が可能になります。
+gossip_queriesオプションにより、より洗練された同期が可能になる。
 
 ## Query Messages
 
@@ -1309,7 +1309,7 @@ store canned results for (say) 1000-block ranges, and simply offer each reply
 which overlaps the ranges of the request.
 
 1つのパケットに対して1つの応答が大きすぎる可能性があるので、peerは1000ブロックの範囲で封じた結果を格納し、
-単純に要求の範囲と重複する各応答を提供する可能性があります。
+単純に要求の範囲と重複する各応答を提供する可能性がある。
 （前もって結果を固めて準備するので、query_channel_rangeに対して、
 reply_channel_rangeは大雑把に範囲が重なるようにして返すことがある、できる？？？）
 
@@ -1486,7 +1486,7 @@ endpoint node：
     - channelを無視してよい。
     - 注：これはendpoint nodeのポリシーであり、転送peersによって強制されてはならない
     （例えば、古くなったgossip messagesを受信したときにchannlesを閉じるなど）。
-    [FIXME：これは意図した意味ですか？]
+    [FIXME：これは意図した意味か？]
     （？？？）
 
 #### Rationale
@@ -1503,7 +1503,7 @@ view would be forwarded to other peers indefinitely.
 （endpoints？？？）
 たとえば、両方のendpointが秘密鍵へのアクセスを失い、channel_updateに署名することも、オンチェーンのchannelを閉じることもできません 。
 この場合、このchannelsはネットワークの他の部分から分離されるので、計算された経路の一部になる可能性は低い。
-ただし、ローカルネットワークビューに残っていると、他のpeersに無期限に転送されます。
+ただし、ローカルネットワークビューに残っていると、他のpeersに無期限に転送される。
 （peers？？？）
 
 ## Recommendations for Routing
@@ -1529,7 +1529,7 @@ along the route.
 目的の受信者にルーティングしてcltv_expiry_deltaを合計するだけでルートが計算された場合、
 中間nodesはルート内の位置を推測することができる。
 HTLCのCLTV、周囲のネットワークトポロジ、およびcltv_expiry_deltasを知ることで、攻撃者は意図された受信者を推測することができる。
-したがって、意図された受信者が受信するCLTVにランダムオフセットを追加することが非常に望ましく、これはルートに沿って全てのCLTVを押し上げます。
+したがって、意図された受信者が受信するCLTVにランダムオフセットを追加することが非常に望ましく、これはルートに沿って全てのCLTVを押し上げる。
 
 In order to create a plausible offset, the origin node MAY start a limited
 random walk on the graph, starting from the intended recipient and summing the
@@ -1546,13 +1546,13 @@ Other more advanced considerations involve diversification of route selection,
 to avoid single points of failure and detection, and balancing of local
 channels.
 
-他の高度な考慮事項には、ルート選択の多様化、単一障害点の回避と検出、およびローカルchannelsのバランシングが含まれます。
+他の高度な考慮事項には、ルート選択の多様化、単一障害点の回避と検出、およびローカルchannelsのバランシングが含まれる。
 （local？？？）
 
 ### Routing Example
 
 Consider four nodes:
-4つのnodesを考えます：
+4つのnodesを考える：
 
 ```
    B
@@ -1591,7 +1591,7 @@ channels:
 
 The network will see eight `channel_update` messages:
 
-ネットワークには8つのchannel_update messagesが見えます。
+ネットワークには8つのchannel_update messagesが見える。
 
 1. A->B: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
 1. A->D: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
