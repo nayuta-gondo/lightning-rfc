@@ -1078,7 +1078,7 @@ are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
 contents could decompress to more then 3669960 bytes.
 
-注意：65535バイトのzlib messageは67632120バイトに展開されるが、有効な内容は一意の8バイト値だけなので、
+注：65535バイトのzlib messageは67632120バイトに展開されるが、有効な内容は一意の8バイト値だけなので、
 ストリームを通して重複するのは14バイト未満である：
 各重複は少なくとも2ビットを用し、有効なコンテンツは3669960バイト以上に展開されることはない。
 （short_channel_idは8バイト）
@@ -1120,7 +1120,7 @@ The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
 
-  - chain_hashに、short_channel_idが参照するチェーンを一意に識別する32バイトのハッシュを設定する必要しなければならない。
+  - chain_hashに、short_channel_idが参照するチェーンを一意に識別する32バイトのハッシュを設定しなければならない。
 
   - MUST set the first byte of `encoded_short_ids` to the encoding type.
 
@@ -1209,7 +1209,6 @@ elsewhere for additional data.
 
 将来のnodesには完全な情報がないかもしれない：
 彼らは確かに未知のchain_hashチェーンに関する完全な情報を持っていないであろう。
-（なんでchain_hashに言及？？？）
 このcompleteフィールドは信頼できないが、0は送信者が追加のデータを他の場所で検索する必要があることを示している。
 （1の場合は？？？）
 
@@ -1218,8 +1217,9 @@ indicate it doesn't know anything, and the sender doesn't need to rely on
 timeouts.  It also causes a natural rate limiting of queries.
 
 明示的なreply_short_channel_ids_end messageは、受信者が何も知らないことを示すことができ、
-（「これ以上は」何も知らないということか？？？）
+（未知のchain_hashチェーンについてなにも知らないということか？？？）
 送信者はタイムアウトに頼る必要がないことを意味する。それはまた、クエリの自然なレート制限をもたらす。
+（completeフラグがchain_hashについてなのか最新情報についてなのかよくわからない？？？）
 
 ### The `query_channel_range` and `reply_channel_range` Messages
 
@@ -1280,6 +1280,7 @@ query_channel_rangeの受信者：
   - リクエストされたfirst_blocknumから first_blocknum + number_of_blocks - 1 を、
   その組み合わせられた範囲がカバーする、
   1つ以上のreply_channel_rangeで応答しなければならない。
+  （後述されるようにぴったりカバーする必要はない。）
 
   - For each `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
