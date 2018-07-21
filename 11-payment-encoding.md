@@ -1,7 +1,11 @@
 # BOLT #11: Invoice Protocol for Lightning Payments
 
+（ほとんどGoogle翻訳まま。意味が通らないところだけ修正。） （ところどころコメント有。）
+
 A simple, extendable QR-code-ready protocol for requesting payments
 over Lightning.
+
+Lightning上の支払いを要求するためのシンプルで拡張可能なQRコード対応プロトコル
 
 # Table of Contents
 
@@ -24,11 +28,19 @@ simply reused for Lightning invoices even though its 6-character checksum is opt
 for manual entry, which is unlikely to happen often given the length
 of Lightning invoices.
 
+Lightning invoiceのフォーマットは、Bitcoin Segregated Witnessですでに使用されているbech32 encodingを使用する。
+6桁のchecksumの手入力用の最適化さえも、Lightning invoicesのために再利用することができるが、
+Lightning invoicesの長さを考慮してそのようにすることが頻繁に発生する可能性は低い。
+
 If a URI scheme is desired, the current recommendation is to either
 use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
 'lightning://'), or for fallback to bitcoin payments to use 'bitcoin:',
 as per BIP-21, with the key 'lightning' and the value equal to the BOLT-11
 encoding.
+
+URI schemeが望まれる場合、現在推奨されているのは、BOLT-11 encodingの前にprefixとして 'lightning：'を使用することである（注： 'lightning：//'ではない）。
+または、'bitcoin:'を使ったビットコインの支払いの代用として、
+キー'lightning'とBOLT-11 encodingに等しい値とともに、BIP-21のとおりにする。
 
 ## Requirements
 
@@ -38,6 +50,11 @@ the 90 characters specified there. A reader MUST parse the address as
 Bech32 as specified in BIP-0173 (also without the character limit),
 and MUST fail if the checksum is incorrect.
 
+BIP-0173で指定されているように、Bech32 stringがそこに指定された90文字より長いかもしれないという例外を除いて、
+作者は支払い要求をBech32でencodeしなければならない。
+読者はBIP-0173で指定されているようにBech32としてアドレスをparseしなければならず（同じく文字の制限なしで）、
+checksumが正しくなければ失敗しなければならない。
+
 # Human-Readable Part
 
 The human-readable part of a Lightning invoice consists of two sections:
@@ -45,42 +62,83 @@ The human-readable part of a Lightning invoice consists of two sections:
 1. `amount`: optional number in that currency, followed by an optional
    `multiplier` letter
 
+Lightning invoiceの可読部分は、次の2つのsectionsで構成されている：
+1. prefix：ln + BIP-0173 currency prefix
+（
+bitcoin mainnetの場合は lnbc、
+bitcoin testnetの場合は lntb、
+bitcoin regtestの場合は lnbcrt
+）
+1. amount：その通貨でのoptionalな数にoptionalなmultiplier文字が続く
+
 The following `multiplier` letters are defined:
+
+次のmultiplier文字が定義されている：
 
 * `m` (milli): multiply by 0.001
 * `u` (micro): multiply by 0.000001
 * `n` (nano): multiply by 0.000000001
 * `p` (pico): multiply by 0.000000000001
 
+（区切り）
+
+* `m`（milli）：0.001を掛ける
+* `u`（micro）：0.000001を掛ける
+* `n`（nano）：0.000000001を掛ける
+* `p`（pico）：0.000000000001を掛ける
+
 ## Requirements
 
 A writer MUST include `amount` unless it will accept any payment amount.
 A writer MUST encode `amount` as a positive decimal integer with no leading zeroes and SHOULD use the shortest representation possible.
 
+作者は、支払い金額を受け入れない限り、amountを含まなければならない。
+作者は、amountを先頭のゼロのない正の10進整数として符号化しなければならず、可能な限り最短の表現を使用すべきである。
+
 A reader MUST fail if it does not understand the `prefix`. A reader
 SHOULD fail if `amount` contains a non-digit or is followed by
 anything except a `multiplier` in the table above.
 
+読者は prefixを理解できなければ失敗しなければならない。
+読者は、amountが非数字を含んでいたり、上記の表のmultiplier以外の何かが続くならば失敗するべきである。
+
 A reader SHOULD indicate if amount is unspecified, otherwise it MUST
 multiply `amount` by the `multiplier` value (if any) to derive the
 amount required for payment.
+
+読者は、金額が指定されていないかどうかを示すべきであり、
+そうでなければ、支払いで要求される金額を導くためにamountにmultiplierの値（もしあれば）を掛けなければならない。
 
 ## Rationale
 
 The `amount` is encoded into the human readable part, as it's fairly
 readable and a useful indicator of how much is being requested.
 
+amountは、可読部分にencodeされる。
+非常に読みやすく、どれくらいの量が要求されているかを示す有用な指標である。
+
 Donation addresses often don't have an associated amount, so `amount`
 is optional in that case. Usually a minimum payment is required for
 whatever is being offered in return.
+
+寄付アドレスには関連するamountがないことが多いので、そのケースではamountはoptionalである。
+おつりで提供されるものは、通常最低限の支払いが必要である。
 
 # Data Part
 
 The data part of a Lightning invoice consists of multiple sections:
 
+Lightning invoiceのデータ部分は、複数のsectionsで構成されている：
+
 1. `timestamp`: seconds-since-1970 (35 bits, big-endian)
 1. zero or more tagged parts
 1. `signature`: bitcoin-style signature of above (520 bits)
+
+（区切り）
+
+1. timestamp：1970年からの秒（35 bits, big-endian）
+1. ゼロ個以上のタグ付けされた部品
+1. signature：上記のbitcoin-style signature（520 bits）
 
 ## Requirements
 
@@ -93,8 +151,16 @@ data part (excluding the signature) with zero bits appended to pad the
 data to the next byte boundary, with a trailing byte containing
 the recovery ID (0, 1, 2 or 3).
 
+作者はtimestampに、big-endianのUTCで1970年1月1日の真夜中0時からの秒数を設定しなければならない。
+作者はsignatureに、UTF-8のバイト列で表現された可読部分のSHA2 256-bit hashの、
+有効な512-bit secp256k1 signature（UTF-8バイトで表される）設定する。
+可読部分には、データ部分（signatureを除く）にデータを次のバイト境界にパディングするためにゼロビットを付加し、
+recovery ID（0、1、2または3）を含む末尾バイトを付加される。
+
 A reader MUST check that the `signature` is valid (see the `n` tagged
 field specified below).
+
+読者は、signatureが有効であることをチェックしなければならない（下記のnタグ付きフィールドを参照）。
 
 ## Rationale
 
@@ -103,15 +169,25 @@ standard actually supports hashing in bit boundaries, because it's not widely
 implemented. The recovery ID allows public-key recovery, so the
 identity of the payee node can be implied.
 
+SHA-2標準が実際にはビット境界でのハッシュをサポートしていても、それは広範には実装されていないため、
+signatureはバイトの整数をカバーする。
+recovery IDは被支払人nodeの身元を暗示することができるためpublic-keyの回復を可能にする。
+（？？？）
+
 ## Tagged Fields
 
 Each Tagged Field is of the form:
+
+各タグ付きフィールドの形式は次のとおりである：
+（typeがタグ。Bech32。32進数表現）
 
 1. `type` (5 bits)
 1. `data_length` (10 bits, big-endian)
 1. `data` (`data_length` x 5 bits)
 
 Currently defined tagged fields are:
+
+現在定義されているタグ付きフィールドは次のとおりである：
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment
 * `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee' or 'ナンセンス 1杯'
@@ -127,11 +203,31 @@ Currently defined tagged fields are:
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
 
+（区切り）
+
+* p（1）：data_length 52. 256-bit SHA256 payment_hash。これのpreimageは支払いの証拠を提供する
+* d（13）：data_length variable。支払い目的の簡単な説明（UTF-8）。 「1 cup of coffee」または「ナンセンス 1杯」
+* n（19）：data_length 53. 支払先nodeの33-byte public key
+* h（23）：data_length 52.支払い目的の256-bit記述（SHA256）。これは、639バイトを超える関連する説明を約束するために使用される、その場合の説明のトランスポートメカニズムはトランスポート固有であり、ここでは定義されない。
+* x（6）：data_length variable。expiry 期限（秒）（big-endian）。指定されていない場合、デフォルトは3600（1時間）である。
+* c（24）：data_length variable。ルートの最後のHTLCに使用するmin_final_cltv_expiry。指定されていない場合、デフォルトは9。
+* f（9）：バージョンに応じてdata_length variable。代用のfallback address：bitcoinの場合、これは5-bit versionから始まり、witness programまたはP2PKHまたはP2SH addressを含む。
+* r（3）：data_length variable。private routeに関する追加のルーティング情報を含む1つまたは複数のエントリ。複数のrフィールドが存在する可能性がある
+（以下を全部含めてrフィールドとなるのであろう）
+   * pubkey（264 bits）
+   * short_channel_id（64 bits）
+   * fee_base_msat（32 bits, big-endian）
+   * fee_proportional_millionths（32 bits, big-endian）
+   * cltv_expiry_delta（16 bits, big-endian）
+
 ### Requirements
 
 A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` that will be given
 in return for payment.
+
+作者はちょうど1つのpフィールドを含めなければならず、
+支払いの代償として与えられるpayment_preimageのSHA-2 256-bit hashにpayment_hashを設定しなければならない。
 
 A writer MUST include either exactly one `d` or exactly one `h` field. If included, a
 writer SHOULD make `d` a complete description of
@@ -139,19 +235,40 @@ the purpose of the payment, and MUST use a valid UTF-8 string. If included, a wr
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
+作者は、ちょうど1つのdまたはちょうど1つのhフィールドのいずれかを含める必要がある。
+含まれている場合、作者は支払いの目的を完全に記述するべきで、有効なUTF-8文字列を使用しなければならない。
+もし含まれていれば、作者はhに不特定の手段によって利用可能なハッシュされた記述の原像を作成しなければならない。
+これは支払い目的の完全な記述であるべきである。
+（なんかちょっとおかしい？？？hに入れるのはハッシュ）
+
 A writer MAY include one `x` field.
+
+作者は、1つのxフィールドを含めることができる。
 
 A writer MAY include one `c` field, which MUST be set to the minimum `cltv_expiry` it
 will accept for the last HTLC in the route.
 
+作者は、1つのcフィールドを含めることができる。
+ルートの最後のHTLCで受け入れる最小のcltv_expiryを設定しなければならない。
+（ない場合は9）
+
 A writer SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+
+作者は、xとcのフィールドに可能な限り最小のdata_lengthを使うべきである。
 
 A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.
 
+作者は、1つのnフィールドを含めることができる。
+signatureを作成するために使用されたpublic keyに設定されなければならない。
+
 A writer MAY include one or more `f` fields. For bitcoin payments, a writer MUST set an
 `f` field to a valid witness version and program, or `17` followed by
 a public key hash, or `18` followed by a script hash.
+
+作者は、1つ以上のfフィールドを含めることができる。
+bitcoinの支払いの場合、作成者は有効なwitness versionとprogramにfフィールドを設定するか、
+17に続けてpublic key hashを指定するか、18に続いてscript hashを設定しなければならない。
 
 A writer MUST include at least one `r` field if there is not a
 public channel associated with its public key. The `r` field MUST contain
@@ -161,21 +278,44 @@ node ID of the start of the channel; `short_channel_id` is the short channel ID
 field to identify the channel; and `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message). A writer MAY include more than one `r` field to
 provide multiple routing options.
 
+作者は、public keyに関連付けられたpublic channelがない場合、少なくとも1つのrフィールドを含めなければならない。
+rフィールドは、public nodeから最終的な宛先への順方向ルートを示す、1つ以上の順序付けられたエントリを含めなければならない。
+各エントリについて、
+pubkeyはchannelの始点のnode IDである；
+short_channel_idは、channelを識別する短いchannel IDフィールドである；
+fee_base_msat、fee_proportional_millionths、およびcltv_expiry_deltaは、BOLT＃7で指定されたとおりである。
+作者は、複数のルーティングオプションを提供するために複数のフィールドを含めることができる。
+（channel_updateのフィールドを含めるのであろう）
+
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
+
+作者は、フィールドデータを0を使って5ビットの倍数にパディングしなければならない。
 
 If a writer offers more than one of any field type, it MUST specify
 the most-preferred field first, followed by less-preferred fields in
 order.
 
+作者が複数のフィールドタイプを提供する場合は、最も優先順位の高いフィールドを最初に指定しなければならず、
+優先順位の低いフィールドを順番に指定しなければならない。
+
 A reader MUST skip over unknown fields, an `f` field with unknown
 `version`, or a `p`, `h`, or `n` field that does not have `data_length` 52,
 52, or 53 respectively.
 
+読者は、未知のフィールド、未知のバージョンを持つfフィールド、
+またはdata_length 52、52または53をそれぞれ持たないp、h、またはnフィールドをスキップしなければならない。
+
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
 
+読者は、hフィールドのSHA-2 256がハッシュされた記述と正確に一致することをチェックしなければならない。
+
 A reader MUST use the `n` field to validate the signature instead of
 performing signature recovery if a valid `n` field is provided.
+
+有効なnフィールドが提供されている場合、署名回復を実行するのではなく、
+署名を検証するために読者はnフィールドを使用しなければならない。
+（signature recoveryってなに？？？）
 
 ### Rationale
 
@@ -184,10 +324,19 @@ compatible. `data_length` is always a multiple of 5 bits, for easy
 encoding and decoding. For fields that we expect may change, readers
 also ignore ones of different length.
 
+type-and-lengthフォーマットにより、将来の拡張機能に下位互換性を持たせることができる。
+data_lengthは、エンコードとデコードを容易にするために、常に5ビットの倍数である。
+変更が予想されるフィールドについて、読者は異なる長さのものも無視する。
+
 The `p` field supports the current 256-bit payment hash, but future
 specs could add a new variant of different length, in which case
 writers could support both old and new, and old readers would ignore
 the one not the correct length.
+
+pフィールドは現在の256-bit payment hashをサポートしているが、
+将来の仕様では異なる長さの新しい別形を追加できる。
+その場合、作者は古いものと新しいものの両方をサポートすることができ、
+古い読者は正しい長さではないものを無視する。
 
 The `d` field allows inline descriptions, but may be insufficient for
 complex orders; thus the `h` field allows a summary, though the method
@@ -195,13 +344,24 @@ by which the description is served is as-yet unspecified and will
 probably be transport dependent. The `h` format could change in future
 by changing the length, so readers ignore it if it's not 256 bits.
 
+dフィールドはインラインの記述を可能にするが、複雑な注文には不十分であろう。
+従って、hフィールドは要約を可能にするが、記述が提供される方法はまだ指定されておらず、おそらくトランスポート依存である。
+長さを変えることによって将来hのフォーマットが変わる可能性があるので、読者はそれが256ビットでなければそれを無視する。
+
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring signature recovery.
+
+nフィールドは、署名回復を要求するのではなく、宛先node IDを明示的に指定するために使用できる。
 
 The `x` field gives warning as to when a payment will be
 refused; this is mainly to avoid confusion. The default was chosen
 to be reasonable for most payments and to allow sufficient time for
 on-chain payment if necessary.
+
+xフィールドは、支払いが拒否される時期を警告する；これは主に混乱を避けるためである。
+デフォルトは、ほとんどの支払いに対して合理的であり、
+必要に応じてon-chainの支払いに十分な時間を与えるように選択された。
+（LNを使わずに支払う）
 
 The `c` field gives a way for the destination node to require a specific
 minimum CLTV expiry for its incoming HTLC. Destination nodes may use this
@@ -210,20 +370,38 @@ on their fee estimation policy and their sensitivity to time locks. Note
 that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
+cフィールドは、着信nodeが着信HTLCに対して特定のminimum CLTV expiryを要求する方法を与える。
+宛先nodeは、fee estimation policyとtime locksに対する感応度に応じて、これを使用してデフォルトのものより高い、
+より控えめな値を要求することがある。（厳しくないという意味で控えめ）
+注：ルート内のremote nodesはchannel_updateメッセージに必要なcltv_expiry_deltaを指定する。
+彼らはいつでも更新する可能性がある。
+
 The `f` field allows on-chain fallback. This may not make sense for
 tiny or time-sensitive payments, however. It's possible that new
 address forms will appear, and so multiple `f` fields in an implied
 preferred order help with transition, and `f` fields with versions 19-31
 will be ignored by readers.
 
+fフィールドはon-chainの代用を可能にする。
+しかし、これは小額または時間に敏感な支払いには意味をなさないかもしれない。
+新しいアドレスフォームが現れる可能性があるため、暗黙の優先順の複数のfフィールドが移行に役立ち、
+バージョン19-31のfフィールドは読者によって無視される。
+
 The `r` field allows limited routing assistance: as specified it only
 allows minimum information to use private channels, but it could also
 assist in future partial-knowledge routing.
+
+rフィールドは、限定されたルーティング支援を可能にする：
+指定されたように、private channelsを使用するための最小限の情報のみを許すが、
+将来の部分知識ルーティングを支援することもできる。
 
 ### Security Considerations for Payment Descriptions
 
 Payment descriptions are user-defined and provide a potential avenue for
 injection attacks, both in the process of rendering and persistence.
+
+Payment descriptionsはユーザ定義であり、描画処理中と永続化中の両方で、注入攻撃の可能性
+を与える。
 
 Payment descriptions should always be sanitized before being displayed in
 HTML/Javascript contexts, or any other dynamically interpreted rendering
@@ -232,15 +410,28 @@ reflected XSS attacks when decoding and displaying payment descriptions. Avoid
 optimistically rendering the contents of the payment request until all
 validation, verification, and sanitization have been successfully completed.
 
+Payment descriptionsは、HTML / Javascriptコンテキストまたはその他の動的に解釈されるレンダリングフレームワークで表示される前に、
+必ずサニタイズする必要がある。
+実装者は、Payment descriptionsをデコードして表示する際に、reflected XSS attacksの可能性に注意を払う必要がある。
+すべてのvalidation、verification、およびsanitizationが正常に完了するまで、支払い要求の内容を楽観的に表示しないこと。
+
 Furthermore, consider using prepared statements, input validation, and/or
 escaping to protect against injection vulnerabilities against persistence
 engines that support SQL or other dynamically interpreted querying languages.
 
-* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+さらに、prepared statements、input validation、
+および/または、SQLやその他のdynamically interpreted querying languagesをサポートする永続性エンジンに対する脆弱性注入から保護するために、escapingを使用することを検討しなさい。
+
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_%28Cross_Site_Scripting%29_Prevention_Cheat_Sheet)
 * [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
 * [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
 
+（上記リンクのURL表記がMarkdownの表記とコンフリクトするので少し変更した）
+
 Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+
+Little Bobby Tablesの学校のようにしないでください。
+（SQL Injectionの例。）
 
 # Payer / Payee Interactions
 
@@ -249,14 +440,26 @@ but it's worth noting that [BOLT #5](05-onchain.md) specifies that the payee SHO
 accept up to twice the expected `amount`, so the payer can make
 payments harder to track by adding small variations.
 
+これらは通常Lightning BOLTシリーズの他の部分で定義されているが、
+注目すべきは、
+BOLT＃5が、受取人が期待されるamountの２倍まで受け入れるべきであると指定しており、
+支払人は小額のバリエーションを追加することで支払いの追跡を困難にすることができる。
+（どういうこと？？？）
+
 The intent is that the payer recover the payee's node ID from the
 signature, and after checking that conditions such as fees,
 expiry, and block timeout are acceptable, attempt a payment. It can use `r` fields to
 augment its routing information if necessary to reach the final node.
 
+その意図は、支払人が署名から受取人のnode IDを復元し、手数料、有効期限、ブロックのタイムアウトなどの条件が満たされていることを確認した後、
+支払いを試みることである。（？？？）
+rフィールドを使用して、必要に応じて最終nodeに到達するためにルーティング情報を増やすことができる。
+
 If the payment succeeds but there is a later dispute, the payer can
 prove both the signed offer from the payee and the successful
 payment.
+
+支払いが成功したが、その後の紛争がある場合、支払人は、受取人からの署名付き申し出と成功した支払いの両方を証明することができる。
 
 ## Payer / Payee Requirements
 
@@ -268,7 +471,17 @@ specified by the `r` field to route to the payee. A payer SHOULD consider the
 fee amount and payment timeout before initiating payment. A payer
 SHOULD use the first `p` field that it did not skip as the payment hash.
 
+支払人は、timestamp + expiryが過ぎた後に支払いを試みるべきではない。
+そうでなければ、Lightningの支払いが失敗した場合、
+支払人は支払いを理解している最初のfフィールドで与えられたアドレスを使用することができる。
+（ここのOtherwiseがわからない？？？期限が切れたあとにやるの？？？）
+支払人は、rフィールドで指定されたchannelのシーケンスを使用して受取人にルーティングすることができる。
+支払人は支払いを開始する前に手数料と支払いのタイムアウトを考慮すべきである。
+支払人は、payment hashとしてスキップしなかった最初のpフィールドを使用すべきである。
+
 A payee SHOULD NOT accept a payment after `timestamp` plus `expiry`.
+
+受取人は、timestamp + expiry満了後に支払いを受け入れるべきではない。
 
 # Implementation
 
@@ -409,7 +622,7 @@ Breakdown:
   * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160 bit P2PKH address
 * `r`: tagged field: route information
   * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 = 164)
-    * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`: 
+    * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`:
       * pubkey: `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
       * `short_channel_id`: 0102030405060708
       * `fee_base_msat`: 1 millisatoshi
