@@ -3,11 +3,6 @@
 （ほとんどGoogle翻訳まま。意味が通らないところだけ修正。）
 （ところどころコメント有。）
 
-（本家のhttp://noiseprotocol.org/noise.html#dh-functionsに対して、微妙に記法の統一感が崩れていて読みにくい。
-たとえばDHの戻りが全てssになっているが、本家ではee、es、se、ssが区別されている。
-ssはshared secretではなくstatic,staticなので。あと本家ではDHの引数の順番が逆になっている？？？）
-
-
 All communications between Lightning nodes is encrypted in order to
 provide confidentiality for all transcripts between nodes and is authenticated in order to
 avoid malicious interference. Each node has a known long-term identifier that
