@@ -3,7 +3,7 @@
 The peer channel protocol has three phases: establishment, normal
 operation, and closing.
 
-ピアチャネルプロトコルには、establishment、normal operation、およびclosingという3つのフェーズがあります。
+ピアチャネルプロトコルには、establishment、normal operation、およびclosingという3つのフェーズがある。
 
 # Table of Contents
 
@@ -468,16 +468,17 @@ The receiver:
 	- MUST reject the channel.
   - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
 	- MUST reject the channel.
+
 Other fields have the same requirements as their counterparts in `open_channel`.
 
 受信者：
-	- open_channelメッセージ内のchain_hashの値が受信側に知られていないチェーンのハッシュに設定されている場合：
-	  - チャネルを拒絶しなければならない。
-	- minimum_depthが不当に大きい場合：
-	  - チャンネルを拒否してもよい。
-	- channel_reserve_satoshisが、open_channelメッセージ内のdust_limit_satoshisより少ない場合：
-	  - チャネルを拒絶しなければならない。
-	- open_channelメッセージのchannel_reserve_satoshisが、dust_limit_satoshisより少ない場合：
+  - open_channelメッセージ内のchain_hashの値が受信側に知られていないチェーンのハッシュに設定されている場合：
+    - チャネルを拒絶しなければならない。
+  - minimum_depthが不当に大きい場合：
+    - チャンネルを拒否してもよい。
+  - channel_reserve_satoshisが、open_channelメッセージ内のdust_limit_satoshisより少ない場合：
+    - チャネルを拒絶しなければならない。
+  - open_channelメッセージのchannel_reserve_satoshisが、dust_limit_satoshisより少ない場合：
     - チャネルを拒絶しなければならない。
 
 他のフィールドには、open_channelの対応するフィールドと同じ要件がある。
@@ -750,7 +751,7 @@ A receiving node:
   - funding_signed（funderの場合）またはfunding_created（fundeeの場合）が受信されていない場合：
     - 接続に失敗するべきである
   - scriptpubkeyが上記のいずれかの形式でない場合：
-　  - 接続に失敗するべきである。
+    - 接続に失敗するべきである。
   - それはまだfunding_lockedを送信していない場合：
     - shutdownメッセージにshutdownで応答することができる
   - いったんピアに未処理の更新がない場合、すでにそれがshutdownを送信していない限り：
@@ -758,7 +759,7 @@ A receiving node:
   - 両方のノードがoption_upfront_shutdown_script featureをアドバタイズし、
   受信ノードが、open_channelまたはaccept_channelの中の、ゼロでない長さのshutdown_scriptpubkeyを受信した場合に、
   shutdown_scriptpubkeyとscriptpubkeyが等しくない場合：
-　  - 接続に失敗するべきである。
+    - 接続に失敗するべきである。
 
 #### Rationale
 
