@@ -964,6 +964,14 @@ applied them via `revoke_and_ack`.
 直感的に反するが、これらの更新は、他のノードのcommitment transactionに適用される。
 ノードは、遠隔ノードがrevoke_and_ackを介してそれを適用したことを確認すると、
 それらの更新をそれ自身のcommitment transactionに追加するだけである。
+（XXX: ここすごい大事。ここを文字通りに理解する。
+local commitment transactionは、update_送信では更新されず（直感に反するのはここ）、
+update_受信か、revoke_and_ack受信で更新される。
+つまり、全て相手のmessageを受信したタイミングで更新される。
+全て片方向のmessageで更新される！
+そうでないと、あるmessage送信と別のmessage受信のタイミングの前後関係がクリティカルなときに、
+違いの認識する片側の（例えばBのlocal）commitment transactionの状態にズレが生じ、signatureが合わなくなる。
+）
 
 Thus each update traverses through the following states:
 
