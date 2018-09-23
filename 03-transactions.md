@@ -2,6 +2,14 @@
 
 This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. This consists of the funding transaction output script, the commitment transactions, and the HTLC transactions.
 
+これは、署名が有効であることを確実にするために両者が合意する必要がある、
+オンチェーン・トランザクションの正確なフォーマットを詳述する。
+これは、
+funding transaction output script、
+commitment transactions、
+およびHTLC Transactions
+で構成される。
+
 # Table of Contents
 
   * [Transactions](#transactions)
@@ -44,9 +52,17 @@ This details the exact format of on-chain transactions, which both sides need to
 
 Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
 
+辞書式順序：BIP69参照。
+
 ## Use of Segwit
 
 Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> (P2WSH) outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+
+ここで使用されているほとんどのトランザクション出力は、pay-to-witness-script-hash BIP141（P2WSH）出力である。
+P2SHのSegwitバージョンである。
+このような出力を行うには、witness stackの最後の項目が、
+使用されているP2WSH出力を生成するために使用された実際のスクリプトでなければならない。
+この最後の項目は、この文書の残りの部分を簡潔にするために省略されている。
 
 ## Funding Transaction Output
 
@@ -55,6 +71,14 @@ Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](h
 `2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
 
 * Where `pubkey1` is the numerically lesser of the two DER-encoded `funding_pubkey` and where `pubkey2` is the numerically greater of the two.
+
+* fundingの出力スクリプトはP2WSHである：
+
+2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG
+
+* pubkey1は、
+2つDER符号化されたfunding_pubkeyの数値的に小さい方で、
+pubkey2は両者の数値的に大きい方である。
 
 ## Commitment Transaction
 
@@ -66,7 +90,17 @@ Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](h
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 
+* version: 2
+* locktime: 上位8ビットは0x20、下位24ビットは隠されたcommitment transaction numberの下位24ビット
+* txin count: 1
+   * `txin[0]` outpoint: funding_createdメッセージからの、txidおよびoutput_index
+   * `txin[0]` sequence: 上位8ビットは0x20、下位24ビットは隠されたcommitment transaction numberの下位24ビット
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
+
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
+
+48ビットのcommietment transaction numberは、以下の48ビットの下位ビットのXORによって隠される：
 
     SHA256(payment_basepoint from open_channel || payment_basepoint from accept_channel)
 
@@ -75,18 +109,44 @@ case of unilateral close, yet still provides a useful index for both
 nodes (who know the `payment_basepoint`s) to quickly find a revoked
 commitment transaction.
 
+これは、unilateral closeの場合にチャネル上でなされたコミットメントの数を不明瞭にするが、
+revoked commitment transactionを迅速に見つけるために、
+両方のノード（payment_basepointsを知っている）に有用なインデックスを提供する。
+
 ### Commitment Transaction Outputs
 
 To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs that return funds to the owner of the commitment transaction (a.k.a. the "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second-stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
+penalty transactionsの機会を可能にするには、revoked commitment transactionの場合、
+commitment transactionの所有者（「local node」と呼ばれる）に資金を返すすべてのアウトプットを
+to_self_delayブロック遅らせなければならない。
+この遅延は、第2段階のHTLC transaction
+（local nodeによって受け入れられたHTLCsのためのHTLC-success、
+local nodeが提供するHTLCsのためのHTLC-timeout）
+で行われる。
+
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
+HTLC outputsのための分離されたtransaction stageの理由は、
+HTLCsがto_self_delay遅延内にあってもタイムアウトまたは履行できるようにするためである。
+そうしないと、HTLC上で必要な最小限のタイムアウトがこの遅延によって長くなり、ネットワークを通過するHTLCsのタイムアウトが長くなる。
+（XXX: to_self_delayをタイムアウトに加算しても、revoked transactionsを回収する猶予にはならないので意味がないのでは？？？）
+
 The amounts for each output MUST be rounded down to whole satoshis. If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+
+各出力の金額は、satoshis単位に切り捨てられなければならない。
+この金額からHTLC transactionの手数料を差し引いた金額がcommitment transactionの所有者のdust_limit_satoshisの設定額を下回っている場合は、
+出力を生成してはならない（したがって、fundsは手数料に追加される）。
 
 #### `to_local` Output
 
 This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
+
+この出力は、このcommitment transactionの所有者に資金を送り返すため、
+OP_CSVを使用してタイムロックしなければならない。
+それは、revocation private keyを知っていれば、相手方が遅滞なく主張することができる。
+出力は、version-0 P2WSHで、witness scriptがある：
 
     OP_IF
         # Penalty transaction
@@ -101,19 +161,33 @@ This output sends funds back to the owner of this commitment transaction and thu
 
 The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
 
+この出力は、
+nSequenceフィールドにto_self_delayが設定された（その期間が経過した後にのみ有効とすることができる）、
+以下のwitnessのtransactionによって費やされる：
+
     <local_delayedsig> 0
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
+revoked commitment transactionが公表された場合、相手方は次のwitnessですぐにこのoutputを費やすことができる：
+
     <revocation_sig> 1
+
+（XXX: 鍵の導出は後述）
 
 #### `to_remote` Output
 
 This output sends funds to the other peer and thus is a simple P2WPKH to `remotepubkey`.
 
+このoutputは他のピアに資金を送り、従ってremotepubkeyへの単純なP2WPKHである。
+
 #### Offered HTLC Outputs
 
 This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
+
+このoutputは、HTLC-timeout後のHTLC-timeout transactionか、
+payment preimageかrevocation keyを使用したremote nodeのいずれかに資金を送る。
+このoutputは、witness script付きのP2WSHである：
 
     # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
@@ -133,17 +207,30 @@ This output sends funds to either an HTLC-timeout transaction after the HTLC-tim
 
 The remote node can redeem the HTLC with the witness:
 
+remote nodeはこのwitnessでこのHTLCを償還できる：
+（XXX: 途中のOP_NOTIFのところはpayment_preimageのサイズが32であるってだけの比較だったような）
+
     <remotehtlcsig> <payment_preimage>
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
+
+revoked commitment transactionが発行された場合、remote nodeは次のwitnessですぐにこのoutputを費やすことができる：
 
     <revocation_sig> <revocationpubkey>
 
 The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below.
 
+送信ノード（XXX: local node）は、後述するように、HTLCが期限切れになると、
+HTLC-timeout transactionを使用してHTLCを期限切れにさせることができる。
+（XXX: HTLC-timeout transaction参照。0 <remotehtlcsig> <localhtlcsig> 0）
+
 #### Received HTLC Outputs
 
 This output sends funds to either the remote node after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
+
+このoutputは、HTLC-timeout後、またはrevocation keyを使用してremote nodeに資金を送付するか、
+payment preimageが成立したHTLC-success transactionに資金を送る。
+outputは、witness script付きのP2WSHである。
 
     # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
@@ -165,13 +252,22 @@ This output sends funds to either the remote node after the HTLC-timeout or usin
 
 To timeout the HTLC, the remote node spends it with the witness:
 
+HTLCをタイムアウトさせるために、remote nodeはwitnessと一緒にそれを費やします：
+(XXX: # To remote node after timeout.のところ。0はサイズが32じゃないものを入れているだけだろう)
+
     <remotehtlcsig> 0
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
+revoked commitment transactionが発行された場合、remote nodeは次のwitnessですぐにこのoutputを費やすことができる：
+
     <revocation_sig> <revocationpubkey>
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
+
+HTLCを償還するには、後述するようにHTLC-success transactionを使用する。
+
+（XXX: 0 <remotehtlcsig> <localhtlcsig> <payment_preimage>）
 
 ### Trimmed Outputs
 
@@ -182,12 +278,21 @@ to the commitment transaction fee. For HTLCs, it needs to be taken into
 account that the second-stage HTLC transaction may also be below the
 limit.
 
+各ピアは、それを下回る出力を生成すべきではないdust_limit_satoshisを指定する。
+生成されないこれらの出力は「trimmed」と呼ばれる。
+trimmed outputは作成するには小さすぎると見なされ、commitment transaction feeに追加される。
+HTLCsでは、第2段階のHTLC transactionも制限を下回る可能性があることを考慮する必要がある。
+
 #### Requirements
 
 The base fee:
   - before the commitment transaction outputs are determined:
     - MUST be subtracted from the `to_local` or `to_remote`
     outputs, as specified in [Fee Calculation](#fee-calculation).
+
+基本料金：
+  - commitment transaction outputsが決定される前に：
+    - Fee Calculationで指定されているように、to_localまたto_remote outputsから減算する必要がある。
 
 The commitment transaction:
   - if the amount of the commitment transaction `to_local` output would be
@@ -215,9 +320,32 @@ less than `dust_limit_satoshis` set by the transaction owner:
       - MUST be generated as specified in
       [Received HTLC Outputs](#received-htlc-outputs).
 
+The commitment transaction：
+  - commitment transaction to_local outputの量が、transaction所有者によって設定されたdust_limit_satoshis未満の場合：
+    - そのoutputを含んではいけない。
+  - そうでなければ：
+    - `to_local` Outputで指定された通りに生成されなければならない。
+  - commitment transaction to_remote outputの量が、transaction所有者によって設定されたdust_limit_satoshis未満の場合：
+    - そのoutputを含んではいけない。
+  - そうでなければ：
+    - `to_remote` Outputで指定された通りに生成されなければならない。
+  - すべてのoffered HTLCについて：
+    - HTLC額からHTLC-timeout feeを差し引いた金額が、transaction所有者によって設定されたdust_limit_satoshis未満の場合：
+      - そのoutputを含んではいけない。
+    - そうでなければ：
+      - Offered HTLC Outputsで指定された通りに生成されなければならない 。
+  - すべてのreceived HTLCについて：
+    - HTLC額からHTLC-success feeを差し引いた金額が、transaction所有者によって設定されたdust_limit_satoshis未満の場合：
+      - そのoutputを含んではいけない。
+    - そうでなければ：
+      - Offered HTLC Outputsで指定された通りに生成されなければならない 。
+
 ## HTLC-Timeout and HTLC-Success Transactions
 
 These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction that can be spent by a valid penalty transaction.
+
+これらのHTLC transactionsは、HTLC-timeout transactionがタイムロックされていることを除いてほぼ同じである。
+HTLC-timeout transactionは、有効なpenalty transactionによって費やされるtransactionでもある。
 
 * version: 2
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
@@ -230,7 +358,22 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
 
+* version: 2
+* locktime: HTLC-successでは0、HTLC-timeoutではcltv_expiry
+* txin count: 1
+   * `txin[0]` outpoint: commitment transactionのtxidと、commitment transactionのHTLC outputと一致するoutput_index
+   * `txin[0]` sequence: `0`
+   * `txin[0]` script bytes: `0`
+   * `txin[0]` witness stack:
+   HTLC-successでは、0 <remotehtlcsig> <localhtlcsig> <payment_preimage>。
+   HTLC-timeoutでは、0 <remotehtlcsig> <localhtlcsig> 0
+* txout count: 1
+   * `txout[0]` amount: HTLC金額から手数料を差し引いた金額（Fee Calculation参照）
+   * `txout[0]` script: 以下に示す、witness scriptを含むversion-0 P2WSH
+
 The witness script for the output is:
+
+outputのwieness scriptは次のとおりである：
 
     OP_IF
         # Penalty transaction
@@ -245,9 +388,14 @@ The witness script for the output is:
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1`, and to collect the output, the local node uses an input with nSequence `to_self_delay` and a witness stack `<local_delayedsig> 0`.
 
+これをペナルティで費やすためにremote nodeは`<revocationsig> 1`というwitness stackを使用し、
+出力を収集するためにlocal nodeはnSequenceがto_self_delayで`<local_delayedsig> 0`というwitness stackのinputを使用する。
+
 ## Closing Transaction
 
 Note that there are two possible variants for each node.
+
+各nodeには2つの可能な変形があることに注意すること。
 
 * version: 2
 * locktime: 0
@@ -260,6 +408,19 @@ Note that there are two possible variants for each node.
    * `txout` amount: final balance to be paid to one node (minus `fee_satoshis` from `closing_signed`, if this peer funded the channel)
    * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown` message
 
+* version: 2
+* locktime: 0
+* txin count: 1
+   * `txin[0]` outpoint: funding_createdメッセージからのtxidおよびoutput_index
+   * `txin[0]` sequence: 0xFFFFFFFF
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
+* txout count: 0, 1 or 2
+   * `txout` amount: 1つのnodeに支払われる最終残高（マイナスclosing_signedのfee_satoshis、このピアがchannelに資金提供した場合）
+   * `txout` script: shutdownメッセージに含まれるこのnodeのscriptpubkeyで指定されているようにする
+
+（XXX: fee_satoshisはclosingのときに交渉された値）
+
 ### Requirements
 
 Each node offering a signature:
@@ -267,6 +428,12 @@ Each node offering a signature:
   - MUST subtract the fee given by `fee_satoshis` from the output to the funder.
   - MUST remove any output below its own `dust_limit_satoshis`.
   - MAY eliminate its own output.
+
+署名を提供する各node：
+  - それぞれの出力をsatoshis単位に丸めなければならない。
+  - funderのoutputからfee_satoshisで与えられたfeeを引かなければならない。
+  - dust_limit_satoshisを下回るoutputをすべて除去しなければならない。
+  - それ自身の出力を排除してもよい。
 
 ### Rationale
 
@@ -278,21 +445,43 @@ side uses its own `dust_limit_satoshis`, and the result can be a
 signature validation failure, if they disagree on what the closing
 transaction should look like.
 
+あるnodeが他のnodeのoutputが小さすぎてBitcoin network上での伝播を許可していないと判断し（別名「dust」）、
+別のnodeはそうではなく、そのoutputを破棄するには価値があるとみなした場合、
+closing時に回復できない差が生じる可能性がある。
+
+これは、それぞれの側が独自のものを使用する理由dust_limit_satoshisであり、
+結果として、closing transactionがどのようであるべきかについて意見が一致しない場合には、
+署名の検証に失敗する可能性がある。
+（XXX: dust_limit_satoshisの値は事前に知っているのに意見が一致しないことはあるのか？？？）
+
 However, if one side chooses to eliminate its own output, there's no
 reason for the other side to fail the closing protocol; so this is
 explicitly allowed. The signature indicates which variant
 has been used.
 
+しかし、一方の側が自身のoutputを排除することを選択した場合、
+他方の側がclosing Protocolに失敗する理由はない。
+これは明示的に許可されている。
+署名は、どの変形が使用されたかを示す。
+
 There will be at least one output, if `dust_limit_satoshis` is greater
 than twice the funding amount.
 
+dust_limit_satoshisが資金の2倍を超える場合、少なくとも1つのoutputがある。
+（XXX: 逆？？？）
+
 ## Fees
+
+（XXX: ここでのfeeはマイナーへのfee。中継nodeへのfeeはBOLT #07）
 
 ### Fee Calculation
 
 The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate_per_kw` and the
 *expected weight* of the transaction.
+
+commitment transactionsとHTLC transactionsのfee算出は、
+現在のfeerate_per_kwおよび transactionの予想されるweightに基づいている。
 
 The actual and expected weights vary for several reasons:
 
@@ -301,13 +490,28 @@ The actual and expected weights vary for several reasons:
 * The `to_remote` output may be below the dust limit.
 * The `to_local` output may be below the dust limit once fees are extracted.
 
+実際のweightと予想されるweightはいくつかの理由で変化する：
+
+* Bitcoinは、サイズが変わるDER-encoded signaturesを使用する。
+* Bitcoinはまた、可変長整数も使用するため、大きな数のoututsが1ではなく3バイトでエンコードされる。
+* to_remote outputは、dust limit以下である可能性がある。
+* to_local oputputから一旦feesが控除されると、dust limit以下である可能性がある。
+
 Thus, a simplified formula for *expected weight* is used, which assumes:
 
 * Signatures are 73 bytes long (the maximum length).
 * There are a small number of outputs (thus 1 byte to count them).
 * There are always both a `to_local` output and a `to_remote` output.
 
+したがって、期待されるweightのための簡略化された式が使用され、これは、
+
+* 署名は73バイト長（最大長）である。
+* 少量の出力がある（したがって、それらを1バイトとカウントする）。
+* 常にto_local outputとto_remote outputの双方がある。
+
 This yields the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
+
+これにより、以下のexpected weightsが得られる（計算の詳細はAppendix A）：
 
     Commitment weight:   724 + 172 * num-untrimmed-htlc-outputs
     HTLC-timeout weight: 663
@@ -315,15 +519,27 @@ This yields the following *expected weights* (details of the computation in [App
 
 Note the reference to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays. The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
 
+以下の要件におけるcommitment transactionの「base fee」への言及に注意すること。
+これは、funderが支払うものである。
+実際の手数料は、丸め込みとoutputsの切り捨てのため、ここで計算された金額よりも高くなることがある。
+
 #### Requirements
 
 The fee for an HTLC-timeout transaction:
   - MUST BE calculated to match:
     1. Multiply `feerate_per_kw` by 663 and divide by 1000 (rounding down).
 
+HTLC-timeout transactionのfee：
+  - 一致するように計算されなければならない：
+    1. feerate_per_kwに663を掛け、1000で割る（切り捨て）。
+
 The fee for an HTLC-success transaction:
   - MUST BE calculated to match:
     1. Multiply `feerate_per_kw` by 703 and divide by 1000 (rounding down).
+
+HTLC-success transactionのfee：
+- 一致するように計算されなければならない：
+    1. feerate_per_kwに703を掛け、1000で割る（切り捨て）。
 
 The base fee for a commitment transaction:
   - MUST be calculated to match:
@@ -332,14 +548,27 @@ The base fee for a commitment transaction:
     [Trimmed Outputs](#trimmed-outputs), add 172 to `weight`.
     3. Multiply `feerate_per_kw` by `weight`, divide by 1000 (rounding down).
 
+commitment transactionのbase fee：
+  - 一致するように計算されなければならない：
+    1. weight=724から始める。
+    2. コミットされた各HTLCに対して、その出力がTrimmed Outputsで指定されたとおりにトリムされない場合は 、weightに172を追加する。
+    3. feerate_per_kwにweightを掛け、1000で割る（切り捨て）。
+
 #### Example
 
 For example, suppose there is a `feerate_per_kw` of 5000, a `dust_limit_satoshis` of 546 satoshis, and a commitment transaction with:
 * two offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * two received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
+たとえば、feerate_per_kwが5000、dust_limit_satoshisが546satoshis、commitment transactionが以下とする：
+* 5000000、1000000millisatoshisの2つのoffered HTLCs（5000 and 1000 satoshis）
+* 7000000、800000millisatoshisの2つのreceived HTLCs（7000 and 800 satoshis）
+
 The HTLC-timeout transaction `weight` is 663, and thus the fee is 3315 satoshis.
 The HTLC-success transaction `weight` is 703, and thus the fee is 3515 satoshis
+
+HTLC-timeout transactionのweightは663であるため、feeは3315satoshisである。
+HTLC-success transactionのweightは703であるため、feeは3515satoshisである。
 
 The commitment transaction `weight` is calculated as follows:
 
@@ -359,22 +588,59 @@ The commitment transaction `weight` is calculated as follows:
 
 * The received HTLC of 800 satoshis is below 546 + 3515 so it is trimmed.
 
+commitment transaction weightは以下のように計算される。
+
+* weightは724で始まる。
+
+* 5000satoshisのoffered HTLCは546 + 3315を上回り、結果として：
+  * commitment transactionで5000satoshiのoutput
+  * このoutputを費やしている5000 - 3315satoshisのHTLC-timeout transaction
+  * weightが896に増加
+
+* 1000satoshisのoffered HTLCは546 + 3315未満であるので、トリミングされる。
+
+* 7000satoshisのreceived HTLCは546 + 3515を上回り、結果として：
+  * commitment transactionで7000satoshiのoutput
+  * このoutputを費やしている7000 - 3515satoshisのHTLC-success transaction
+  * weightが1068に増加
+
+* 800satoshisのreceived HTLCは546 + 3515未満であるので、トリミングされる。
+
 The base commitment transaction fee is 5340 satoshi; the actual
 fee (which adds the 1000 and 800 satoshi HTLCs that would make dust
 outputs) is 7140 satoshi. The final fee may be even higher if the
 `to_local` or `to_remote` outputs fall below `dust_limit_satoshis`.
 
+base commitment transaction feeは5340satoshiである。（XXX: 5000 * 1068 / 1000）
+実際のfeeは7140satoshiである（これにはdust outputsになる1000と800のHTLCsを追加する。XXX: feeに落ちた分。5340 + 1000 + 800）。
+dust_limit_satoshis未満のto_localかto_remote outputsが下に落ちて最終的なfeeは、さらに高い可能性がある。
+
 ### Fee Payment
 
 Base commitment transaction fees are extracted from the funder's amount; if that amount is insufficient, the entire amount of the funder's output is used.
+
+Base commitment transaction feesは、funderの資金から控除される。
+その資金が不十分であれば、funderのoutput全体が使用される。
+（XXX: funder's amountが全部使われてfeeに落ちるってことか。それ以上は払えない）
 
 Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
 contribute to fees.
 
+fee amountをto-funder outputから差し引いた後、
+そのoutputがdust_limit_satoshisを下回る可能性があり、
+したがってoutputがまたfeesに貢献することに注意しなさい。
+
 A node:
   - if the resulting fee rate is too low:
     - MAY fail the channel.
+
+node：
+  - 結果として得られるfee rateが低すぎる場合：
+    - channelが失敗してもよい。
+
+（XXX: feeが足りなくて結果としてfee rateが少なくなるようなcommitment transactionは作成できないだろう。
+そしてchannelは失敗し、直前のcommitment transactionが展開される？）
 
 ## Commitment Transaction Construction
 
@@ -383,6 +649,12 @@ algorithm for constructing the commitment transaction for one peer:
 given that peer's `dust_limit_satoshis`, the current `feerate_per_kw`,
 the amounts due to each peer (`to_local` and `to_remote`), and all
 committed HTLCs:
+
+このセクションは、前のセクションと一緒に一対のピアのためのcommitment transactionを構築するためのアルゴリズムを詳細に説明する：
+ピアのdust_limit_satoshis、
+現在のfeerate_per_kw、
+各ピアのための金額（to_localおよびto_remote）、
+およびコミット済みのすべてのHTLCsを考慮して。
 
 1. Initialize the commitment transaction input and locktime, as specified
    in [Commitment Transaction](#commitment-transaction).
@@ -400,6 +672,18 @@ committed HTLCs:
    add a [`to_remote` output](#to-remote-output).
 7. Sort the outputs into [BIP 69 order](#transaction-input-and-output-ordering).
 
+(XXX: 区切り)
+
+1. commitment transactionのinputとlocktimeをCommitment Transactionで指定されるように初期化する。
+2. コミットされたHTLCsをトリムする必要があるかどうかを計算する（Trimmed Outputs参照）。
+3. base commitment transaction feeを計算する。
+4. funder（to_localまたはto_remoteのいずれか）からこのbase feeを差し引く。端数切り捨て（Fee Payment参照）。
+5. すべてのoffered HTLCについて、トリムされていない場合は、offered HTLC outputに追加する。
+6. すべてのreceived HTLCについて、トリムされていない場合は、received HTLC outputに追加する。
+7. to_localの量がdust_limit_satoshis以上であれば、to_local outputに追加する。
+8. to_remoteの量がdust_limit_satoshis以上であれば、to_remote outputに追加する。
+9. 出力をBIP 69順に並べる。
+
 # Keys
 
 ## Key Derivation
@@ -407,6 +691,10 @@ committed HTLCs:
 Each commitment transaction uses a unique set of keys: `localpubkey` and `remotepubkey`.
 The HTLC-success and HTLC-timeout transactions use `local_delayedpubkey` and `revocationpubkey`.
 These are changed for every transaction based on the `per_commitment_point`.
+
+各commitment transactionは、独自のキーのセットを使用する：localpubkeyとremotepubkey。
+HTLC-successとHTLC-timeout transactionsはlocal_delayedpubkeyとrevocationpubkeyを使用する。
+これらは、per_commitment_pointに基づいてtransaction毎に変更される。
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -419,24 +707,50 @@ avoid storage of every commitment transaction, a _watcher_ can be given the
 the scripts required for the penalty transaction; thus, a _watcher_ need only be
 given (and store) the signatures for each penalty input.
 
+鍵の変更の理由は、revoked transactionsのtrustlessな監視を外部委託できるようにするためである。
+たとえwatcherが監視するtransaction IDを知っていて、それにHTLCと残高が含まれているかについて合理的な推測を行うことができても、
+そのようなwatcherはcommitment transactionの内容を決定できてはならない。
+
+にもかかわらず、すべてのcommitment transactionの保存を回避するために、
+watcherにはper_commitment_secretの値 （これはコンパクトに収納できる）と、
+penalty transactionに必要なスクリプトを再生成するために使用される、
+revocation_basepointとdelayed_payment_basepointが与えられる。
+したがって、watcherは、penalty inputごとに署名を付与（および格納）するだけでよい。
+
 Changing the `localpubkey` and `remotepubkey` every time ensures that commitment
 transaction ID cannot be guessed; every commitment transaction uses an ID
 in its output script. Splitting the `local_delayedpubkey`, which is required for
 the penalty transaction, allows it to be shared with the _watcher_ without
 revealing `localpubkey`; even if both peers use the same _watcher_, nothing is revealed.
 
+localpubkeyおよびをremotepubkeyを毎回変更することは、commitment transaction IDが推測されないことを保証する。
+すべてのcommitment transactionは、そのoutput scriptでIDを使用する。
+local_delayedpubkeyの分割は、それはpenalty transactionで必要とされる、
+localpubkeyを明らかにせずにwatcherと共有することを可能にする。
+両方のピアが同じwatcherを使用しても、何も明らかにされない。
+
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
 _watcher_, as it does not know the corresponding `per_commitment_secret` and
 cannot relate the `local_delayedpubkey` or `revocationpubkey` with their bases.
 
+最後に、正常なunilateral closeの場合でも、HTLC-successおよび/またはHTLC-timeout transactionsはwatcherに何も明らかにしない。
+watcherは、対応するper_commitment_secretを知らず、
+local_delayedpubkeyまたはrevocationpubkeyとそれらのベースを関連づけることができないため。
+（XXX: ？？？）
+
 For efficiency, keys are generated from a series of per-commitment secrets
 that are generated from a single seed, which allows the receiver to compactly
 store them (see [below](#efficient-per-commitment-secret-storage)).
 
+効率のために、キーは、受信者がそれらをコンパクトに格納することを可能にする単一のシードから生成される、
+per-commitment secretsから生成される（以下参照）。
+
 ### `localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation
 
 These pubkeys are simply generated by addition from their base points:
+
+これらのpubkeysは、base pointsへの加算によって単純に生成されます。
 
 	pubkey = basepoint + SHA256(per_commitment_point || basepoint) * G
 
@@ -446,8 +760,17 @@ uses the local node's `delayed_payment_basepoint`; the `local_htlcpubkey` uses t
 local node's `htlc_basepoint`; and the `remote_delayedpubkey` uses the remote
 node's `delayed_payment_basepoint`.
 
+localpubkeyは、local nodeのpayment_basepointを使用しています。
+remotepubkeyは、remote nodeのpayment_basepointを使用します。
+local_delayedpubkeyは、local nodeのdelayed_payment_basepointを使用します。
+local_htlcpubkeyは、local nodeのhtlc_basepointを使用します。
+そして、remote_delayedpubkeyは、remote nodeのdelayed_payment_basepointを使用します。
+
 The corresponding private keys can be similarly derived, if the basepoint
 secrets are known (i.e. the private keys corresponding to `localpubkey`, `local_htlcpubkey`, and `local_delayedpubkey` only):
+
+basepoint secretsが知られている場合は、対応するprivate keysを同様に導出することができる
+（つまり、localpubkey、local_htlcpubkeyおよびlocal_delayedpubkeyに対応するprivate keysのみ）：
 
     privkey = basepoint_secret + SHA256(per_commitment_point || basepoint)
 
@@ -462,12 +785,24 @@ can then derive the `revocationprivkey`, as it now knows the two secrets
 necessary to derive the key (`revocation_basepoint_secret` and
 `per_commitment_secret`).
 
+revocationpubkeyはブラインドキーである：
+local nodeがremote nodeのための新たなcommitmentを作成したい場合、
+それは自身のrevocation_basepointとremote nodeのper_commitment_pointを使用して、
+新しいrevocationpubkeyをそのcommitmentのために導出する。
+remote nodeがper_commitment_secretを明らかにした後に使用され（それによってcommitmentをrevokeする）、
+local nodeはそのときrevocationprivkey導出することができる、
+なぜなら、それは今キーを導出するために必要な2つの秘密を知っているので（revocation_basepoint_secretおよびper_commitment_secret）。
+
 The `per_commitment_point` is generated using elliptic-curve multiplication:
+
+per_commitment_pointは楕円曲線乗算を使用して生成される。
 
 	per_commitment_point = per_commitment_secret * G
 
 And this is used to derive the revocation pubkey from the remote node's
 `revocation_basepoint`:
+
+そしてこれはremote nodeのrevocation_basepointからrevocation pubkeyを導出するために使用される：
 
 	revocationpubkey = revocation_basepoint * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_point * SHA256(per_commitment_point || revocation_basepoint)
 
@@ -475,8 +810,13 @@ This construction ensures that neither the node providing the
 basepoint nor the node providing the `per_commitment_point` can know the
 private key without the other node's secret.
 
+この構成により、basepointを提供しているnodeも、per_commitment_pointを提供しているnodeも、
+他のnodeのsecretなしで、private keyを知ることができない。
+
 The corresponding private key can be derived once the `per_commitment_secret`
 is known:
+
+対応するprivate keyは、一旦per_commitment_secretが知られれば導出できる。
 
     revocationprivkey = revocation_basepoint_secret * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_secret * SHA256(per_commitment_point || revocation_basepoint)
 
@@ -486,14 +826,27 @@ A node:
   - MUST select an unguessable 256-bit seed for each connection,
   - MUST NOT reveal the seed.
 
+node：
+  - 各接続のために推測不可能な256ビットシードを選択しなければならず、
+  - シードを明らかにしてはいけない。
+
 Up to (2^48 - 1) per-commitment secrets can be generated.
+
+最大（2 ^ 48 - 1）のper-commitment secretsを生成することができる。
 
 The first secret used:
   - MUST be index 281474976710655,
     - and from there, the index is decremented.
 
+最初のsecretは使用される：
+  - インデックスは281474976710655（XXX: 0xffffffffffff）でなければならず、
+    - そこからインデックスが減分されます。
+
 The I'th secret P:
   - MUST match the output of this algorithm:
+
+I番目のsecret P：
+  - このアルゴリズムの出力と一致しなければならない：
 ```
 generate_from_seed(seed, I):
     P = seed
@@ -504,11 +857,19 @@ generate_from_seed(seed, I):
     return P
 ```
 
+（XXX: bitが0のところはなにも影響しない）
+
 Where "flip(B)" alternates the B'th least significant bit in the value P.
+
+「flip（B）」は、値PのB番目の最下位ビットを反転する。
 
 The receiving node:
   - MAY store all previous per-commitment secrets.
   - MAY calculate them from a compact representation, as described below.
+
+受信node：
+  - すべての以前のper-commitment secretsを保管してもよい。
+  - 下記のようにコンパクトな表現からそれらを計算してもよい。
 
 ## Efficient Per-commitment Secret Storage
 
@@ -518,16 +879,33 @@ array of 49 (value,index) pairs. Because, for a given secret on a
 and secrets are always received in descending order starting at
 `0xFFFFFFFFFFFF`.
 
+一連のsecretsの受信者は、49（value, index）ペアの配列にコンパクトに格納できる。
+なぜなら、2^X境界上の与えられたsecretに対して、次の2^X境界までの全てのsecretsが導き出されるからである。
+また、secretsは常に0xFFFFFFFFFFFFで始まる降順で受け取られる。
+（XXX: あとあとsecret生成のアルゴリズムからわかるように、降順となっているために受信していない未知の鍵の導出はできない）
+
 In binary, it's helpful to think of any index in terms of a *prefix*,
 followed by some trailing 0s. You can derive the secret for any
 index that matches this *prefix*.
+
+2進法では、prefixの後にいくつかの末尾0が続くindexを考えることが有用である。
+このprefixに一致するindexのsecretを派生させることができます。
 
 For example, secret `0xFFFFFFFFFFF0` allows the secrets to be derived for
 `0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF`, inclusive; and secret `0xFFFFFFFFFF08`
 allows the secrets to be derived for `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`,
 inclusive.
 
+例えば、secret 0xFFFFFFFFFFF0は、secret 0xFFFFFFFFFFF1から0xFFFFFFFFFFFF（それらも含む）の導出を可能にする。
+また、秘密0xFFFFFFFFFF08は、secret 0xFFFFFFFFFF09から0xFFFFFFFFFF0F（それらを含む）の導出を可能にする。
+
+（XXX: 0xFFFFFFFFFFF0あるいは0xFFFFFFFFFF08によるsecret導出において末尾0の部分ではなにもPを変更しないので、
+最下位の立っているビットの時のPがそのままsecretとなる）
+
 This is done using a slight generalization of `generate_from_seed` above:
+
+これは、上記のgenerate_from_seedのわずかな一般化を使用して行われる：
+（XXX: base secretが上記の0xFFFFFFFFFFF0や0xFFFFFFFFFF08のもので、Iはbits部分が同じでないといけない）
 
     # Return I'th secret given base secret whose index has bits..47 the same.
     derive_secret(base, bits, I):
@@ -542,6 +920,11 @@ Only one secret for each unique prefix need be saved; in effect, the number of
 trailing 0s is counted, and this determines where in the storage array the
 secret is stored:
 
+固有のprefixごとに1つのsecretしか保存する必要がない。
+実際には、末尾0の数がカウントされ、ストレージの配列のどこにsecretが格納されているかが決まる。
+
+（XXX: 末尾0より上の部分が一致するIについてsecretを導出できる）
+
     # a.k.a. count trailing 0s
     where_to_put_secret(I):
 		for B in 0 to 47:
@@ -550,8 +933,13 @@ secret is stored:
         # I = 0, this is the seed.
 		return 48
 
+（XXX: Iが0のとき、generate_from_seedの値はseedになる）
+
 A double-check, that all previous secrets derive correctly, is needed;
 if this check fails, the secrets were not generated from the same seed:
+
+以前のすべてのsecretsが正しく導出されるかどうかのダブルチェックが必要である。
+このチェックが失敗した場合、secretsは同じシードから生成されていない：
 
     insert_secret(secret, I):
 		B = where_to_put_secret(secret, I)
@@ -566,10 +954,22 @@ if this check fails, the secrets were not generated from the same seed:
 		known[B].index = I
 		known[B].secret = secret
 
+（XXX: 例えば0xFFFFFFFFFFF0のsecretの場合、
+0xFFFFFFFFFFF8、
+0xFFFFFFFFFFFC、
+0xFFFFFFFFFFFE、
+0xFFFFFFFFFFFF
+それぞれのsecretsでチェックすることになる）
+
 Finally, if an unknown secret at index `I` needs be derived, it must be
 discovered which known secret can be used to derive it. The simplest
 method is iterating over all the known secrets, and testing if each
 can be used to derive the unknown secret:
+
+最後に、index Iの未知のsecretを導出する必要がある場合は、
+それを導出するために使用できる既知のsecretを発見する必要がある。
+最も簡単な方法は、全ての既知のsecretsを繰り返し、
+それぞれが未知のsecretを導出するために使用できるかどうかをテストすることである。
 
 	derive_old_secret(I):
 		for b in 0 to len(secrets):
@@ -582,6 +982,9 @@ can be used to derive the unknown secret:
 This looks complicated, but remember that the index in entry `b` has
 `b` trailing 0s; the mask and compare simply checks if the index
 at each bucket is a prefix of the desired index.
+
+これは複雑に見えるが、エントリbのindexがb個の末尾0であることを思い出しなさい。
+このmaskと各バケットのindexが目的のindexのprefixであるかどうかを単純にチェックする。
 
 # Appendix A: Expected Weights
 
@@ -1551,4 +1954,3 @@ All of them use the following secrets (and thus the derived points):
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-
