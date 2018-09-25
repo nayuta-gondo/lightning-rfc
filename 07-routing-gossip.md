@@ -1421,6 +1421,8 @@ In the case where the `channel_announcement` is nonetheless missed,
 
 ## HTLC Fees
 
+（XXX: HTLC Feesはupdate_add_htlcの差分として中継nodeに渡される）
+
 ### Requirements
 
 The origin node:
