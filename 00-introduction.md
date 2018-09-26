@@ -182,7 +182,7 @@ This is version 0.
     information. This is how payments are made on the Lightning
     Network, rather than using Bitcoin-style addresses.
 
-* 請求書：
+* Invoice：
    * Lightning Network上の資金の要求。
    支払いの種類、支払い金額、有効期限、その他の情報が含まれる可能性がある。
    Bitcoin形式のアドレスを使用するのではなく、Lightning Networkで支払いを行う方法である。
