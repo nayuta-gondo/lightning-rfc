@@ -358,6 +358,8 @@ HTLC-timeout transactionは、有効なpenalty transactionによって費やさ�
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
 
+（XXX: 区切り）
+
 * version: 2
 * locktime: HTLC-successでは0、HTLC-timeoutではcltv_expiry
 * txin count: 1
@@ -365,8 +367,8 @@ HTLC-timeout transactionは、有効なpenalty transactionによって費やさ�
    * `txin[0]` sequence: `0`
    * `txin[0]` script bytes: `0`
    * `txin[0]` witness stack:
-   HTLC-successでは、0 <remotehtlcsig> <localhtlcsig> <payment_preimage>。
-   HTLC-timeoutでは、0 <remotehtlcsig> <localhtlcsig> 0
+   HTLC-successでは、`0 <remotehtlcsig> <localhtlcsig> <payment_preimage>`。
+   HTLC-timeoutでは、`0 <remotehtlcsig> <localhtlcsig> 0`
 * txout count: 1
    * `txout[0]` amount: HTLC金額から手数料を差し引いた金額（Fee Calculation参照）
    * `txout[0]` script: 以下に示す、witness scriptを含むversion-0 P2WSH
@@ -460,7 +462,7 @@ explicitly allowed. The signature indicates which variant
 has been used.
 
 しかし、一方の側が自身のoutputを排除することを選択した場合、
-他方の側がclosing Protocolに失敗する理由はない。
+他方の側がclosing protocolに失敗する理由はない。
 これは明示的に許可されている。
 署名は、どの変形が使用されたかを示す。
 
