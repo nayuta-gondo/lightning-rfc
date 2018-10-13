@@ -82,7 +82,7 @@ the output is considered to be its own *resolving* transaction.
 
 未使用の出力はunresolvedとみなされ、本書で説明するようにresolvedにできる。
 通常、これは別のresolving transactionでそれを費やすことによって達成される。
-後のウォレットの支出のためのoutputだけで十分である場合もあるが、
+後のウォレットの支出のためのoutputだけで注目すれば十分である場合もあるが、
 その場合、outputを含むtransactionはそれ自身がresolving transactionと見なされる。
 
 Outputs that are *resolved* are considered *irrevocably resolved*
