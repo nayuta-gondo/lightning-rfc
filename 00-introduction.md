@@ -166,6 +166,8 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
      main chain Bitcoin blockchainの場合、chain_hashの値は（16進数で）以下のように符号化されなければならない： 6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000。
 
+     (XXX: BTCとBCHのgenesis hashは同じだろうから、BCHはLNで使えないのだろうか？)
+
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
@@ -212,6 +214,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * Commitment revocation private key：
    * すべてのcommitment transactionには、
    他のpeerがすべてのアウトプットを即座に費やすことを可能にするユニークなcommitment revocation private-keyの値がある。
+   （XXX: 当方じゃなく「他の」方であるということが大事）
    このキーを明らかにすることは、古いcommitment transactionsを取り消す方法である。
    revocationをサポートするために、commitment transactionの各出力は、commitment revocation public keyを参照する。
    * _See container: commitment transaction_
@@ -229,7 +232,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * Commitment transaction：
    * funding transactionを費やすtransaction。
    各peerは、このtransactionのために他のpeerの署名を保持するので、それぞれは常に、それが費やすことができるcommitment transactionがある。
-   新しいcommitment transactionがネゴシエートされると、古いものはrevokedになります。
+   新しいcommitment transactionがネゴシエートされると、古いものはrevokedになる。
    * _See parts: commitment number, commitment revocation private key, HTLC, per-commitment secret_
    * _See related: closing transaction, funding transaction, penalty transaction_
    * _See types: revoked commitment transaction_
@@ -260,7 +263,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See category: node_
 
 * Hop：
-   * node。一般に、origin nodeとfinal nodeとの間に位置する中間node。
+   * node。一般に、origin nodeとfinal nodeとの間に位置するintermediate node。
    * _See category: node_
 
 * *HTLC*: Hashed Time Locked Contract.
@@ -297,9 +300,9 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
      that the feature MAY be disregarded by the other endpoint.
 
 * It's ok to be odd：
-   * フィーチャがオプションであるか強制サポートであるかを示す数値フィールドに適用されるルール。
-   偶数は、問題のフィーチャを両方のエンドポイントがサポートしなければならないことを示すが、
-   奇数はフィーチャが他のエンドポイントによって無視しても良いことを示す。
+   * 機能がオプションであるか強制サポートであるかを示す数値フィールドに適用されるルール。
+   偶数は、問題の機能を両方のエンドポイントがサポートしなければならないことを示すが、
+   奇数は機能が他のエンドポイントによって無視しても良いことを示す。
 
 * *MSAT*:
    * A millisatoshi, often used as a field name.
@@ -315,7 +318,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
 * Mutual close：
    * （1つの出力が小さすぎて、故に含まれない場合を除いて、）
-   各peersへの出力を伴う、funding transactionの条件のない支出を、ブロードキャストすることによって達成される、
+   各peersへの出力を伴う、funding transactionの条件のない消費を、ブロードキャストすることによって達成される、
    channelの協調的なclose。
    * _See related: revoked transaction close, unilateral close_
 
@@ -361,7 +364,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See derivation: payment hash_
 
 * Payment preimage：
-   * この秘密を知っている唯一の人である最終受取人が支払いを受けたことの証明。
+   * このsecretを知っている唯一の人である最終受取人が支払いを受けたことの証明。
    最終的な受信者は、資金を解放するためにpreimageを解放する。
    payment preimageは 、HTLCのpayment hashとしてハッシュされる。
    * _See container: HTLC_
@@ -377,6 +380,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * 互いに通信する2つのnodes。
       * channelを設定する前に、2人のpeersがお互いにgossipするであろう。
       * 2つのpeersは、それらが取引するchannelを確立するであろう。
+      (XXX: gossipはchannel確立と独立して行って良い)
    * _See related: node_
 
 * *Penalty transaction*:
@@ -388,7 +392,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
 * Penalty transaction：
    * commitment revocation private keyを使用して、revoked commitment transactionのすべての出力を費やすtransaction。
-   peerは、他のpeerがcommitment transactionをブロードキャストして「cheat」しようとすると、これを使用する。
+   peerは、他のpeerがcommitment transactionをブロードキャストしてずる「cheat」しようとすると、これを使用する。
    * _See related: closing transaction, commitment transaction, funding transaction_
 
 * *Per-commitment secret*:
@@ -402,6 +406,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * すべてのcommitment transactionはper-commitment secretからそのキーを導出する。
    per-commitment secretは、コンパクトに格納できるように、
    すべての以前のcommitmentsのための一連のper-commitment secretから生成される。
+   （XXX: shachain）
    * _See container: commitment transaction_
    * _See derivation: commitment revocation private key_
 
@@ -440,7 +445,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * An old *commitment transaction* that has been revoked because a new commitment transaction has been negotiated.
    * _See category: commitment transaction_
 
-* Revoked transaction close：
+* Revoked commitment transaction：
    * 新しいcommitment transactionがネゴシエートされたために取り消された古いcommitment transaction。
    * _See related: mutual close, unilateral close_
 
@@ -453,7 +458,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * Revoked transaction close：
    * revoked commitment transactionをブロードキャストすることによって達成される、
    不正なchannelのclose。
-   他のpeerはcommitment revocation secret keyを知っているので、
+   他方のpeerはcommitment revocation secret keyを知っているので、
    penalty transactionを作成することができる。
    * _See related: mutual close, unilateral close_
 
@@ -463,7 +468,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
   * _See related: channel_
 
 * Route：
-  * 1以上のhopsを横断し、origin nodeからfinal nodeまでの支払いを可能にするLightning Networkのパス。
+  * 1つ以上のhopsを横断し、origin nodeからfinal nodeまでの支払いを可能にするLightning Networkのパス。
   * _See related: channel_
 
 * *Sending node*:
@@ -498,7 +503,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * commitment transactionをブロードキャストすることによって達成される、非協力的なchannelのclose。
    このtransactionは、mutual close transactionよりも大きく（すなわち、非効率）、
    commitmentがブロードキャストされているpeerは、
-   以前にネゴシエートされた期間、自身のoutputsにアクセスできない。
+   以前にネゴシエートされた期間は、自身のoutputsにアクセスできない。
    * _See related: mutual close, revoked transaction close_
 
 ## Theme Song
