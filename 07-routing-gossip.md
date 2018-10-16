@@ -1624,7 +1624,7 @@ B→C。Bが4,999,999millisatoshiを直接Cに送っても、それはfeeをチ�
 
 **A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to
 pay B the fee it specified in the B->C `channel_update`, calculated as
-per [HTLC Fees](#htlc_fees):
+per [HTLC Fees](#htlc-fees):
 
 A→B→C。もしAが4,999,999millisatoshiをB経由でCに送るなら、
 [HTLC Fees]として計算した、B→Cのchannel_updateで指定したfeeをBに支払う必要がある：
