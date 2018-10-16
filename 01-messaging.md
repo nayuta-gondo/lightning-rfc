@@ -60,6 +60,7 @@ typeフィールドはpayloadフィールドをどのように解釈するかを
 個々のtypeの形式は、このリポジトリ内の仕様によって定義される。
 型はそれがit's ok to be oddルールに従っているので、
 nodeは受信者がそれを理解していることを確認せずに奇数のtypesを送信することができる。
+（XXX: あ、これtypeフィールドもこのルールか）
 
 A sending node:
   - MUST NOT send an evenly-typed message not listed here without prior negotiation.
