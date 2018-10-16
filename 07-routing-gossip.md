@@ -436,9 +436,6 @@ addressesはnodeに、ネットワーク接続を受け入れる意思をannounc
 
 The following `address descriptor` types are defined:
 
-次のaddress descriptorタイプが定義されている：
-
-   * `0`: padding; data = none (length 0)
    * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
    * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
    * `3`: Tor v2 onion service; data = `[10:onion_addr][2:port]` (length 12)
@@ -451,7 +448,8 @@ The following `address descriptor` types are defined:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
          `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
 
-   * 0：パディング; データ = なし（長さ0）
+次のaddress descriptorタイプが定義されている：
+
    * 1：ipv4; データ = [4:ipv4_addr][2:port]（長さ6）
    * 2：ipv6; データ = [16:ipv6_addr][2:port]（長さ18）
    * 3：Tor v2 オニオンサービス; データ = [10:onion_addr][2:port]（長さ12）
@@ -503,13 +501,13 @@ The origin node:
 
   - addrlenは、addressesのバイト数に設定する必要がある。
 
-  - MUST place non-zero typed address descriptors in ascending order.
+  - MUST place address descriptors in ascending order.
 
-  - ゼロ以外のタイプのaddress descriptorを昇順に配置する必要がある。
+  - address descriptorを昇順に配置する必要がある。
 
-  - MAY place any number of zero-typed address descriptors anywhere.
+  - SHOULD NOT place any zero-typed address descriptors anywhere.
 
-  - 任意の数のタイプゼロのaddress descriptorを任意の場所に配置することができる。
+  - ゼロタイプのaddress descriptorを任意の場所に配置すべきでない。
 
   - SHOULD use placement only for aligning fields that follow `addresses`.
 
@@ -675,13 +673,13 @@ Little Bobby Tablesの学校のようにしないでください。
 After a channel has been initially announced, each side independently
 announces the fees and minimum expiry delta it requires to relay HTLCs
 through this channel. Each uses the 8-byte channel shortid that matches the
-`channel_announcement` and the 1-bit `flags` field to indicate which end of the
+`channel_announcement` and the 1-bit `channel_flags` field to indicate which end of the
 channel it's on (origin or final). A node can do this multiple times, in
 order to change fees.
 
 channelが最初にannounceされた後、各側は、このchannelを介してHTLCを中継するために必要なfeeとminimum expiry deltaを独立して公表する。
 それぞれはchannel_announcementに一致する8バイトのshortidと、
-channelのどちらの終わり（起点または終点）を示すために1ビットのflagsフィールドを使用する。
+channelのどちらの終わり（起点または終点）を示すために1ビットのchannel_flagsフィールドを使用する。
 nodeはこれを複数回行うことができ、feeを変更することができる。
 
 Note that the `channel_update` gossip message is only useful in the context
@@ -708,18 +706,20 @@ A -> B -> C -> Dの支払いを作るとき、B -> C（Bによって発表）と
     * [`32`:`chain_hash`]
     * [`8`:`short_channel_id`]
     * [`4`:`timestamp`]
-    * [`2`:`flags`]
+    * [`1`:`message_flags`]
+    * [`1`:`channel_flags`]
     * [`2`:`cltv_expiry_delta`]
     * [`8`:`htlc_minimum_msat`]
     * [`4`:`fee_base_msat`]
     * [`4`:`fee_proportional_millionths`]
+    * [`8`:`htlc_maximum_msat`] (option_channel_htlc_max)
 
-The `flags` bitfield is used to indicate the direction of the channel: it
+The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
 concerning the channel. The following table specifies the meaning of its
 individual bits:
 
-flagsビットフィールドは、channelの方向を示すために使用される：
+channel_flagsビットフィールドは、channelの方向を示すために使用される：
 このビットフィールドは、このアップデートが発生したnodeを識別し、
 channelに関するさまざまなオプションを通知する。
 次の表は、個々のビットの意味を示している。
@@ -734,6 +734,25 @@ channelに関するさまざまなオプションを通知する。
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | このアップデートが参照する方向        |
 | 1             | `disable`   | channelを無効にする                 |
+
+The `message_flags` bitfield is used to indicate the presence of optional
+fields in the `channel_update` message:
+
+message_flagsビットフィールドはchannel_updateメッセージのオプショナルフィールドの存在を示す：
+
+| Bit Position  | Name                      | Field                            |
+| ------------- | ------------------------- | -------------------------------- |
+| 0             | `option_channel_htlc_max` | `htlc_maximum_msat`              |
+
+Note that the `htlc_maximum_msat` field is static in the current
+protocol over the life of the channel: it is *not* designed to be
+indicative of real-time channel capacity in each direction, which
+would be both a massive data leak and uselessly spam the network (it
+takes an average of 30 seconds for gossip to propagate each hop).
+
+htlc_maximum_msatフィールドは、現在のプロトコルではチャネルの寿命にわたって静的であることに注意すること：
+各方向のリアルタイムのチャネル容量を示すようには設計されていない、
+それは大量のデータ漏洩とネットワークの無駄なスパムになりうる（gossipが各hopを伝播する平均は30秒）。
 
 The `node_id` for the signature verification is taken from the corresponding
 `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0
@@ -772,20 +791,39 @@ The origin node:
   - chain_hashとshort_channel_idに、channel_announcement messageに指定されたchannelを一意に識別する32バイトのハッシュと8バイトのchannel IDを一致させるように設定する必要がある。
 
   - if the origin node is `node_id_1` in the message:
-    - MUST set the `direction` bit of `flags` to 0.
+    - MUST set the `direction` bit of `channel_flags` to 0.
 
   - 起点nodeがmessage内のnode_id_1である場合：
-    - flagsのdirectionビットを0に設定しなければならない。
+    - channel_flagsのdirectionビットを0に設定しなければならない。
 
   - otherwise:
-    - MUST set the `direction` bit of `flags` to 1.
+    - MUST set the `direction` bit of `channel_flags` to 1.
 
   - そうでなければ：
-    - flagsのdirectionビットを1に設定しなければならない。
+    - channel_flagsのdirectionビットを1に設定しなければならない。
 
-  - MUST set bits that are not assigned a meaning to 0.
+  - if the `htlc_maximum_msat` field is present:
+	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 1.
+	- MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
+		- MUST set this to less than or equal to the channel capacity.
+		- MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
+		  it received from the peer.
 
-  - 意味が割り当てられていないビットを0に設定しなければならない。
+  - htlc_maximum_msatフィールドが存在する場合：
+    - message_flagsのoption_channel_htlc_maxビットを1に設定しなければならない。
+    - htlc_maximum_msatを、1つのHTLCに対してこのチャネルを通じて送信される最大値に設定する必要がある。
+      - チャネル容量以下に設定しなければならない。
+      - ピアから受信したmax_htlc_value_in_flight_msat以下に設定しなければならない。
+
+  - otherwise:
+	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
+
+  - そうでなければ：
+    - message_flagsのoption_channel_htlc_maxビットを0に設定しなければならない。
+
+  - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
+
+  - 意味の割り当てられていないchannel_flagsとmessage_flagsのビットに0を設定しなければならない。
 
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
@@ -821,8 +859,10 @@ The origin node:
 
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
+  - SHOULD NOT create redundant `channel_update`s
 
   - fee_proportional_millionthsに、転送されたsatoshi当たりに課金される金額（100万satoshi分）を設定しなければならない。
+  - 冗長なchannel_updateを生成すべきでない
 
 The final node:
 終点node：
@@ -894,6 +934,24 @@ The final node:
     - 再放送のためにmessagesをキューに入れるべきである。
     - 期待される最小の長さ以上のmessagesを待ち行列に入れないことを選択してもよい。
 
+  - if the `option_channel_htlc_max` bit of `message_flags` is 0:
+    - MUST consider `htlc_maximum_msat` not to be present.
+  - otherwise:
+    - if `htlc_maximum_msat` is not present or greater than channel capacity:
+	  - MAY blacklist this `node_id`
+	  - SHOULD discard this channel.
+	- otherwise:
+	  - SHOULD consider the `htlc_maximum_msat` when routing.
+
+  - message_flagsのoption_channel_htlc_maxビットが0の場合：
+    - htlc_maximum_msatは存在しないと考えなければならない。
+  - そうでなければ：
+    - htlc_maximum_msatが存在しないかチャネル容量よりも大きくない場合：
+      - このnode_idをブラックリストに入れてよい
+      - このチャネルを破棄すべきである。
+    - そうでなければ：
+      - htlc_maximum_msatをルーティングの際に考慮すべきである。
+
 ### Rationale
 
 The `timestamp` field is used by nodes for pruning `channel_update`s that are
@@ -906,6 +964,29 @@ of two `channel_update`s within a single second.
 nodesによって使用される。
 UNIX timestamp（つまり、UTC 1970-01-01以降の秒数）にすることは理にかなっている。
 1秒間に2つchannel_updateがあるとしても、これは厳しい要件ではありません。
+
+The explicit `option_channel_htlc_max` flag to indicate the presence
+of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
+by the message length) allows us to extend the `channel_update`
+with different fields in future.
+
+htlc_maximum_msatの存在を示すための明示的なoption_channel_htlc_maxフラグ
+（メッセージの長さでhtlc_maximum_msatを暗示的に持つのではなく）は、
+channel_updateを将来異なるフィールドで拡張することを可能にする。
+
+The recommendation against redundant minimizes spamming the network,
+however it is sometimes inevitable.  For example, a channel with a
+peer which is unreachable will eventually cause a `channel_update` to
+indicate that the channel is disabled, with another update re-enabling
+the channel when the peer reestablishes contact.  Because gossip
+messages are batched and replace previous ones, the result may be a
+single seemingly-redundant update.
+
+冗長性に対する推奨は、ネットワークのスパムを最小限に抑えるが、時には不可避である。
+たとえば、到達不能なピアを持つチャネルは、結局はチャネルが無効であることを示すchannel_updateを生成し、
+ピアが再接続したときのチャネルの再有効化の更新も伴う。
+gossipメッセージはバッチ処理されて前のバージョンと置き換えられるため、
+一見重複した更新が1つの結果になる可能性がある。
 
 ## Initial Sync
 
@@ -1429,7 +1510,7 @@ The origin node:
 起点ノード：
 
   - SHOULD accept HTLCs that pay a fee equal to or greater than:
-    - fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+    - fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
   - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
   sending `channel_update`.
     - Note: this allows for any propagation delay.
@@ -1629,7 +1710,7 @@ per [HTLC Fees](#htlc-fees):
 A→B→C。もしAが4,999,999millisatoshiをB経由でCに送るなら、
 [HTLC Fees]として計算した、B→Cのchannel_updateで指定したfeeをBに支払う必要がある：
 
-        fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+        fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
 
 	200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
