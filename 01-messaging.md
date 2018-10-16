@@ -43,11 +43,11 @@ Implementations MUST use a single connection per peer; channel messages (which i
 
 After decryption, all Lightning messages are of the form:
 
-解読後、すべてのLightning messagesの形式は次のとおりである：
-
 1. `type`: a 2-byte big-endian field indicating the type of message
 2. `payload`: a variable-length payload that comprises the remainder of
    the message and that conforms to a format matching the `type`
+
+解読後、すべてのLightning messagesの形式は次のとおりである：
 
 1. type：messageのタイプを示す2バイトのビッグエンディアンのフィールド
 2. payload：messageの残りの部分から成る、それはtypeに一致するフォーマットに従う、可変長ペイロード
@@ -81,15 +81,13 @@ A receiving node:
 
 The messages are grouped logically into four groups, ordered by the most significant bit that is set:
 
-messagesは論理的に4つのグループにグループ化され、設定されているmost significant bitによって順序付けられる。
-
   - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting (described below)
   - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels (described in [BOLT #2](02-peer-protocol.md))
   - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs as well as updating fees and exchanging signatures (described in [BOLT #2](02-peer-protocol.md))
   - Routing (types `256`-`511`): messages containing node and channel announcements, as well as any active route exploration (described in
   [BOLT #7](07-routing-gossip.md))
 
-（XXX: 区切り）
+messagesは論理的に4つのグループにグループ化され、設定されているmost significant bitによって順序付けられる。
 
   - Setup ＆　Control（types 0 - 31）：
   接続のセットアップ、コントロール、サポートされている機能、エラー報告に関連するmessages（後述）
@@ -105,7 +103,7 @@ The size of the message is required by the transport layer to fit into a 2-byte 
 
 messageのサイズは、トランスポート層が2バイトの符号なし整数に収まるように要求される。
 したがって、可能な最大サイズは65535バイトである。
-（XXX: トランスポート層ってNoise Protocolのことを言ってるな）
+（XXX: トランスポート層ってNoise Protocolのこと）
 
 A node:
   - MUST ignore any additional data within a message beyond the length that it expects for that type.
@@ -119,7 +117,7 @@ node：
   - コンテンツの長さが不十分な既知のmessageを受信すると、
     - channelに失敗しなければならない。
   - この仕様書でオプションを交渉する：
-    - そのオプションで注釈が付けられたすべてのフィールドを含める必要がある。（XXX: ？？？）
+    - そのオプションで注釈が付けられたすべてのフィールドを含める必要がある。（XXX: ？）
 
 ### Rationale
 
@@ -225,7 +223,7 @@ Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
 
 ノードは、機能が互換性がないときのエラー診断を単純化するために、
-他の機能の受信を待機する。
+他の機能の受信を待機する。（XXX: ？）
 
 The feature masks are split into local features (which only affect the
 protocol between these two nodes) and global features (which can affect
@@ -271,8 +269,9 @@ The fundee node:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
 fundeeノード：
-  - funding_createdメッセージの前（それを含まない）に送信されたすべてのエラーメッセージ：
+  - funding_signedメッセージの前（それを含まない）に送信されたすべてのエラーメッセージ：
     - channel_idの代わりにtemporary_channel_idを使用しなければならない。
+    （XXX: funding_signedにchannel_idが乗っている）
 
 A sending node:
   - when sending `error`:
@@ -309,7 +308,7 @@ The receiving node:
 
 受信ノード：
   - error受信時：
-  - そのチャネルが送信ノードとの間にある場合は、エラーメッセージが参照するチャネルを失敗しなければならない。
+    - そのチャネルが送信ノードとの間にある場合は、エラーメッセージが参照するチャネルを失敗しなければならない。
   - そのメッセージによって既存のチャネルが参照されていない場合：
     - メッセージを無視しなければならない。
   - パケットの残りの部分はlenに切り詰めるなければならない（より大きければ）。
@@ -331,8 +330,11 @@ It may be wise not to distinguish errors in production settings, lest
 it leak information — hence, the optional `data` field.
 
 それによって情報が漏れないようにするために、
-生産設定でのエラーを区別しないようにすることが賢明と思われる。（XXX: 生産設定とデバッグ設定を分けるなということ？）
+生産設定でのエラーを区別しないようにすることが賢明と思われる。
 したがって、dataフィールドはオプションである。
+（XXX: 生産設定とデバッグ設定を分けるなということ？
+例えばデバッグ設定がプロダクションで出ていったときのために？
+例えデバッグ設定でも秘密鍵を送ったりしないようにか）
 
 ## Control Messages
 
@@ -358,7 +360,7 @@ explicitly notifying the other end that the receiver is still active. Within
 the received `ping` message, the sender will specify the number of bytes to be
 included within the data payload of the `pong` message.
 
-pingメッセージが受信されたときいつでも、pongメッセージは送信される。（XXX: 実装はそうなってないよね？）
+pingメッセージが受信されたときいつでも、pongメッセージは送信される。（XXX: 実際の実装はそうなってない？）
 これは応答として機能し、受信側がまだアクティブであることを明示的に他方の側に通知しながら、接続を維持する役割も果たす。
 受信されるpingメッセージの内に、（XXX: pingの）送信者はpongメッセージのデータペイロード内に含めるバイト数を指定する。
 
@@ -417,7 +419,7 @@ A node receiving a `pong` message:
 
 pongメッセージを受信したノード：
   - byteslenが、送信されたどのpingのnum_pong_bytes値にも対応していない場合：
-    - チャンネルに失敗する可能性してもよい。
+    - チャンネルに失敗してもよい。
 
 ### Rationale
 
@@ -454,7 +456,6 @@ channels.
 
 さらに、送信側が受信側に特定のバイト数の応答を送信するよう要求する機能によって、
 ネットワーク上のノードは合成（synthetic）トラフィックを作成できる。
-
 このようなトラフィックは、ノードがそれぞれのチャネルに実際の更新を適用せずに、
 典型的な交換のトラフィックパターンを偽装できることにより、
 パケットとタイミング解析に対して部分的に防御するために使用することができる。
