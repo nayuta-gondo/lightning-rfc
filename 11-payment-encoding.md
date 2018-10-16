@@ -89,25 +89,41 @@ The following `multiplier` letters are defined:
 
 ## Requirements
 
-A writer MUST include `amount` unless it will accept any payment amount.
-A writer MUST encode `amount` as a positive decimal integer with no leading zeroes and SHOULD use the shortest representation possible.
+A writer:
+  - MUST encode `prefix` using the currency it requires for successful payment
+  - If it requires a specific minimum amount for successful payment:
+	- MUST include that `amount`
+	- MUST encode `amount` as a positive decimal integer with no leading zeroes
+	- SHOULD use the shortest representation possible by using the largest
+	  multiplier or omitting the multiplier
 
-作者は、支払い金額を受け入れない限り、amountを含まなければならない。
-作者は、amountを先頭のゼロのない正の10進整数として符号化しなければならず、可能な限り最短の表現を使用すべきである。
+作者：    
+  - 成功裏に支払うために必要な通貨を使用してprefixを符号化しなければならない
+  - 支払いに必要な最小額が必要な場合：
+    - amountを含めなければならない
+    - amountを先行ゼロのない正の10進整数として符号化しなければならない
+    - 可能な限り最短の表現を用いるべきである、最大の乗数を使用するか、乗数を省略して
 
-A reader MUST fail if it does not understand the `prefix`. A reader
-SHOULD fail if `amount` contains a non-digit or is followed by
-anything except a `multiplier` in the table above.
+A reader:
+  - MUST fail if it does not understand the `prefix`
+  - If the `amount` is empty:
+	- SHOULD indicate if amount is unspecified
+  - Otherwise:
+	- MUST fail if `amount` contains a non-digit or is followed by
+      anything except a `multiplier` in the table above
+    - If the `multiplier` is present:
+	  - MUST multiply `amount` by the `multiplier` value to derive the
+        amount required for payment
 
-読者は prefixを理解できなければ失敗しなければならない。
-読者は、amountが非数字を含んでいたり、上記の表のmultiplier以外の何かが続くならば失敗するべきである。
-
-A reader SHOULD indicate if amount is unspecified, otherwise it MUST
-multiply `amount` by the `multiplier` value (if any) to derive the
-amount required for payment.
-
-読者は、金額が指定されていないかどうかを示すべきであり、
-そうでなければ、支払いで要求される金額を導くためにamountにmultiplierの値（もしあれば）を掛けなければならない。
+読者：
+  - prefixが理解できなければ失敗しなければならない
+  - amountが空の場合：
+    - amountが指定されていないかどうかを示すべきである
+  - そうでなければ：
+    - amountに数字以外の数字が含まれている場合、
+    または上記の表のmultiplier以外の文字が続く場合は失敗しなければならない
+    - multiplierが存在する場合：
+      - 支払いに必要な金額を導出するためにamountにmultiplier値を掛けなければならない
 
 ## Rationale
 
