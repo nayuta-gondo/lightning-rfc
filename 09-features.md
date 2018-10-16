@@ -8,17 +8,19 @@ The flags are tracked separately, since new flags will likely be added over time
 
 この文書は、
 initメッセージ（BOLT＃1）のlocalfeaturesとglobalfeaturesフラグの割り当てを、
-channel_announcementとnode_announcement（BOLT＃7）のfeaturesフラグと共に、
-追跡する。
+channel_announcementとnode_announcement（BOLT＃7）のfeaturesフラグと共に追跡する。
 新しいフラグは時間の経過と共に追加される可能性が高いため、フラグは別々に追跡される。
-（XXX: ？？？）
+（XXX: ？）
 
 The `features` flags in the routing messages are a subset of the
 `globalfeatures` flags, as `localfeatures`, by definition, are only of interest
 to direct peers.
 
-ルーティングメッセージのfeaturesフラグは、globalfeaturesフラグのサブセットであり、
+ルーティングメッセージ（XXX: gossip）のfeaturesフラグは、globalfeaturesフラグのサブセットであり、
 localfeaturesとして、定義により、直接のpeersにとってのみ重要である。
+（XXX: featuresはlocalfeatures。
+ピア間のメッセージで渡せばいいだけだろうになんでgossip？
+directに接続するときに前もって知りたい情報だからかな？）
 
 Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
 an _even_ bit). They are generally assigned in pairs so that features
@@ -75,7 +77,7 @@ interpret the flag, as defined in the initial spec.
 ほとんど意味がないので、initial_routing_syncには偶数ビットがない。
 local nodeはremote nodeが準拠しているか判断することはできず、
 最初の仕様で定義されているように、local nodeはフラグを解釈しなければならない。
-（XXX: ？？？）
+（XXX: ？）
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
