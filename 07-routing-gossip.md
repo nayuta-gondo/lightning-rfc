@@ -1083,7 +1083,7 @@ contents could decompress to more then 3669960 bytes.
 各重複は少なくとも2ビットを用し、有効なコンテンツは3669960バイト以上に展開されることはない。
 （short_channel_idは8バイト）
 
-### The `query_short_channel_ids`/`reply_short_channel_ids_done` Messages
+### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 (reply_short_channel_ids_endの間違い？？？)
 

@@ -697,7 +697,7 @@ along with the `scriptpubkey` it wants to be paid to.
 A sending node:
   - if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):
     - MUST NOT send a `shutdown`
-  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `min_depth`.
+  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `minimum_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
@@ -717,7 +717,7 @@ A sending node:
 送信ノード：
   - funding_created（funderの場合）またはfunding_signed（fundeeの場合）が送られていない場合：
     - shutdownを送信してはならない
-  - shutdownを送る前にfunding_lockedを送っても良い、すなわちfunding transactionがmin_depthに達する前に。
+  - shutdownを送る前にfunding_lockedを送っても良い、すなわちfunding transactionがminimum_depthに達する前に。
   - 受信ノードのcommitment transactionで保留中の更新がある場合：
     - shutdownを送信してはならない。
   - shutdown後にupdate_add_htlcを送ってはならない。
