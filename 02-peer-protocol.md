@@ -325,6 +325,7 @@ The receiving node MAY fail the channel if:
   （？？？）
 
 The receiving node MUST fail the channel if:
+  - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
   - `max_accepted_htlcs` is greater than 483.
@@ -336,6 +337,7 @@ are not valid DER-encoded compressed secp256k1 pubkeys.
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
 
 次の場合、受信ノードはチャネルに失敗しなければならない：
+  - セットされているchain_hashの値が受信者にとって未知のチェーンのハッシュである
   - push_msatが funding_satosh * 1000 より大きい。
   - to_self_delayが不当に大きい。
   - max_accepted_htlcsが483より大きい。
@@ -459,9 +461,6 @@ avoid double-spending of the funding transaction.
   - dust_limit_satoshisは、open_channelメッセージのchannel_reserve_satoshis以下の値を設定しなければならない。
 
 The receiver:
-  - if the `chain_hash` value, within the `open_channel`, message is set to a hash
- of a chain that is unknown to the receiver:
-    - MUST reject the channel.
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
@@ -472,8 +471,6 @@ The receiver:
 Other fields have the same requirements as their counterparts in `open_channel`.
 
 受信者：
-  - open_channelメッセージ内のchain_hashの値が受信側に知られていないチェーンのハッシュに設定されている場合：
-    - チャネルを拒絶しなければならない。
   - minimum_depthが不当に大きい場合：
     - チャンネルを拒否してもよい。
   - channel_reserve_satoshisが、open_channelメッセージ内のdust_limit_satoshisより少ない場合：
