@@ -90,7 +90,7 @@ The messages are grouped logically into four groups, ordered by the most signifi
 
 messagesは論理的に4つのグループにグループ化され、設定されているmost significant bitによって順序付けられる。
 
-  - Setup ＆　Control（types 0 - 31）：
+  - Setup ＆ Control（types 0 - 31）：
   接続のセットアップ、コントロール、サポートされている機能、エラー報告に関連するmessages（後述）
   - Channel（types 32 - 127）：
   micropayment channelsのセットアップと解除に使用されるmessages（BOLT＃2で説明）
