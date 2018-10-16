@@ -8,6 +8,8 @@ is routed through a number of intermediate nodes, called _hops_.
 
 この文書では、origin nodeからfinal nodeに支払いをルーティングするために使用されるonion routed packetの構成について説明する。
 パケットは、hopsと呼ばれるいくつかのintermediate nodesを経由してルーティングされる。
+（XXX: これが受信update_add_htlcに入っているので、
+中のパケットを見て指定のchannelにupdate_add_htlcってやるのだろう）
 
 The routing schema is based on the
 [Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
@@ -55,7 +57,7 @@ intermediate hop before forwarding to the next, making the onions unlinkable
 along the route.
 
 ルートに沿った各hopは、送信者のアイデンティティを隠すために、origin nodeのためのephemeral keyしか見ることができない。
-ephemeral keyは中間の各hopによってブラインドされてから、次のノードに転送され、ルートに沿ってonionsのリンクが解除される。
+ephemeral keyは中間の各hopによってブラインドされてから、次のノードに転送され、ルートに沿ってリンクできないonionsを作る。
 （XXX: senderってだれ？、unlinkableって？）
 
 This specification describes _version 0_ of the packet format and routing
@@ -177,7 +179,7 @@ key.
 
 鍵は、適切な鍵タイプ（すなわち、rho、mu、またはum）をHMAC-keyとして使用し、
 32バイトのshared secretをメッセージとして使用して、
-（ハッシングアルゴリズムをSHA256として）HMAXを計算することによって生成される。
+（ハッシングアルゴリズムをSHA256として）HMACを計算することによって生成される。
 結果のHMACがキーとして返される。
 
 Notice that the key-type does not include a C-style `0x00`-termination-byte,
@@ -252,6 +254,7 @@ and has the following structure:
 
 hops_dataフィールドには、次のhopのアドレス、転送情報、およびその関連するHMACの難読化されたものを保持する構造体である。
 これは1300バイト長（20x65）で、次の構造を持つ。
+（XXX: public_keyは最初のhopのephemeral public keyつまりsessionkey、hmacも最初のhopが処理する）
 
 1. type: `hops_data`
 2. data:
@@ -357,7 +360,7 @@ Field descriptions:
      入ってくるSphinxパケットと、カプセル化されているHTLCメッセージを処理するとき、
      次の不等式が成り立たない場合、
      前のhopが指定されたパラメータから逸脱していることを示すので、HTLCを拒否する必要がある。
-     （XXX: incoming_htlc_amtってupdate_add_htlcのamount_msatかな？）
+     （XXX: incoming_htlc_amtってupdate_add_htlcのamount_msatか？）
 
         incoming_htlc_amt - fee >= amt_to_forward
 
@@ -365,7 +368,6 @@ Field descriptions:
      またはprocessing nodeがfinal nodeである場合は0である。
 
    * outgoing_cltv_value：パケットを運ぶ送信HTLCが持たなければならないCLTV値。
-   （XXX: update_add_htlcにパケットが含まれるのか）
 
         cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
@@ -380,6 +382,7 @@ Field descriptions:
      hopは、
      final nodeであろうとなかろうと、予期せぬoutgoing_cltv_valueに応答して、
      経路上の位置が漏れないように一貫していなければならない。
+     (XXX: ？)
 
    * padding：このフィールドは将来の使用のためであり、
    将来のnon-0-realm per_hopが全体のhops_dataサイズを変更しないことを保証するためのフィールドである。
@@ -450,7 +453,8 @@ the same value.
 Elliptic-curve Diffie-Hellman（ECDH）は、EC private keyとEC public keyを操作して、curve pointを出力する。
 このプロトコルでは、libsecp256k1で実装されたECDHの変形が使用され、これはsecp256k1 elliptic curve上で定義される。
 パケット構築中、送信者はephemeral private keyとhopのpublic keyをECDHへの入力として使用するが、
-パケット転送ではephemeral public keyとそれ自身のnode ID private keyを使用する。
+パケット転送ではephemeral public key（XXX: これは逆難読化して得たもの？）と、
+それ自身のnode ID private keyを使用する。
 ECDHの特性のために、彼らは両方とも同じ値を導き出すであろう。
 
 （XXX: ephemeral private/public keys、node_id private/public keysの組みあわせ？）
@@ -474,8 +478,9 @@ the commutative property of scalar multiplication, the blinded private key is
 the multiplicative product of the input's corresponding private key with the
 same blinding factor.
 
-EC public keyのブラインドは、public keyを表すEC pointと32バイトのblinding factorとのスカラー乗算である。
-スカラー乗算の交換法則のため、blinded private keyは、入力の対応するprivate keyと同じblinding factorとの乗算の量である。
+EC public keyのブラインドは、public keyを表すEC pointと32バイトのblinding factorとのスカラ乗算である。
+スカラ乗算の交換法則のため、blinded private keyは、入力の対応するprivate keyと同じblinding factorとの乗算の量である。
+（XXX: bP = bxG）
 
 The blinding factor itself is computed as a function of the ephemeral public key
 and the 32-byte shared secret. Concretely, is the `SHA256` hash value of the
@@ -534,6 +539,12 @@ onionを構築するために、送信者は、最初のhop ek_1のためのephe
  - blinding factorは、ephemeral public key epk_kとshared secret ss_kとの連結のSHA256ハッシュである。
  - 次のhopのephemeral private key ek_{k+1}は、現在のephemeral private key ek_kにblinding factorを掛けることによって計算される。
  - 次のhopのephemeral public key epk_{k+1}は、ephemeral private key ek_kにbase pointを乗算することにより導出される。
+ （XXX:
+ pk_kとek_kからss_k。
+ epk_kとss_kからbf_k。
+ ek_kとbf_kから次のek_k+1。
+ ek_kから次のepk_k+1。
+ ek_kと次のepk_k+1が対応する）
 
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
@@ -584,13 +595,15 @@ following operations:
 （XXX: 区切り）
 
  - rho-keyとmu-keyはhopのshared secretを使用して生成される。
+  （XXX: ssからrho-keyとmu-key）
  - hops_dataフィールドは65バイト右にシフトされ、1300バイトのサイズを超えた最後の65バイトは破棄される。
  - version、short_channel_id、amt_to_forward、outgoing_cltv_value、padding、およびHMACが続く65バイトにコピーされる。
- - rho-keyは1300バイトのpseudo-random byte stream を生成するために使用される、
+ - rho-keyは1300バイトのpseudo-random byte streamを生成するために使用される、
  これはその後hops_dataフィールドとXORされる。
  - これが最後のhop、すなわち最初のイテレーションである場合、
- hops_dataフィールドの末尾にはルーティング情報fillerが上書きされる。
+ hops_dataフィールドの末尾にはルーティング情報の詰め物が上書きされる。
  - 次のHMACは（mu-keyをHMAC-keyとして）hops_dataとassociated dataを連結したもので計算される。
+（XXX: associated dataはどこから？）
 
 The resulting final HMAC value is the HMAC that will be used by the first
 receiving peer in the route.
@@ -607,6 +620,7 @@ the obfuscated `hops_data`.
 The following Go code is an example implementation of the packet construction:
 
 次のGoコードは、パケット構成の実装例である：
+（XXX: paymentPathにhopのpublic keyが入っているようである）
 
 ```Go
 func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
@@ -721,16 +735,17 @@ positives of this log.
 上記の要件は、ルートに沿ったどんなhopsも、トラフィック分析を介して支払いの進捗を追跡するために、
 支払いを複数回再試行するのを防ぎます。
 そのような探査を無効にすることは、以前のshared secretsまたはHMACのログを使用して達成できることに注意すること。
-それらはHTACが受け入れられないと忘れる可能性がある（つまり、outgoing_cltv_valueが経過した後に）。
+それらはHTLCが受け入れられないと忘れる可能性がある（つまり、outgoing_cltv_valueが経過した後に）。
 そのようなログは、probabilistic data structureを使用するかもしれないが、
 このログのワーストケースのストレージ要件または偽陽性を制限するために、必要に応じてコミットメントをレート制限する必要がある。
-（XXX: ？）
+（XXX: shard secretsかHMACのログを取っておかないと探査を防ぐことはできないということか？）
 
 Next, the processing node uses the shared secret to compute a _mu_-key, which it
 in turn uses to compute the HMAC of the `hops_data`. The resulting HMAC is then
 compared against the packet's HMAC.
 
-次に、processing nodeは、hared secretを使用してmu-keyを計算し、それは順番にhops_dataのHMACの計算に使用する。
+次に、processing nodeは、shared secretを使用してmu-keyを計算し、
+それは順番に（XXX: 次に？）hops_dataのHMACの計算に使用する。
 得られたHMACはそれから、パケットのHMACと比較される。
 
 Comparison of the computed HMAC and the packet's HMAC MUST be
@@ -742,6 +757,7 @@ time-constant to avoid information leaks.
 At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 この時点で、processing nodeはrho-keyとgamma-keyをを生成することができる。
+（XXX: gamma？）
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
@@ -752,7 +768,7 @@ The first 65 bytes of the resulting routing information become the `per_hop`
 field used for the next hop. The next 1300 bytes are the `hops_data` for the
 outgoing packet.
 
-その後、ルーティング情報は解読され、次のhopに関する情報が抽​​出される。
+その後、ルーティング情報は逆難読化され、次のhopに関する情報が抽​​出される。
 これを行うには、processing nodeはhops_dataフィールドをコピーし、65個の0x00-bytesを追加し、
 （rho-keyを使用して）1365個のpseudo-random bytesを生成し、そしてその結果をhops_dataのコピーにXORを使用して適用する。
 結果のルーティング情報の最初の65バイトは次のhopに使用されるper_hopフィールドになる。
@@ -761,7 +777,7 @@ outgoing packet.
 A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
 processing hop is the intended recipient and that the packet should not be forwarded.
 
-特別なper_hop HMAC値の32個の0x00-bytsは、現在のprocessing hopが意図された受信者であり、
+特別なper_hop HMAC値の32個の0x00-bytesは、現在のprocessing hopが意図された受信者であり、
 パケットが転送されるべきでないことを示す。
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
@@ -770,7 +786,8 @@ by blinding the ephemeral key with the processing node's public key, along with 
 shared secret, and by serializing the `hops_data`.
 The resulting packet is then forwarded to the addressed peer.
 
-HMACが経路終端を示さず、次のhopがprocessing nodeのpeerである場合、新しいパケットが組み立てられる。
+HMACが経路終端を示さず（XXX: all zeroではない）、次のhopがprocessing nodeのpeerである場合、
+新しいパケットが組み立てられる。
 パケットの組み立ては、ephemeral keyをprocessing nodeのpublic keyとshared secretでブラインドし、
 hops_dataをシリアライズすることによって達成される。
 結果として得られたパケットは、次に、アドレス指定されたpeerに転送される。
@@ -802,9 +819,11 @@ processing node：
   - ephemeral public keyがsecp256k1 curve上にない場合：
     - パケットの処理を中断しなければならない。
     - origin nodeに経路障害を報告しなければならない。
-  - パケットが以前に転送されたか、またはローカルに償還された場合、すなわち、パケットが前に受信したパケットに重複したルーティング情報を含む場合：
+  - パケットが以前に転送されたか、またはローカルに償還された場合、
+  すなわち、パケットが前に受信したパケットに重複したルーティング情報を含む場合：
     - preimageがわかっている場合：
       - preimageを使用してHTLCをすぐに償還して良い。
+      （XXX: これ以上転送はしない？）
     - そうでなければ：
       - 処理を中断し、経路障害を報告しなければならない。
   - 計算されたHMACとパケットのHMACが異なる場合：
@@ -850,7 +869,7 @@ obfuscating the added `0x00`-bytes at the end.
 hops_dataを逆難読化する前に、processing nodeは65個の0x00-bytesでそれをパディングし、
 その合計の長さは(20 + 1) * 65になる。
 次に、一致する長さのpseudo-random byte streamを生成し、それをhops_dataにXORで適用する。
-これにより、最後に追加された0x00-bytesを難読化すると同時に、それに向けられた情報が逆難読される。
+これにより、最後に追加された0x00-bytesを難読化すると同時に、それに向けられた情報が逆難読化される。
 
 In order to compute the correct HMAC, the origin node has to pre-generate the
 `hops_data` for each hop, including the incrementally obfuscated padding added
@@ -917,7 +936,7 @@ due to the possibility of hop failure.
 onion routing protocolは、暗号化されたエラーメッセージをorigin nodeに返すための単純なメカニズムを含む。
 返されるエラーメッセージは、final nodeを含む任意のhopによって報告された障害である可能性がある。
 転送パケットのフォーマットは、origin以外のどのhopも、その生成に必要な情報へのアクセスを有していないので、戻りパスには使用できない。
-これらのエラーメッセージは、hop障害の可能性のためにチェーン上に配置されないため、信頼性がない。
+これらのエラーメッセージは、hop障害の可能性のためにチェーン上に配置されないため、信頼性がないことに注意。
 （XXX: ？）
 
 Intermediate hops store the shared secret from the forward path and reuse it to
@@ -927,7 +946,8 @@ route, so it knows where to return-forward any eventual return packets.
 The node generating the error message (_erring node_) builds a return packet
 consisting of the following fields:
 
-中間hopsは、順方向パスからのshared secretを格納し、それを再利用して、各hop中に対応する戻りパケットを難読化する。
+中間hopsは、順方向パスからのshared secretを格納し（XXX: 格納しておかないといけない）、
+それを再利用して、各hop中に対応する戻りパケットを難読化する。（XXX: update_fail_htlcのreasonかな？）
 さらに、各nodeはルート内に自身の送信ピアに関するデータをローカルに格納するため、最終的な戻りパケットをどこに返すかを知っている。
 エラーメッセージを生成しているノード（erring node）は、次のフィールドで構成される戻りパケットを生成する。
 
@@ -987,7 +1007,8 @@ this onion routing protocol, e.g. via association with an HTLC in a payment
 channel.
 
 転送パケットと返送パケットとの間の関連付けは、このonion routing protocolの外部で処理される、
-例えば、payment channel内のHTLCとの関連付けを介して。（XXX: ？）
+例えば、payment channel内のHTLCとの関連付けを介して。
+（XXX: update_add_htlcのchannel_idとidでだろう）
 
 ### Requirements
 
@@ -999,6 +1020,7 @@ The _erring node_:
 erring node：
   - padを、failure_lenプラスpad_lenが256に等しくなるように設定すべきである。
     - 注：この値は、現在定義されている最長メッセージよりも118バイト長くなる。
+    （XXX: currently-defined messageって？長くなっていいの？）
 
 The _origin node_:
   - once the return message has been decrypted:
@@ -1007,10 +1029,11 @@ The _origin node_:
     - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
 
 origin node：
+（XXX: ？）
   - 返信メッセージが復号されると：
-    - メッセージのコピーを格納すべきである。
-    - ループが20回繰り返されるまで、復号化を継続すべきである。
-    - ルートの長さを難読化するために定数ammagとumキーを使うべきである。
+    - メッセージのコピーを格納すべきである。（XXX: ？）
+    - ループが20回繰り返されるまで、復号化を継続すべきである。（XXX: ？）
+    - ルートの長さを難読化するために定数ammagとumキーを使うべきである。（XXX: ？）
 
 ## Failure Messages
 
@@ -1044,7 +1067,7 @@ failure_codeの一番上のバイトは、一連のフラグとして読み取�
 * 0x8000（BADONION）：送信側ピアによって暗号化された解析不能なonion
 * 0x4000（PERM）：永続的な障害（それ以外の場合は一時的な障害）
 * 0x2000（NODE）：ノード障害（それ以外の場合はチャネル障害）
-* 0x1000（UPDATE）：新しいチャンネルの更新を囲む（XXX: ？）
+* 0x1000（UPDATE）：新しいchannel_updateが封入されている
 
 Please note that the `channel_update` field is mandatory in messages whose
 `failure_code` includes the `UPDATE` flag.
@@ -1156,7 +1179,6 @@ The fee amount was below that required by the channel from the
 processing node.
 
 feeは、processing nodeからのチャネルによって要求されたものよりも少なかった。
-（XXX: ？）
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
@@ -1209,12 +1231,15 @@ final nodeによる安全な処理のために、CLTV expiryは現在のブロ�
 The CLTV expiry in the HTLC doesn't match the value in the onion.
 
 HTLCのCLTV expiryはonionの値と一致しない。
+（XXX: イコールではなく条件に一致しないということか？）
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
    * [`4`:`incoming_htlc_amt`]
 
 The amount in the HTLC doesn't match the value in the onion.
+
+HTLCの量がonionの値と一致しない。
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
@@ -1264,7 +1289,8 @@ erring nodeはしてよい：
     - temporary_node_failureエラーを返す。
   - そうでなければ、指定されていない永続的なエラーがノード全体に対して発生した場合：
     - permanent_node_failureエラーを返す。
-  -  ノードが要件を持ち、それのnode_announcementのfeaturesで広告されている場合に、それらがonionに含まれていなかった場合：
+  - ノードが、それのnode_announcementのfeaturesで広告されている要件を持つ場合に、
+  それらがonionに含まれていなかった場合：
     - required_node_feature_missingエラーを返す。
 
 A _forwarding node_ MAY, but a _final node_ MUST NOT:
@@ -1311,17 +1337,15 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
 forwarding nodeは良いが、final nodeはだめである：
   - onionのversionバイトが不明な場合：
     - invalid_onion_versionエラーを返す。
-  - onion HMACが正しくない場合：
+  - onionのHMACが正しくない場合：
     - invalid_onion_hmacエラーを返す。
   - onionのephemeral keyが解析できない場合：
     - invalid_onion_keyエラーを返す。
-  - receiving peerへの転送中に、そうでなければ不特定な、一時的なエラーが送信チャネルで発生した場合（例えば、チャネル容量に到達、途中のHTLCsが多すぎるなど）
+  - receiving peerへの転送中に、別に指定がなければ、一時的なエラーが送信チャネルで発生した場合
+  （例えば、チャネル容量に到達、途中のHTLCsが多すぎるなど）：
     - temporary_channel_failureエラーを返す。
   - そうでなければ、不特定な永続的なエラーがreceiving peer転送中に発生した場合（例えば最近閉じられたチャネル）：
     - permanent_channel_failureエラーを返す。
-    - if the outgoing channel has requirements advertised in its
-    `channel_announcement`'s `features`, which were NOT included in the onion:
-      - return a `required_channel_feature_missing` error.
   - 出力チャネルは、そのchannel_announcementのfeaturesで宣伝された要件があり、それらがonionに含まれない場合：
     - required_channel_feature_missingエラーを返す。
   - onionによって指定されたreceiving peerが知られていない場合：
@@ -1373,7 +1397,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
 intermediate hopはだめだが、final nodeはよい：
   - payment hashがすでに支払済みの場合：
     - payment hashを未知として扱ってよい。
-    - HTLCを受け入れることに成功してもよい。（XXX: ？）
+    - HTLCを受け入れることに成功してもよい。
   - 支払い金額が期待される額を下回る場合：
     - HTLCに失敗しなければならない。
     - incorrect_payment_amountエラーを返さなければならない。
@@ -1383,7 +1407,8 @@ intermediate hopはだめだが、final nodeはよい：
   - 支払い額が予想額の2倍を超える場合：
     - HTLCは失敗するべきである。
     - incorrect_payment_amountエラーを返すべきである。
-      - 注：これにより、origin nodeは、偶発的な総額超過を許さずに、量を変更することによって情報漏洩を減らすことができる。（XXX: ？）
+      - 注：これにより、origin nodeは、偶発的な総額超過を許さずに、量を変更することによって情報漏洩を減らすことができる。
+      （XXX: ぴったり請求額を払わないことにより支払い先を特定しにくく、また誤って多すぎる量を払い過ぎないようにする）
   - cltv_expiryの値が不当に現在に近い場合：
     - HTLCに失敗しなければならない。
     - final_expiry_too_soonエラーを返さなければならない。
@@ -1444,9 +1469,11 @@ origin node：
       - 誤りのあるノードに接続されているすべてのチャネルを考慮から削除すべきである。
     - PERMビットがセットされていない場合：
       - 新しいchannel_updateを受け取ったときにチャネルを回復すべきである。
+      （XXX: UPDATEフラグで？）
     - そうでなければ：
-      - UPDATEが設定されていて、channel_updateが有効で、channel_updateが支払いを送信するために使用されたものより新しい場合：
-        - channel_updateが失敗を引き起こしてはならない場合：（XXX: ？）
+      - UPDATEが設定されていて、channel_updateが有効で、
+      channel_updateが支払いを送信するために使用されたものより新しい場合：
+        - channel_updateが失敗を引き起こすべきではない場合：（XXX: ？）
           - channel_updateを無効として扱って良い。
         - そうでなければ：
           - channel_updateを適用すべきである。
