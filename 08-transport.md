@@ -81,6 +81,7 @@ Diffie-Hellman (ECDH) operations followed by a MAC check.
 これは、静的公開鍵がハンドシェイク中に決して送信されないので、応答者に対してある程度の身元を隠すことを提供する。
 代わりに、認証は、一連のElliptic-Curve Diffie-Hellman（ECDH）操作とそれに続くMACチェックによって暗黙的に行われる。
 （XXX: identity public keyとは、static public keyとは？）
+（XXX: 接続の開始者は、前もって相手のnode_id（公開鍵）を知っておかないといけない）
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps (acts). During each act of the handshake the following occurs: some (possibly encrypted) keying
