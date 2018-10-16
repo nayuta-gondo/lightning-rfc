@@ -1164,9 +1164,14 @@ feeは、processing nodeからのチャネルによって要求されたもの�
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-The CLTV expiry in the HTLC doesn't match the value in the onion.
+The `cltv_expiry` does not comply with the `cltv_expiry_delta` required by
+the channel from the processing node: it does not satisfy the following
+requirement:
 
-HTLCのCLTV expiryはonionの値と一致しない。
+cltv_expiryは、processing nodeからのチャネルによって要求されたcltv_expiry_deltaに準拠していない：
+次の要件を満たしていない。
+
+        cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
@@ -1289,8 +1294,8 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - report the amount of the incoming HTLC and the current channel setting for
     the outgoing channel.
     - return a `fee_insufficient` error.
-  - if the `outgoing_cltv_value` does NOT match the `update_add_htlc`'s
-  `cltv_expiry` minus the `cltv_expiry_delta` for the outgoing channel:
+ -  if the incoming `cltv_expiry` minus the `outgoing_cltv_value` is below the
+    `cltv_expiry_delta` for the outgoing channel:
     - report the `cltv_expiry` and the current channel setting for the outgoing
     channel.
     - return an `incorrect_cltv_expiry` error.
@@ -1327,8 +1332,8 @@ forwarding nodeは良いが、final nodeはだめである：
   - HTLCが十分なfeeを支払っていない場合：
     - 着信HTLCの量と送信チャネルの現在のチャネル設定を報告する。
     - fee_insufficientエラーを返す。
-  - outgoing_cltv_valueが一致しない場合は、送信チャンネルの、
-  update_add_htlcのcltv_expiryマイナスcltv_expiry_deltaと一致しない場合：
+  - 入力のcltv_expiryマイナスoutgoing_cltv_valueが、
+  出力チャネルのためのcltv_expiry_deltaを下回っている：
     - cltv_expiryと送信チャネルの現在のチャネル設定を報告する。
     - incorrect_cltv_expiryエラーを返す。
   - cltv_expiryが現在に不当に近い場合：
