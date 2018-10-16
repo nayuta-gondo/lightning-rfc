@@ -5,13 +5,11 @@
 This specification describes a node discovery mechanism based on the Domain Name System (DNS).
 Its purpose is twofold:
 
-この仕様は、ドメインネームシステム（DNS）に基づくノード発見メカニズムについて説明する。
-その目的は2つある：
-
  - Bootstrap: providing the initial node discovery for nodes that have no known contacts in the network
  - Assisted Node Location: supporting nodes in discovery of the current network address of previously known peers
 
-（XXX: 区切り）
+ この仕様は、ドメインネームシステム（DNS）に基づくノード発見メカニズムについて説明する。
+ その目的は2つある：
 
  - ブートストラップ：ネットワークに既知の連絡先がないノードの初期ノード検出を提供する
  - ノード位置のアシスト：既知のピアの現在のネットワークアドレスを発見するノードをサポートする
@@ -27,7 +25,9 @@ _seed root domain_, and clients may query it for subdomains.
 RFC 1035、3596および2782で指定されるA、AAAAまたはSRVタイプの着信DNSクエリにそれぞれ応答する。
 DNSサーバーは、seed root domainと呼ばれるサブドメインに対して権限を持ち、クライアントはサブドメインに対してクエリを実行する。
 
-（XXX: A: IPv4 IPアドレスレコード、AAAA: IPv6 IPアドレスレコード、SRV: サービスレコード（`_Service._Proto.Name  TTL Class  SRV Priority  Weight  Port  Target`））
+（XXX: A: IPv4 IPアドレスレコード、
+AAAA: IPv6 IPアドレスレコード、
+SRV: サービスレコード（`_Service._Proto.Name  TTL Class  SRV Priority  Weight  Port  Target`））
 
 The subdomains consist of a number of dot-separated _conditions_ that further narrow the desired results.
 
@@ -63,10 +63,6 @@ The conditions are key-value pairs: the key is a single-letter, while the
 remainder of the key-value pair is the value.
 The following key-value pairs MUST be supported by a DNS seed:
 
-条件は、1文字のキーを持つkey-value pairsである。
-key-value pairの残りの部分が値になる。
-次のkey-value pairsは、DNSシードがサポートしなければならない。
-
  - `r`: realm byte
    - used to specify what realm the returned nodes must support
    - default value: 0 (Bitcoin)
@@ -84,7 +80,9 @@ key-value pairの残りの部分が値になる。
  - `n`: number of desired reply records
    - default value: 25
 
-（XXX: 区切り）
+条件は、1文字のキーを持つkey-value pairsである。
+key-value pairの残りの部分が値になる。
+次のkey-value pairsは、DNSシードがサポートしなければならない。
 
  - r：realm byte
    - 返されるノードがサポートしなければならないrealm（XXX: 領域）を指定するために使用される
