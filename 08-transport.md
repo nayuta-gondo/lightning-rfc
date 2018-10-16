@@ -1,8 +1,5 @@
 # BOLT #8: Encrypted and Authenticated Transport
 
-（ほとんどGoogle翻訳まま。意味が通らないところだけ修正。）
-（ところどころコメント有。）
-
 All communications between Lightning nodes is encrypted in order to
 provide confidentiality for all transcripts between nodes and is authenticated in order to
 avoid malicious interference. Each node has a known long-term identifier that
@@ -12,7 +9,7 @@ with peers, and also to authenticate any information advertised on behalf
 of a node.
 
 Lightningノード間のすべての通信は、ノード間のすべてのトランスクリプトに対して機密性を提供するために暗号化され、
-悪意のある干渉を避けるために認証される。（？？？トランスクリプト）
+悪意のある干渉を避けるために認証される。（XXX: トランスクリプト？）
 各ノードには、Bitcoinのsecp256k1カーブの公開鍵である既知の長期の識別子がある。
 この長期の公開鍵は、ピアとの暗号化された認証された接続を確立し、ノードのためにアドバタイズされた情報を認証するために、
 プロトコル内で使用される。
@@ -48,13 +45,11 @@ messages sent between nodes. The initialization of this cryptographic session
 state is completely distinct from any inner protocol message header or
 conventions.
 
-ライトニングメッセージを送信する前に、
+Lightningメッセージを送信する前に、
 ノードはノード間で送信されるすべてのメッセージを暗号化して認証するために使用される暗号化セッション状態を最初に開始しなければならない。
 この暗号化セッション状態の初期化は、内部のプロトコルメッセージヘッダまたは規則とは全く異なる。
 
 The transcript between two nodes is separated into two distinct segments:
-
-2つのノード間のトランスクリプトは、2つの異なるセグメントに分かれている：
 
 1. Before any actual data transfer, both nodes participate in an
    authenticated key agreement handshake, which is based on the Noise
@@ -63,11 +58,11 @@ The transcript between two nodes is separated into two distinct segments:
    message exchange phase. In the Lightning message exchange phase, all
    messages are Authenticated Encryption with Associated Data (AEAD) ciphertexts.
 
-（区切り）
+2つのノード間のトランスクリプトは、2つの異なるセグメントに分かれている：
 
 1. 実際のデータ転送の前に、両方のノードがNoise Protocol Frameworkに基づいた
 authenticated key agreement handshakeに参加する。
-2. 最初のハンドシェイクが成功した場合、ノードはライトニング・メッセージ交換フェーズに入る。
+2. 最初のハンドシェイクが成功した場合、ノードはLightningメッセージ交換フェーズに入る。
 Lightningメッセージ交換フェーズでは、すべてのメッセージが
 Authenticated Encryption with Associated Data (AEAD) ciphertexts
 である。
@@ -85,7 +80,7 @@ Diffie-Hellman (ECDH) operations followed by a MAC check.
 プレメッセージとして、開始者は応答者のアイデンティティ公開鍵を知る必要がある。
 これは、静的公開鍵がハンドシェイク中に決して送信されないので、応答者に対してある程度の身元を隠すことを提供する。
 代わりに、認証は、一連のElliptic-Curve Diffie-Hellman（ECDH）操作とそれに続くMACチェックによって暗黙的に行われる。
-（identity public keyとは、static public keyとは？？？）
+（XXX: identity public keyとは、static public keyとは？）
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps (acts). During each act of the handshake the following occurs: some (possibly encrypted) keying
@@ -99,10 +94,12 @@ a hash digest forms an incremental TripleDH handshake.
 認証された鍵合意（Noise_XK）は、3つの異なるステップ（acts）で実行される。
 ハンドシェイクの各動作中に、次のようなことが起こる。
 一部の（おそらく暗号化された）鍵材料が相手に送信される。
-ECDHは、現在実行中の暗号化キー（連鎖キーckと暗号化キーk）に結果が混合された状態で実行される。
+ECDHは、どのactが実行されているかに基づいて実行され、
+その結果が現在の暗号化キーセット（チェーンキー「ck」と暗号化キー「k」）に混合される。
 長さゼロの暗号文を含むAEADペイロードが送信される。
 このペイロードには長さがないため、MACだけが送信される。
 ECDH出力をハッシュダイジェストにミックスすると、インクリメンタルなTripleDHハンドシェイクが形成される。
+（XXX: act -> ECDH -> チェーンキーck、暗号鍵k）
 
 Using the language of the Noise Protocol, `e` and `s` (both public keys)
 indicate possibly encrypted keying material, and `es`, `ee`, and `se` each indicate an
@@ -121,7 +118,7 @@ es、ee、及びseは、それぞれ2つのキーの間のECDH操作を示する
        -> s, se
 ```
 
-（static、ephemeral、ephemeral、staticの順。最初の<-がなんらかの方法で公開鍵渡すところで、最後の1.5往復がhandshake）
+（XXX: static、ephemeral、ephemeral、staticの順。最初の<-がなんらかの方法で公開鍵渡すところで、最後の1.5往復がhandshake）
 
 All of the handshake data sent across the wire, including the keying material, is
 incrementally hashed into a session-wide "handshake digest", `h`. Note that the
@@ -131,7 +128,8 @@ is used as the Associated Data within the zero-length AEAD messages.
 keying materialを含むワイヤを介して送信されるすべてのハンドシェイクデータは、
 セッション全体の「ハンドシェイクダイジェスト」hに、インクリメントにハッシュされる。
 ハンドシェイク中にハンドシェイク状態hが送信されることはない。
-代わりに、長さがゼロのAEADメッセージ内の関連データとして、ダイジェストが使用される。
+代わりに、長さがゼロのAEADメッセージ内のAssociated Dataとしての、ダイジェストが使用される。
+（XXX: ハンドシェイク状態h、zero-length AEAD）
 
 Authenticating each message sent ensures that a man-in-the-middle (MITM) hasn't modified
 or replaced any of the data sent as part of a handshake, as the MAC
@@ -176,14 +174,14 @@ chosen as the hash function, `secp256k1` as the elliptic curve, and
 
 Noise Protocolの具体的なインスタンス化では、
 ハッシュ関数、楕円曲線、およびAEAD暗号方式の3つの抽象暗号オブジェクトの定義が必要である。
-ライトニングの場合、SHA-256がハッシュ関数、secp256k1が楕円曲線、
+Lightningの場合、SHA-256がハッシュ関数、secp256k1が楕円曲線、
 およびChaChaPoly-1305がAEAD構造として選択される。
 
 The composition of `ChaCha20` and `Poly1305` that are used MUST conform to
 `RFC 7539`<sup>[1](#reference-1)</sup>.
 
-ChaCha20とPoly1305の構成は、RFC 7539に準拠しなければなりません。
-（ChaCha20はストリーム暗号、 Poly1305はメッセージ認証（MAC））
+ChaCha20とPoly1305の構成は、RFC 7539に準拠しなければならない。
+（XXX: ChaCha20はストリーム暗号、 Poly1305はメッセージ認証（MAC））
 
 The official protocol name for the Lightning variant of Noise is
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`. The ASCII string representation of
@@ -219,7 +217,7 @@ Throughout the handshake process, each side maintains these variables:
    previous ECDH outputs. At the end of the handshake, `ck` is used to derive
    the encryption keys for Lightning messages.
 
- * ck：連鎖キー。この値は、以前のすべてのECDH出力の累積ハッシュである。
+ * ck：チェーンキー。この値は、以前のすべてのECDH出力の累積ハッシュである。
  ハンドシェイクの最後に、ckは、Lightningメッセージの暗号化キーを導出するために使用される。
 
  * `h`: the **handshake hash**. This value is the accumulated hash of _all_
@@ -240,7 +238,7 @@ Throughout the handshake process, each side maintains these variables:
    new ephemeral key with strong cryptographic randomness.
 
  * e：パーティーの一時的な鍵ペア。
- 各セッションのために、ノードは強力な暗号のランダム性を有する新たな一時鍵を生成しなければならない。（パーティー？？？）
+ 各セッションのために、ノードは強力な暗号のランダム性を有する新たな一時鍵を生成しなければならない。
 
  * `s`: a party's **static public key** (`ls` for local, `rs` for remote)
 
@@ -270,7 +268,7 @@ The following functions will also be referenced:
   * HKDF(salt,ikm)：RFC 58693で定義され、長さゼロのinfoフィールドで評価される関数
      * すべてのHKDF呼び出しは、HKDFのextract-and-expand componentを使って、
      64バイトの暗号学的ランダム性を暗黙的に返する。
-     (HKDFはHMAC-based Extract-and-Expand Key Derivation Function。HMACでより強い鍵導出)     
+     (XXX: HKDFはHMAC-based Extract-and-Expand Key Derivation Function。HMACでより強い鍵導出)     
 
   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad, plaintext)`
      * Where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant)
@@ -279,7 +277,7 @@ The following functions will also be referenced:
        Protocol convention, rather than our normal endian.
 
   * encryptWithAD(k, n, ad, plaintext)：encrypt(k, n, ad, plaintext)を出力。
-  （AD？？？Associated Data？？？）
+  （XXX: AD？Associated Data？）
      * encryptは、ChaCha20-Poly1305（IETF variant）の評価とする。
      次を伴う。渡された引数、32ゼロビットでエンコードされたノンスn、その後にリトルエンディアンの64ビット値が続く。
      注：これはノーマルエンディアンではなくNoise Protocolの規約に従う。
@@ -290,7 +288,7 @@ The following functions will also be referenced:
        followed by a *little-endian* 64-bit value.
 
   * decryptWithAD(k, n, ad, plaintext)：decrypt(k, n, ad, plaintext)を出力。
-       （AD？？？Associated Data？？？）
+  （XXX: AD？Associated Data？）
      * decryptは、ChaCha20-Poly1305（IETF variant）の評価とする。
      次を伴う。渡された引数、32ゼロビットでエンコードされたノンスn、その後にリトルエンディアンの64ビット値が続く。
 
@@ -329,18 +327,6 @@ Act Oneが始まる前に、双方は次のようにセッションごとの状�
  3. `h = SHA-256(h || prologue)`
     * where `prologue` is the ASCII string: `lightning`
 
-（区切り。ここ訳さんでいいやろ）
-
-1. `h = SHA-256(protocolName)`
-   * where `protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"` encoded as
-     an ASCII string
-
-2. `ck = h`
-（ckはchaing key。すぐ忘れる。。。）
-
-3. `h = SHA-256(h || prologue)`
-   * where `prologue` is the ASCII string: `lightning`
-
 As a concluding step, both sides mix the responder's public key into the
 handshake digest:
 
@@ -352,7 +338,7 @@ handshake digest:
 
  * 開始ノードは、BitcoinのDER圧縮形式でシリアル化された応答ノードの静的公開鍵をミックスする。
    * h = SHA-256(h || rs.pub.serializeCompressed())
-   （rs.pubはなにかしらの方法で前もって得ている）
+   （XXX: rs.pubはなにかしらの方法で前もって得ている）
 
  * The responding node mixes in their local static public key serialized in
    Bitcoin's DER-compressed format:
@@ -360,6 +346,7 @@ handshake digest:
 
  * 応答ノードは、BitcoinのDER圧縮形式でシリアル化されたローカル静的公開鍵をミックスする。
    * h = SHA-256(h || ls.pub.serializeCompressed())
+   （XXX: lsはlocal static keypair）
 
 ### Handshake Exchange
 
@@ -375,8 +362,8 @@ challenge, the initiator must know the static public key of the responder.
 
 Act Oneは開始者から応答者に送信される。
 Act Oneでは、開始者は応答者によって暗黙のchallengeを満たすように試みる。
-このチャレンジを完了するために、開始者は、応答者の静的公開鍵を知っていなければならない。
-（rs.pub。どこがchallengeになってるんだ？？？ephemeral？？？）
+このチャレンジを完了するために、開始者は、応答者のstatic public keyを知っていなければならない。
+（XXX: どのへんがチャレンジか？）
 
 The handshake message is _exactly_ 50 bytes: 1 byte for the handshake
 version, 33 bytes for the compressed ephemeral public key of the initiator,
@@ -384,8 +371,9 @@ and 16 bytes for the `poly1305` tag.
 
 ハンドシェイクメッセージは、正確に50バイトである。
 ハンドシェイクバージョンの1バイト、
-開始者の圧縮エフェメラルパブリックキーの33バイト、
-poly1305タグの16バイトである。（なにこれ？？？）
+開始者の圧縮ephemeral public keyの33バイト、
+poly1305タグの16バイトである。
+（XXX: ？）
 
 **Sender Actions:**
 
@@ -410,18 +398,18 @@ poly1305タグの16バイトである。（なにこれ？？？）
 
 1. e = generateKey()
 2. h = SHA-256(h || e.pub.serializeCompressed())
-     * 新しく生成された短期鍵は、実行中のハンドシェイクダイジェストに蓄積される。
+     * 新しく生成されたephemeral keyは、実行中のハンドシェイクダイジェストに蓄積される。
 3. ss = ECDH(rs, e.priv)
-     * 開始者は、新たに生成されたエフェメラルキーとリモートノードの静的公開鍵（rs）との間でECDHを実行する。
-     （なんでss？？？es？？？）
+     * 開始者は、新たに生成されたephemeral keyとリモートノードのstatic public keyとの間でECDHを実行する。
 4. ck, temp_k1 = HKDF(ck, ss)
-     * 認証MACを生成するために使用される新しい一時的な暗号化キーが生成される。
+     * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
+     （XXX: random streamみたいなものか？、ckとssが一致すれば同じものが生成される）
 5. c = encryptWithAD(temp_k1, 0, h, zero)
      * zeroは長さゼロの平文
 6. h = SHA-256(h || c)
      * 最後に、生成された暗号文が認証ハンドシェイクダイジェストに蓄積される。
 7. m = (0 || e.pub.serializeCompressed() || c) をネットワークバッファを介して応答者に送信する。
-（最初の0はバージョン）
+（XXX: 最初の0はバージョン）
 
 **Receiver Actions:**
 
@@ -451,27 +439,32 @@ poly1305タグの16バイトである。（なにこれ？？？）
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MITM.
 
-（区切り）
+（XXX: 区切り）
 
 1. ネットワークバッファから正確に50バイトを読み取る。
 2. 読み取りメッセージ（m）をv、reおよびcに解析する：
     * ここでvはmの最初のバイト、reはmの次の33バイトであり、そしてcはmの最後の16バイトである
-    * リモートパーティーの短期公開鍵（e）の生のバイトは、
+    * リモートパーティーのephemeral public key（e）の生のバイトは、
     キーのシリアライズされた合成フォーマットでエンコードされたものとして、
-    アフィン座標系を使用してカーブ上のポイントにデシリアル化される。
+    アフィン座標系を使用してカーブ上のポイントにデシリアライズされる。
+    （XXX: 要するに点に戻されるということか）
 3. もしvが認識できないハンドシェイクバージョンであれば、応答者は接続試行を中断しなければならない。
 4. h = SHA-256(h || re.serializeCompressed())
-    * 応答者は、開始者の短期鍵を認証ハンドシェイクダイジェストに蓄積する。
+    * 応答者は、開始者のephemeral keyを認証ハンドシェイクダイジェストに蓄積する。
 5. ss = ECDH(re, s.priv)
-    * 応答者は、その静的秘密鍵と開始者の短期公開鍵との間でECDHを実行する。
+    * 応答者は、
+    そのstatic private keyと開始者のephemeral public keyとの間でECDHを実行する。
 6. ck, temp_k1 = HKDF(ck, ss)
-    * 新しい一時的な暗号化キーが生成され、これはまもなく認証MACをチェックするために使用される。
+    * 新しいtemporary encryption keyが生成され、
+    これはまもなく認証MACをチェックするために使用される。
 7. p = decryptWithAD(temp_k1, 0, h, c)
-    * この操作のMACチェックが失敗すると、開始者は応答者の静的公開鍵を知らない。
+    * この操作のMACチェックが失敗すると、開始者は応答者のstatic public keyを知らない。
     この場合、応答者はそれ以上のメッセージなしで接続を終了しなければならない。
+    （XXX: これがMACチェックにもなっている）
 8. h = SHA-256(h || c)
     * 受信した暗号文は、ハンドシェイクダイジェストにミックスされる。
-    このステップは、ペイロードがMITMによって修正されていないことを保証を提供する。
+    このステップは、ペイロードがMITMによって修正されていないことの保証を提供する。
+    （XXX: ？）
 
 #### Act Two
 
@@ -486,14 +479,14 @@ the end of Act One.
 
 Act Twoは応答者から開始者に送信される。
 Act Oneは、Act Oneが成功した場合にのみ行われる。
-Act Oneは、応答者ーがAct Oneの最後に送信されたタグのMACを適切に復号化して確認できる場合に成功した。
+Act Oneは、応答者がAct Oneの最後に送信されたタグのMACを適切に復号化して確認できる場合に成功した。
 
 The handshake is _exactly_ 50 bytes: 1 byte for the handshake version, 33
 bytes for the compressed ephemeral public key of the responder, and 16 bytes
 for the `poly1305` tag.
 
 ハンドシェイクは正確に 50バイトである：ハンドシェイクバージョンは1バイト、
-応答側の圧縮された一時的公開鍵で33バイト、
+応答側の圧縮されたephemeral public keyで33バイト、
 poly1305タグは16バイトである。
 
 **Sender Actions:**
@@ -519,11 +512,11 @@ poly1305タグは16バイトである。
 
 1. e = generateKey()
 2. h = SHA-256(h || e.pub.serializeCompressed())
-     * 新しく生成された短期鍵は、実行中のハンドシェイクダイジェストに蓄積される。
+     * 新しく生成されたephemeral keyは、実行中のハンドシェイクダイジェストに蓄積される。
 3. ss = ECDH(re, e.priv)
-     * ここでreはAct Oneで受信した開始者の一時的なキーである
+     * ここでreはAct Oneで受信した開始者のephemeral keyである
 4. ck, temp_k2 = HKDF(ck, ss)
-     * 認証MACを生成するために使用される新しい一時的な暗号化キーが生成される。
+     * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
 5. c = encryptWithAD(temp_k2, 0, h, zero)
      * ここでzeroは、長さゼロの平文
 6. h = SHA-256(h || c)
@@ -562,17 +555,17 @@ poly1305タグは16バイトである。
 3. もしvが認識できないハンドシェイクバージョンであれば、応答者は接続試行を中断しなければならない。
 4. h = SHA-256(h || re.serializeCompressed())
 5. ss = ECDH(re, e.priv)
-    * ここでreは応答者の一時的な公開鍵
-    * リモートパーティーの短期公開鍵（re）の生のバイトは、
+    * ここでreは応答者のephemeral public key
+    * リモートパーティーのephemeral public key（re）の生のバイトは、
     キーのシリアライズされた合成フォーマットでエンコードされたものとして、
-    アフィン座標系を使用してカーブ上のポイントにデシリアル化される。
+    アフィン座標系を使用してカーブ上のポイントにデシリアライズされる。
 6. ck, temp_k2 = HKDF(ck, ss)
-    * 認証MACを生成するために使用される新しい一時的な暗号化キーが生成される。
+    * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
 7. p = decryptWithAD(temp_k2, 0, h, c)
     * この操作のMACチェックが失敗するなら、開始者はそれ以上のメッセージなしで接続を終了しなければなりません。
 8. h = SHA-256(h || c)
     * 受信した暗号文は、ハンドシェイクダイジェストにミックスされる。
-    このステップは、ペイロードがMITMによって修正されていないことを保証を提供する。
+    このステップは、ペイロードがMITMによって修正されていないことの保証を提供する。
 
 #### Act Three
 
@@ -590,8 +583,8 @@ derived secret key at this point of the handshake.
 Act Threeは、このセクションで説明する認証済み鍵合意の最終段階である。
 このactは、最終ステップとして開始者から応答者に送信される。
 Act Threeは、 Act Twoが成功した場合にのみ実行される。
-Act Threeの間に、開始者は、ハンドシェイクのこの時点で累積されたHKDF派生秘密鍵を使用して、
-強い前方秘匿で暗号化された応答者に静的公開鍵を転送する。
+Act Threeの間に、開始者は、ハンドシェイクのこの時点で累積されたHKDF派生secret keyを使用して、
+強い前方秘匿で暗号化された応答者にstatic public keyを転送する。
 
 The handshake is _exactly_ 66 bytes: 1 byte for the handshake version, 33
 bytes for the ephemeral public key encrypted with the `ChaCha20` stream
@@ -599,8 +592,8 @@ cipher, 16 bytes for the encrypted public key's tag generated via the AEAD
 construction, and 16 bytes for a final authenticating tag.
 
 ハンドシェイクは正確に66バイトである：ハンドシェイクバージョンは1バイト、
-ChaCha20ストリーム暗号で暗号化された一時公開鍵は33バイト、
-AEAD構築で生成された暗号化された公開鍵のタグは16バイト、
+ChaCha20ストリーム暗号で暗号化されたephemeral public keyは33バイト、
+AEAD構築で生成された暗号化されたpublic keyのタグは16バイト、
 最終認証タグは16バイトである。
 （タグ？？？）
 
@@ -630,15 +623,15 @@ AEAD構築で生成された暗号化された公開鍵のタグは16バイト�
 （区切り）
 
 1. c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())
-     * ここでsは開始者の静的公開鍵である
+     * ここでsは開始者のstatic public keyである
 2. h = SHA-256(h || c)
 3. ss = ECDH(re, s.priv)
-     * ここでreは応答者の一時的な公開鍵である
+     * ここでreは応答者のephemeral public keyである
 4. ck, temp_k3 = HKDF(ck, ss)
-     * 最終的な中間共有秘密は、実行中の連鎖キーに混入する。
+     * 最終的な中間shared secretは、実行中のチェーンキーに混入する。
 5. t = encryptWithAD(temp_k3, 0, h, zero)
      * ここでzeroは、長さゼロの平文
-     （tって。これをcにしてくれ。。。）
+     （XXX: tって。これをcにしてくれ。。。）
 6. sk, rk = HKDF(ck, zero)
      * ここでzeroは、長さゼロの平文、
      skは、応答者へのメッセージを暗号化するために開始者によって使用される鍵であり、
@@ -684,10 +677,10 @@ AEAD構築で生成された暗号化された公開鍵のタグは16バイト�
     * ここでは、vはmの最初のバイト、cはmの次の49バイト、そしてtはmの最後の16のバイトである
 3. もしvが、認識できないハンドシェイクバージョンであれば、応答者は接続試行を中断しなければならない。
 4. rs = decryptWithAD(temp_k2, 1, h, c)
-    * この時点で、応答者は開始者の静的公開鍵を回復している。
+    * この時点で、応答者は開始者のstatic public keyを回復している。
 5. h = SHA-256(h || c)
 6. ss = ECDH(rs, e.priv)
-    * ここではeは応答者の元の一時的な鍵である
+    * ここではeは応答者の元のephemeral keyである
 7. ck, temp_k3 = HKDF(ck, ss)
 8. p = decryptWithAD(temp_k3, 0, h, t)
     * この操作のMACチェックが失敗した場合、応答者はそれ以上のメッセージなしで接続を終了しなければならない。
@@ -712,13 +705,13 @@ Each message is prefixed with another AEAD ciphertext, which encodes the total
 length of the following Lightning message (not including its MAC).
 
 実際のLightningプロトコルメッセージは、AEAD暗号テキストにカプセル化されている。
-各メッセージには、次のライトニングメッセージの合計長（そのMACを含まない）をエンコードする別のAEAD暗号文が前置されている。
+各メッセージには、次のLightningメッセージの合計長（そのMACを含まない）をエンコードする別のAEAD暗号文が前置されている。
 
 The *maximum* size of _any_ Lightning message MUST NOT exceed `65535` bytes. A
 maximum size of `65535` simplifies testing, makes memory management
 easier, and helps mitigate memory-exhaustion attacks.
 
-ライトニングメッセージの最大サイズは、65535バイトを超えてはならない。
+Lightningメッセージの最大サイズは、65535バイトを超えてはならない。
 最大のサイズ65535で、テストを簡素化し、メモリ管理を容易にし、メモリ枯渇攻撃を軽減する。
 
 In order to make traffic analysis more difficult, the length prefix for
@@ -727,10 +720,11 @@ all encrypted Lightning messages is also encrypted. Additionally a
 that the packet length hasn't been modified when in-flight and also to avoid
 creating a decryption oracle.
 
-トラフィック分析をより困難にするために、暗号化されたすべてのライトニングメッセージの長さ接頭辞も暗号化される。
+トラフィック分析をより困難にするために、暗号化されたすべてのLightningメッセージの長さ接頭辞も暗号化される。
 さらに、パケット長が移動中に変更されていないことを保証するために、また暗号解読オラクルの作成を避けるために、
 16バイトのPoly-1305タグが暗号化された長さプレフィックスに追加されている。
-（暗号解読オラクルの作成とは意図せず攻撃者にヒントになるデータを送ってしまうこと）
+（XXX: ？）
+（XXX: 暗号解読オラクルの作成とは意図せず攻撃者にヒントになるデータを送ってしまうこと）
 
 The structure of packets on the wire resembles the following:
 
@@ -794,11 +788,12 @@ given a sending key (`sk`) and a nonce (`sn`), the following steps are completed
     * ノンスsnは、96ビットのリトルエンディアン番号としてエンコードされる。
     デコードされたノンスが64ビットであるので、
     96ビットノンスは、32ビットの先頭0、その後の64ビット値として符号化される。
-        * ノンスsnはこのステップの後に増加しなければなりません。
-    * 長さゼロのバイトスライスがAD（関連データ）として渡される。（バイトスライス？？？）
+        * ノンスsnはこのステップの後に増加しなければならない。
+    * 長さゼロのバイトスライスがAD（関連データ）として渡される。
+    （XXX: バイトスライス？）
 4. 最後に、長さプレフィックスの暗号化に使用したのと同じ手順を使用して、メッセージ自体（m）を暗号化する。
 暗号化された暗号文をcとする。
-    * ノンスsnはこのステップの後に増加しなければなりません。
+    * ノンスsnはこのステップの後に増加しなければならない。
 5. lc || c をネットワークバッファを介して送信する。
 
 ### Receiving and Decrypting Messages
@@ -824,10 +819,10 @@ steps are completed:
 2. 暗号化された長さプレフィックスをlcとする。
 3. 暗号化されたパケットのサイズlを取得するために、lcを復号化する（ChaCha20-Poly1305、rn、およびrkを使用する）。
     * 長さゼロのバイトスライスがAD（関連データ）として渡される。
-    * ノンスrnはこのステップの後に増加しなければなりません。
+    * ノンスrnはこのステップの後に増加しなければならない。
 4. ネットワークバッファから正確に l+16バイトを読み取り、このバイトをcとする。
 5. cを復号化して（ChaCha20-Poly1305、rn、及びrkを使用して）復号された平文パケットpを得る。
-    * ノンスrnはこのステップの後に増加しなければなりません。
+    * ノンスrnはこのステップの後に増加しなければならない。
 
 ## Lightning Message Key Rotation
 
@@ -843,7 +838,7 @@ This can be properly accounted for by rotating the key once the nonce dedicated
 to it exceeds 1000.
 
 キーの回転は、キー（skおよびrk）ごとに個別に実行される。
-鍵は、あるパーティがそれを用いて1000回（すなわち、500個のメッセージごとに）暗号化または復号化した後に回転させることである。
+鍵は、あるパーティがそれを用いて1000回（すなわち、500個のメッセージごとに）暗号化または復号化した後に回転させる。
 これは、専用のナンスが1000を超えたら、キーを回すことによって適切に説明できる。
 
 Key rotation for a key `k` is performed according to the following steps:
@@ -858,7 +853,7 @@ Key rotation for a key `k` is performed according to the following steps:
 
 （区切り）
 
-1. ckをAct Threeの終わりに取得された連鎖キーとする。
+1. ckをAct Threeの終わりに取得されたチェーンキーとする。
 2. ck', k' = HKDF(ck, k)
 3. キーのノンスをn = 0にリセットする。
 4. k = k'
