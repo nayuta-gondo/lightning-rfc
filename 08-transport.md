@@ -596,7 +596,7 @@ construction, and 16 bytes for a final authenticating tag.
 ChaCha20ストリーム暗号で暗号化されたephemeral public keyは33バイト、
 AEAD構築で生成された暗号化されたpublic keyのタグは16バイト、
 最終認証タグは16バイトである。
-（タグ？？？）
+（XXX: タグ？）
 
 **Sender Actions:**
 
