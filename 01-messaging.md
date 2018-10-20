@@ -278,6 +278,7 @@ A sending node:
   - when sending `error`:
     - MUST fail the channel referred to by the error message.
   - SHOULD send `error` for protocol violations or internal errors that make channels unusable or that make further communication unusable.
+  - SHOULD send `error` with the unknown `channel_id` in reply to messages of type `32`-`255` related to unknown channels.
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
@@ -290,6 +291,8 @@ A sending node:
   - error送信時：
     - エラーメッセージによって参照されるチャネルを失敗しなければならない。
   - プロトコルの違反や内部エラーのためのerrorを送信して、チャネルを使用不能にしたり、それ以上の通信を使用不能にすべきである。
+  - 未知のチャネルに関連するタイプ32-255のメッセージに応答して、
+  未知のchannel_idでエラーを送信すべきである。（XXX: メッセージで送られて来たchannel_idをそのまま入れてerrorを返す）
   - 空のdataフィールドを送っても良い。
   - 不正な署名チェックによって失敗した場合：
     - 応答に生の、16進エンコードトランザクションを含むべきである、funding_created、funding_signed、closing_signed、またはcommitment_signedメッセージには。
