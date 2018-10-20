@@ -952,7 +952,7 @@ final node：
   - otherwise:
     - if `htlc_maximum_msat` is not present or greater than channel capacity:
 	  - MAY blacklist this `node_id`
-	  - SHOULD discard this channel.
+	  - SHOULD ignore this channel during route considerations.
 	- otherwise:
 	  - SHOULD consider the `htlc_maximum_msat` when routing.
 
@@ -962,7 +962,7 @@ final node：
     - htlc_maximum_msatが存在しないかチャネル容量よりも大きくない場合：
     （XXX: なぜここはこんなに厳しい？）
       - このnode_idをブラックリストに入れてよい
-      - このチャネルを破棄すべきである。
+      - ルートの検討中にこのチャネルを無視すべきである。
     - そうでなければ：
       - htlc_maximum_msatをルーティングの際に考慮すべきである。
 
