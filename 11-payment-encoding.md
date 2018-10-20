@@ -59,7 +59,7 @@ checksumが正しくなければ失敗しなければならない。
 The human-readable part of a Lightning invoice consists of two sections:
 1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for bitcoin mainnet, `lntb` for bitcoin testnet and `lnbcrt` for bitcoin regtest)
 1. `amount`: optional number in that currency, followed by an optional
-   `multiplier` letter
+   `multiplier` letter. The unit encoded here is the 'social' convention of a payment unit -- in the case of Bitcoin the unit is 'bitcoin' NOT satoshis.
 
 Lightning invoiceのhuman-readable partは、次の2つのsectionsで構成されている：
 1. prefix：ln + BIP-0173 currency prefix
@@ -68,7 +68,9 @@ bitcoin mainnetの場合は lnbc、
 bitcoin testnetの場合は lntb、
 bitcoin regtestの場合は lnbcrt
 ）
-1. amount：その通貨でのoptionalな数にoptionalなmultiplier文字が続く
+1. amount：その通貨でのoptionalな数にoptionalなmultiplier文字が続く。
+ここでエンコードされる単位は、支払い単位の「社会の」慣習である。
+Bitcoinの場合、単位はbitcoinでsatoshisではない。
 
 The following `multiplier` letters are defined:
 
