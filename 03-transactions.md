@@ -121,6 +121,12 @@ revoked commitment transactionを迅速に見つけるために、
 
 ### Commitment Transaction Outputs
 
+（XXX: 重要！各outputはまずtransactionとは独立に存在し、dust_limit_satoshisを下回っていても存在する。
+従ってupdate_add_htlcからHTLC transactionのfeeを引いたものがdust_limit_satoshinsを下回っていても依然としてそれは存在し、
+update_fulfill_htlcなどの対象となる。
+しかし、それがいざそれをcommitment transactionに含めようとすると、dust_limit_satoshisを下回ってトリムされるかもしれないし、
+closing transactionに含まれる場合には小さな値でも集約されてトリムされないかもしれない）
+
 To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs that return funds to the owner of the commitment transaction (a.k.a. the "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second-stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 penalty transactionsの機会を可能にするには、revoked commitment transactionの場合、
