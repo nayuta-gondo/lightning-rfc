@@ -1662,6 +1662,9 @@ commitment_signedメッセージを送信できる。
    * [`2`:`num_htlcs`]
    * [`num_htlcs*64`:`htlc_signature`]
 
+（XXX: signatureはマルチシグの署名（signature_for_pubkey1またはsignature_for_pubkey2））
+（XXX: htlc_signatureはremotehtlcsigであろう）
+
 #### Requirements
 
 A sending node:
