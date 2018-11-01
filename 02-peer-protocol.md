@@ -760,7 +760,7 @@ A sending node:
   - 受信ノードのcommitment transactionで保留中の更新がある場合：
     - shutdownを送信してはならない。
   - shutdown後にupdate_add_htlcを送ってはならない。
-  - commitment transactionにHTLCが残っていない場合：
+  - いずれのcommitment transactionにもHTLCが残っていない場合：
     - shutdownの後にupdateメッセージを送信してはならない。
   - shutdownが送信された後に、追加されたHTLCをルーティングすべきではない。
   （XXX: 失敗させるのか）
