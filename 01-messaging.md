@@ -60,13 +60,14 @@ typeフィールドはpayloadフィールドをどのように解釈するかを
 個々のtypeの形式は、このリポジトリ内の仕様によって定義される。
 型はそれがit's ok to be oddルールに従っているので、
 nodeは受信者がそれを理解していることを確認せずに奇数のtypesを送信することができる。
-（XXX: あ、これtypeフィールドもこのルールか）
 
 A sending node:
   - MUST NOT send an evenly-typed message not listed here without prior negotiation.
 
 送信node：
   - 事前交渉なしにここにリストされていない偶数typeのmessageを送信してはいけない。
+  （XXX: negotiationとは？フィーチャービット？
+  奇数typeはnegotiationとやらはいらない？）
 
 A receiving node:
   - upon receiving a message of _odd_, unknown type:
@@ -104,7 +105,7 @@ The size of the message is required by the transport layer to fit into a 2-byte 
 
 messageのサイズは、トランスポート層が2バイトの符号なし整数に収まるように要求される。
 したがって、可能な最大サイズは65535バイトである。
-（XXX: トランスポート層ってNoise Protocolのこと）
+（XXX: トランスポート層とはNoise Protocolのこと）
 
 A node:
   - MUST ignore any additional data within a message beyond the length that it expects for that type.
@@ -118,7 +119,8 @@ node：
   - コンテンツの長さが不十分な既知のmessageを受信すると、
     - channelに失敗しなければならない。
   - この仕様書でオプションを交渉する：
-    - そのオプションで注釈が付けられたすべてのフィールドを含める必要がある。（XXX: ？）
+    - そのオプションで注釈が付けられたすべてのフィールドを含める必要がある。
+    （XXX: そのオプションを使う場合は、この仕様書に従って、そのオプションに必要なフィールドを含める必要がある）
 
 ### Rationale
 
@@ -149,10 +151,11 @@ however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
 
-実装では、messageデータを8バイト境界に整列させることが望ましいかもしれない（ここでは任意のtypeの最大整数アライメント要件）。
+実装では、messageデータを8バイト境界に整列させることが望ましいかもしれない
+（ここでは任意のtypeの最大整数アライメント要件）。
 しかし、typeフィールドの後に6バイトのパディングを追加することは無駄であると考えた。
 6バイトのプレパディングを持つバッファでmessageを復号化することによって、アライメントを達成できる。
-（XXX: 具体的にどうやるんだろう。先頭６バイトを気にせず復号しても問題ないのかな？）
+（XXX: 先頭６バイトを気にせず復号？）
 
 ## Setup Messages
 
@@ -161,12 +164,13 @@ a buffer with 6-bytes of pre-padding.
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
 認証が完了すると、このノードがサポートしているかまたは必要としている機能が、たとえこれが再接続であっても、最初のメッセージで明らかになる。
+（XXX: これは接続時毎回？）
 
 [BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
 BOLT＃9は、グローバルおよびローカル機能のリストを指定する。
 各機能は通常、globalfeaturesか、localfeaturesの2ビットで表される。
-最下位ビットは0であり、これは偶数であり、次の最上位（XXX: 最下位の間違い？）ビットは1であり、これは奇数である。
+最下位ビットは0であり、これは偶数であり、次の最上位ビットは1であり、これは奇数である。
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
 
@@ -207,7 +211,7 @@ The receiving node:
 
 受信ノード：
   - 他のメッセージを送信する前にinitの受信を待つ必要がある。
-  - BOLT＃9で指定された既知の機能ビットに応答しなければならない。（XXX: 応答って？）
+  - BOLT＃9で指定された既知の機能ビットに応答しなければならない。
   - 非ゼロである未知の奇数機能ビットを受信した場合：
     - ビットを無視しなければならない。
   - 非ゼロである未知の偶数機能ビットを受信した場合：
@@ -224,7 +228,7 @@ Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
 
 ノードは、機能が互換性がないときのエラー診断を単純化するために、
-他の機能の受信を待機する。（XXX: ？）
+他の機能の受信を待機する。（XXX: initを受信するまで）
 
 The feature masks are split into local features (which only affect the
 protocol between these two nodes) and global features (which can affect
@@ -238,6 +242,7 @@ global features（HTLCに影響を及ぼし、他のノードにもアドバタ�
 For simplicity of diagnosis, it's often useful to tell a peer that something is incorrect.
 
 診断を簡単にするために、何かが間違っていることをピアに伝えることはしばしば有用である。
+（XXX: これはピア用）
 
 1. type: 17 (`error`)
 2. data:
