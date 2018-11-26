@@ -276,7 +276,6 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See parts: Payment hash, Payment preimage_
 
 * HTLC： Hashed Time Locked Contract.
-（XXX: Hash Time Locked Contractの間違い？）
    * 2つのpeers間の条件付き支払い：
    受取人は、その署名とpayment preimageを提示することによって支払いを費やすことができ、
    そうでなければ、支払人は所定時間後にcontractを取り消すことができる。
@@ -351,7 +350,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See originator: payment preimage_
 
 * Payment hash：
-   * HTLCはpayment preimageのhashでるpayment hashを含む。
+   * HTLCはpayment preimageのhashであるpayment hashを含む。
    * _See container: HTLC_
    * _See originator: payment preimage_
 
