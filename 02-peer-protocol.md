@@ -55,7 +55,7 @@ funderは、BOLT＃3で説明される、
 funding transactionと、commitment transactionの両方のバージョンを登録することができる。
 その後、funderは、funding outputのoutpointをfunding_createdメッセージとともに、
 「fundeeのバージョンのcommitment transaction」への（XXX: funderによる）署名を加えて送信する。
-fundeeがfunding outputを知ると、commitment transactionのためのfunderのコミットメント（XXX: ？）を生成し、
+fundeeがfunding outputを知ると、commitment transactionのためのfunderのコミットメント（XXX: 署名）を生成し、
 それをfunding_signedメッセージを使用して送信することができる。
 
 Once the channel funder receives the `funding_signed` message, it
@@ -196,7 +196,7 @@ later with an `update_fee` message).
 feerate_per_kwは、BOLT＃3に記載されているように、
 こちら側がcommitmentおよびHTLC transactionsに対して支払う1000-weight
 （すなわち、より一般的に使用される'satoshi per 1000 vbytes'の1/4）
-の初期fee rateを示す（これは後でupdate_feeメッセージで調整可能である）。
+毎の初期fee rateを示す（これは後でupdate_feeメッセージで調整可能である）。
 （XXX: マイナーへのfee）
 （XXX: vbyte = virtual byte, 1 vbyte = 4 weight）
 
@@ -229,8 +229,8 @@ third parties.
 これらのキーを変更することにより、commitment transactionが1つ見られても、
 各commitment transactionのtransaction IDが外部の観察者に予測不可能になる。
 このプロパティは、penalty transactionsを第三者に委託する際のプライバシー保護に非常に役立つ。
-（XXX: commitment transactionのTXIDをランダマイズしているのは、
-txinのsequenceのpayment_basepointで隠されたcommitment transaction numberか）
+（XXX: commitment transactionのTXIDがランダマイズされて予想不可能になっているが、それは、
+txinのsequenceによる。これはpayment_basepointで隠されたcommitment numberである）
 
 `first_per_commitment_point` is the per-commitment point to be used
 for the first commitment transaction,
@@ -252,7 +252,7 @@ funds will go on mutual close, which the remote node should enforce
 even if a node is compromised later.
 
 shutdown_scriptpubkeyにより、
-送信ノードがファンドがmutal closeに進むべき場所約束する、
+送信ノードがファンドがmutal closeに進むべき場所を約束する、
 ノードが後で妥協された場合でも（XXX: ？）、リモートノードが強制すべき。
 
 [ FIXME: Describe dangerous feature bit for larger channel amounts. ]
@@ -290,7 +290,7 @@ The sending node:
     - shutdown scriptpubkeyによって必要とされる、有効なshutdown_scriptpubkey、
     または長さがゼロのshutdown_scriptpubkeyのいずれかを含む必要がある。
   - そうでなければ：
-    - shutdown_scriptpubkeyを含めてもよい。
+    - shutdown_scriptpubkeyを含めてもよい。（XXX: ？）
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -335,7 +335,7 @@ The receiving node MAY fail the channel if:
   - channel_reserve_satoshisが、大きすぎる考えらえる。
   - max_accepted_htlcsが、小さすぎると考えられる。
   - dust_limit_satoshisが、小さすぎると考えられ、
-  データ損失の場合にcommitment transactionを公開している送信ノードに依存する予定である（message-retransmission参照）。
+  データ損失の場合にcommitment transactionを公開している送信ノードに頼る予定である（message-retransmission参照）。
   （XXX: ？）
 
 The receiving node MUST fail the channel if:
@@ -369,7 +369,7 @@ The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
 
 受信ノードはしてはならない：
-  - funding transactionが十分な深さに達する前に、push_msatを使用して受信した資金を受信したとみなす。
+  - funding transactionが十分な深さに達する前に、push_msatを使用して受信した資金を受信したものとみなす。
 
 #### Rationale
 
@@ -386,8 +386,9 @@ The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% 
 channel reserveは、ピアのchannel_reserve_satoshisで指定される：
 チャンネル総数の1％が提案されている。
 チャネルの各側はこの予約を保持しているので、古いrevoked commitment transactionをブロードキャストしようとすると、失うものが常にある。
+（XXX: 自分の残高が空になったときに試しにrevoked commitment transactionを行おうとするインセンティブをなくす。幾分かの残高が残るようにして。）
 当初、この準備金は満たされていないかもしれない。片側だけが資金を持っているので。
-プロトコルでは、この準備金を満たすことに向けて常に進歩があり、一旦満たされればそれが維持されることが保証されている。
+このプロトコルでは、この準備金を満たすことに向けて常に前進があり、一旦満たされればそれが維持されることが保証されている。
 （XXX: fundeeにとっては資金ははじめchannel_reserve_satoshisを下回っている、ので送信できないが、
 溜まってもchannel_reserve_satoshisを上まらないと送信できない）
 
@@ -397,13 +398,14 @@ The sender can unconditionally give initial funds to the receiver using a non-ze
 この場合でも我々は、funderにはfeesを支払うのに十分な残高があり、
 一方の側にはいくらかの使用できる額があることを保証する
 （これはまた少なくとも1つのnon-dust outputがあることを暗示する）。
-（XXX: funder側じゃなくone sideと書いてあるのは、push_msatで資金が移動しているかもしれないから？）
+（XXX: funder側じゃなくone sideと書いてあるのは、push_msatで資金が移動しているかもしれないから）
 他のon-chain transactionと同様に、この支払い（XXX: push_msatによる）はfunding transactionが十分に確認されるまで確かでなく（これが生じるまで二重支出の危険性がある）、
 on-chain confirmationによる支払いの証明のための別の方法が必要になるであろう。
+（XXX: push_msatによる支払いの証明はBOLT #13では行えない）
 
 The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.
 
-一般的にfeerate_per_kwのみが送信者（手数料を支払う）の関心であるが、
+一般的にfeerate_per_kwは送信者のみ（手数料を支払う）の関心であるが、
 HTLC transactionsにより支払われる手数料率でもある。
 従って、不当に大きな料金率も受取人にペナルティを科す可能性がある。
 
@@ -413,8 +415,7 @@ payment_basepointからhtlc_basepointを分離することは、セキュリテ�
 ノードが、このプロトコルのHTLCシグネチャを生成するのに、
 htlc_basepointに関連付けられたsecretを必要とするが、
 payment_basepointのためのsecretはcold storageに置くことができる。
-（XXX: payment_basepointはcommitment transactionでhtlc_basepointはHTLCに関わる？）
-（XXX: なんでここでcold storageに言及されているのか？）
+（XXX: payment_basepointはcommitment transactionでhtlc_basepointはHTLCに関わる）
 
 The requirement that `channel_reserve_satoshis` is not considered dust
 according to `dust_limit_satoshis` eliminates cases where all outputs
@@ -423,7 +424,7 @@ would be eliminated as dust.  The similar requirements in
 are above both `dust_limit_satoshis`.
 
 channel_reserve_satoshisがdust_limit_satoshisに関連してdustとみなされない
-（XXX: ようにしなければならない）という要件は、
+（XXX: ようにする）という要件は、
 、すべてのoutputsがdustとして排除されるケースを排除する。
 accept_channelにおける同様の要件は、
 両サイドのchannel_reserve_satoshisが、両方のdust_limit_satoshisを超えることを保証する。
@@ -540,7 +541,7 @@ The sender MUST set:
   open_channelメッセージのtemporary_channel_idと同じである。
   - funding_txidは、
   非展性のトランザクションのtransaction ID、
-    - このtransactionをブロードキャストしてはならない。（XXX: 今はまだ？）
+    - このtransactionをブロードキャストしてはならない。
   - funding_output_indexは、
   BOLT＃3で定義されているように、
   funding transaction outputに対応するそのtransactionのoutput number。
@@ -683,7 +684,7 @@ messages.
 
 SPV proof（全ブロックのPoW検証に必要なデータ）を追加し、
 ブロックハッシュを別のメッセージでルーティングすることができる。
-（XXX: ？）
+（XXX: block headerや必要なmarkle tree。gossipで送ることが検討されている）
 
 ## Channel Close
 
@@ -790,7 +791,7 @@ A receiving node:
     - 接続に失敗するべきである
   - scriptpubkeyが上記のいずれかの形式でない場合：
     - 接続に失敗するべきである。
-  - それはまだfunding_lockedを送信していない場合：
+  - それがまだfunding_lockedを送信していない場合：
     - shutdownメッセージにshutdownで応答することができる
   - いったんピアに未処理の更新がない場合、すでにそれがshutdownを送信していない限り：
     - shutdownメッセージにshutdownで返信しなければならない
@@ -846,7 +847,6 @@ option_upfront_shutdown_script機能は、
 （XXX: ？）
 これは弱いコミットメントだが（悪意のある実装はこのような仕様を無視する傾向がある）が、
 scriptpubkeyを変えることによって、受信ノードの協力を必要とすることにより、セキュリティの段階的な改善を提供する。
-（XXX: ？）
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 
@@ -903,9 +903,7 @@ The sending node:
 送信ノード：
   - BOLT＃3で計算されるように、fee_satoshisを、
   最後のcommitment transactionのbase fee以下に設定しなければならない。
-  （XXX: fee_satoshisって実際なんのfee？上回ってはだめということだろう）
   - 最初のfee_satoshisは、ブロックへの追加コストの推定値に従って設定すべきである。
-  （XXX: 最初だけ？）
   - BOLT＃3で指定されるように、signatureは、closing transactionのBitcoinシグニチャに設定しなければならない。
 
 The receiving node:
@@ -931,7 +929,7 @@ between its last-sent `fee_satoshis` and its previously-received
 
 受信ノード：
   - signatureが、BOLT＃3で指定されるように、closing transactionのいずれかの変種として有効ではない場合：
-  （XXX: 変種が考えられるのか？）
+  （XXX: 変種が考えられる。自分のoutputをdustにしたりして）
     - 接続に失敗しなければならない。
   - fee_satoshisが以前に送信されたfee_satoshisと同じ場合：
     - 最後のclosing transactionに署名し、ブロードキャストすべきである。
@@ -941,10 +939,10 @@ between its last-sent `fee_satoshis` and its previously-received
     - 接続に失敗しなければならない。
   - もしfee_satoshisが厳密にその送られた最後のfee_satoshisと以前に受信したfee_satoshisの間ではなく、
   以前に再接続していない限り：
-  （XXX: 再接続時はやりなおしか）
     - 接続に失敗するべきである。
+    （XXX: channelを失敗するわけではない。やりなおし）
   - 受信者がfeeに同意する場合：
-    - 同じfee_satoshis値でclosing_signedを返すべきである。
+    - 同じfee_satoshisの値でclosing_signedを返すべきである。
   - そうでなければ：
     - 受信したfee_satoshisと以前に送信したfee_satoshisの「厳密に間の」値を提示しなければならない。
 
@@ -956,8 +954,8 @@ keeping state and to handle the corner case, where fees have shifted
 between disconnection and reconnection, negotiation restarts on reconnection.
 
 「厳密には間の」という要件は、一度に1つのsatoshiであっても、進歩が確実に行われるようにする。
-状態の保持を避け、切断と再接続の間で料金がシフトしたコーナーケースを処理するために、
-再接続時にネゴシエーションが再開される。
+状態の保持を避け、切断と再接続の間でfeesがシフトした（XXX: やり直しのため）コーナーケースを処理するために、
+再接続時にネゴシエーションが再開される。（XXX: shutdownからやり直し？）
 
 Note there is limited risk if the closing transaction is
 delayed, but it will be broadcast very soon; so there is usually no
@@ -972,7 +970,7 @@ Once both nodes have exchanged `funding_locked` (and optionally [`announcement_s
 
 両方のノードがfunding_lockedを交換されると（オプションとしてannouncement_signatures）、
 Hash TimeLocked Contrancts（HTLCs）を介して支払いを行うためにチャネルを使用することができる。
-（XXX: Hash Time Locked Contrantsの間違い？）
+（XXX: announcement_signaturesが必要な時はそれを交換しないとNormal Operationに移行できない？）
 
 Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:
@@ -1012,8 +1010,6 @@ Changes are sent in batches: one or more `update_` messages are sent before a
         +-------+                                   +-------+
 
 （XXX: なんで図でメッセージ名を省略する。。。）
-（XXX: 実際はBから7のrevoke_and_ackで入った3のために、
-もう一度Bからcommitment_signed送信、revoke_and_ack受信が行われなければならない）
 
 Counter-intuitively, these updates apply to the *other node's*
 commitment transaction; the node only adds those updates to its own
@@ -1060,7 +1056,8 @@ particular HTLC or not (the final state, above).
 
 2つのノードの更新が独立しているので、2つのcommitment transactionは無期限に同期していない可能性がある。
 これは関係ない：
-重要なのは、両当事者が特定のHTLCが取り消し不能であることを約束したか否かである（上の最終状態）。
+重要なのは、両当事者が特定のHTLCがirrevocably committedであることを約束したか否かである（上の最終状態）。
+（XXX: revoke_and_ackまででirrevocably committed）
 
 ### Forwarding HTLCs
 
@@ -1080,13 +1077,12 @@ previous commitment transaction **without/with** it has been revoked, OR
 2. The commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
 
-それぞれのHTLCの追加/削除は、次の場合にirrevocably committedとみなされる。
+それぞれのHTLCの（追加/削除）は、次の場合にirrevocably committedとみなされる。
 
 1. 両方のノードでコミットされている（XXX: 全ての）commitment transactionで、そのHTLCが（ある／ない）
 任意の以前の無効化されている（XXX: 全ての）commitment transactionで、そのHTLCが（ない／ある）
 または、
 2. ブロックチェーンにirreversibly committedされているcommitment transactionで、そのHTLCが（ある／ない）
-（XXX: HTLCがあっても払い戻されたというケースもあるだろう？）
 
 #### Requirements
 
@@ -1109,9 +1105,9 @@ to an outgoing HTLC.
   - 送信HTLCの削除がirrevocably committedになるまで、
   またはオンチェーンの送信HTLC出力がHTLC-timeout transactionによって費やされるまで（十分な深さで）：
     - 送信HTLCのためにコミットした受信HTLCを失敗（update_fail_htlc）してはならない。
-    （XXX: HTLC-time transactionに費やされるということは、なかっとことになるということ）
   - 一旦cltv_expiryに達するか、（cltv_expiry - current_height）が送信チャンネルのcltv_expiry_delta未満の場合：
     - 受信HTLCに失敗（update_fail_htlc）しなければならない。
+    （XXX: すでにタイムアウトしている）
   - 受信HTLCのcltv_expiryが将来に不当に遠い場合：
     - 受信HTLCに失敗（update_fail_htlc）すべきである。
   - 送信HTLCのupdate_fulfill_htlc受信時か、オンチェーンのHTLCの使用からpayment_preimageの発見時
@@ -1142,7 +1138,7 @@ Once an HTLC has timed out, it can either be fulfilled or timed-out;
 care must be taken around this transition, both for offered and received HTLCs.
 
 一旦HTLCがタイムアウトすると、それは実行される（be fulfilled）かタイムアウトになるかのどちらかである。
-offered HTLCとreceived HTLCの両方について、このtransactionの前後で注意を払う必要がある。
+offered HTLCとreceived HTLCの両方について、この遷移の前後で注意を払う必要がある。
 
 Consider the following scenario, where A sends an HTLC to B, who
 forwards to C, who delivers the goods as soon as the payment is
@@ -1159,7 +1155,7 @@ received.
 次のシナリオを考えなさい。
 ここで、AはBにHTLCを送信し、（Bは）Cに転送し、（Cは）支払いを受け取るとすぐに商品を配送する。
 
-1. Bが応答しなくなっても、BからのHTLCがタイムアウトしてないことをCが確認する必要がある：
+1. Cは、Bが応答しなくなっても、BからのHTLCがタイムアウトしてないことを確認する必要がある：
 すなわち、Bがそれをオンチェーンでタイムアウトする前に、
 Cは受信HTLCをオンチェーンで実行する（fulfill）ことができる。
 
@@ -1168,7 +1164,6 @@ Cは受信HTLCをオンチェーンで実行する（fulfill）ことができ�
 すなわち、Bは、Cからpreimageを取得し、
 Aがそれをオンチェーンでタイムアウトする前に、
 受信HTLCをオンチェーン上で実行する（fulfill）ことができる。
-（XXX: Bはちょっとクリティカル）
 
 The critical settings here are the `cltv_expiry_delta` in
 [BOLT #7](07-routing-gossip.md#the-channel_update-message) and the
@@ -1187,7 +1182,7 @@ the node *accepting* the HTLC, not the node offering it. For this
 reason, the `cltv_expiry_delta` for the *outgoing* channel is used as
 the delta across a node.
 
-この値がチャネルにとって低すぎる場合、リスクは、提供するノードではなく、HTLCを受け入れるノードのみに注意しなさい。
+この値がチャネルにとって低すぎる場合、リスクは、提供するノードではなく、HTLCを受け入れるノードのみに注意すること。
 この理由のため、送信チャネルのためのcltv_expiry_deltaは、ノードを横切るデルタとして使用される。
 （XXX: 受信と送信の間を考えなくてはならないのでノードで考えなければならない。受信側と送信側の差分として）
 
@@ -1200,13 +1195,13 @@ incoming HTLC resolution can be derived, given a few assumptions:
 * a number of blocks `S` between transaction broadcast and the
   transaction being included in a block
 
-いくつか仮定すると、送信と受信間のHTLCの回答である、
+いくつか仮定すると、
+送信と受信間のHTLCの回答である、
 最悪の場合のブロック数を導き出すことができる。
 
 * 最悪の場合の再編成（reorg）深度、Rブロック
 * 猶予期間のGブロックは、HTLCタイムアウト後、応答しないピアをあきらめてチェーンに落ちる前（まで）
 * Sブロックの数は、transactionのブロードキャストとトランザクションがブロックに含まれるまでの間
-（XXX: confirmationとか関係ない？）
 
 The worst case is for a forwarding node (B) that takes the longest
 possible time to spot the outgoing HTLC fulfillment and also takes
@@ -1236,26 +1231,43 @@ the longest possible time to redeem it on-chain:
 またオンチェーンで償還するために可能な限り長い時間を要する：
 
 1. B->CのHTLCはブロックNでタイムアウトし、BはCを待つのをあきらめるまでGブロック待つ。
-BまたはCはブロックチェーンにコミットし、BはHTLCを使用する(XXX: どのパターン？)が、
-それは含まれるまでSブロック要する。
-2. 悪い例：Cが（XXX: どっちがブロードキャストするかという）レースに勝って
-（時間的にちょうど(XXX: N+Gで？)）HTLCを実行（XXX: オンチェーンで？）（fulfill）し、
+BまたはCはブロックチェーンにコミットし、
+BはHTLCを使用するが、それは含まれるまでSブロック要する。
+2. 悪い例：Cがレースに勝って
+HTLCを実行（XXX: オンチェーンで）（fulfill）し、
 BがブロックN+G+S+1を見るとき、そのtransactionを見るだけである。
-（XXX: ここの1って？）
-3. 最悪の場合：Rの深さのreorgがあり、そこでCが勝ち（XXX: オンチェーンで？）実行（fulfill）する。
+（XXX: preimageを抽出する）
+（XXX: ここの1はブロックが含まれて次のブロックで償還か？
+実際はcommitment txと同じブロックで償還できるかもしれないが、
+ここではより時間が掛かるケースであろう）
+3. 最悪の場合：Rの深さのreorgがあり、そこでCが勝ち実行（fulfill）する。
 BはN+G+S+Rのtransactionを見ているだけである。
-（XXX: こで1がないのは？）
-4. Bは今受信A->BのHTLCを実行する（fulfill）必要があるが、Aは応答しない：
+（XXX: preimageを抽出する）
+（XXX: 1がより長いRに変わった）
+
+（XXX: ？？？<br>
+Cがfulfillを行ってBがpreimageを見つけるまでのワーストケース<br>
+N:HTLCがタイムアウト<br>
+G:Bが猶予を待つ<br>
+S:B or Cがcommitment txをブロードキャストしブロックに含まれる<br>
+R:reorgしたがCが即時fulfill実行、Bはpreimage抽出（クリティカルだがCが勝ち）<br>
+fulfillされなければ資金は戻ってくるのでそのケースは考えなくていい？<br>
+）<br>
+
+4. Bは今、受信A->BのHTLCを実行する（fulfill）必要があるが、Aは応答しない：
 BはAを待つのをやめるまで、さらにGブロックを待つ。
 AまたはBがブロックチェーンにコミットする。
-5. 悪いケース：BはブロックN+G+S+R+G+1（XXX: N+G+S+R+G+S+1じゃない？）にある
-Aのcommitment transaction見、
+5. 悪いケース：BはブロックN+G+S+R+G+1（XXX: ？）にある
+Aのcommitment transaction見、（XXX: ここまではcommitment tx）
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
+（XXX: これで+Sか？）
 6. 最悪の場合：Aがcommitment transactionを使用するために使う、別のreorgの深さRがあるため、
-BはブロックN+G+S+R+G+R (XXX: N+G+S+R+G+S+Rじゃない？) でAのcommitment transactionを見、
+BはブロックN+G+S+R+G+R (XXX: ？) でAのcommitment transactionを見、
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
+（XXX: これで+Sか？）
 7. BのHTLCの使用は、タイムアウトする前に少なくともR深くする必要がある。
-そうしないと、別のreorgがAがトランザクションをタイムアウトさせる可能性がある。
+そうしないと、別のreorgがAのトランザクションをタイムアウトさせる可能性がある。
+（XXX: これで+Rか？）
 
 Thus, the worst case is `3R+2G+2S`, assuming `R` is at least 1. Note that the
 chances of three reorganizations in which the other node wins all of them is
@@ -1267,9 +1279,9 @@ required to timeout or fulfill as soon as possible; but if `G` is too low it inc
 risk of unnecessary channel closure due to networking delays.
 
 従って、最悪の場合は3R+2G+2S、Rは少なくとも1であると仮定する。
-（XXX: こっちではちゃんとSが２つある）
-すべての3回のreorgの機会で、他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。（XXX: ？）
-高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
+すべての3回（XXX: どれ？）のreorgの機会で、
+他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。（XXX: ？）
+（XXX: 比較的）高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
 Sは小さくすべきである；（XXX: feeを適切に支払ってブロックに入りやすくする）
 とはいえ、ブロック時間が不規則で空きブロックがまだ発生している場合の、S=2は最小限とみなすべきである。
 （XXX: 通常はもっと大きく見積もる必要がある？）
@@ -1319,6 +1331,8 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
 BOLT＃11のデフォルト値は9である。
 これは、この計算で示唆されている7よりわずかに控えめである。
 
+（XXX: TODO: ここまで。また見直す）
+
 #### Requirements
 
 An offering node:
@@ -1333,6 +1347,7 @@ An offering node:
   - そのcltv_expiry以前のタイムアウトの期限のHTLCを提供してはならない。
   - 提供したHTLCが、現在のcommitment transactionにあり、かつタイムアウトの期限を過ぎている：
     - チャネルに失敗しなければならない。
+    （XXX: これ！一度閉じないといけない）
 
 A fulfilling node:
   - for each HTLC it is attempting to fulfill:
@@ -1343,13 +1358,24 @@ A fulfilling node:
     - MUST fail the connection.
 
 実行する（fulfilling）ノード：
-  - HTLCごとに、それは実行しよう（fulfill）としている：
+（XXX: TODO: 重要そうなところだがこれでいいのか？）
+  - 実行しよう（fulfill）としているHTLCごとに：
     - 実行（fulfillment）の期限を推定しなければならない。
   - 実行（fulfillment）期限がすでに過ぎているHTLCを失敗しなければならない（かつ転送しない）。
+  （XXX: 下流にupdate_add_htlcを行っていない、
+  または下流のHTLCがupdate_fail_htlcされているという前提がないと、
+  上流を失敗させると資金を失う可能性がある。
+  ここではまだ下流にupdate_add_htlcを行っておらず、
+  すでにタイムアウトしている場合にそれを行わない前提で、
+  上流にupdate_fail_htlcを行うという理解であっているか？）
   - 実行した(has fulfilled)HTLCが、現在のcommitment transactionにあり、
+  （XXX: fulfillした状態というのがどのような状態かよくわからない？）
   かつ実行（fulfillment）のタイムアウトのデッドラインを過ぎている：
   （XXX: update_fulfill_htlcしたのにcommitment_signedが送られてこない？）
     - 接続に失敗しなければならない。
+    （XXX: 再接続して再度update_fulfill_htlcを送るのか？
+    preimageを持っているのにタイムアウトしているということは
+    チャネルを失敗させ、unirateral closeして資金を取得しないといけないのでは？）
 
 ### Adding an HTLC: `update_add_htlc`
 
@@ -1401,14 +1427,15 @@ Fees") while maintaining its channel reserve.
 
 送信ノード：
   - そのchannel reserveを維持したまま（XXX: channel reserveを下回るような送金をしてはいけない）、
-  現在のfeerate_per_kw（「Updating Fees」参照）でリモートcommitment transactionに、
+  現在のfeerate_per_kw（「Updating Fees」参照）でremote commitment transactionに、
   そのノードが支払うことはできないamount_msatを提供してはならない。
+  （XXX: remote commitment transactionのことだけを考えれば良い）
   - 0より大きいamount_msatを、提供しなければならない。
   - 受信ノードのhtlc_minimum_msat未満のamount_msatを提供してはならない
   - cltv_expiryは、500000000未満に設定しなければならない。
   - chain_hashが、Bitcoinブロックチェーンであると同定されるチャネルの場合：
     - amount_msatの4つの最上位バイトを0に設定しなければならない。
-  - 結果が、リモートのcommitment transactionにおいて、
+  - 結果が、remote commitment transactionにおいて、
   リモートのmax_accepted_htlcs HTLCs以上を提供する場合：
     - HTLCを追加してはならない。
   - 提供されたHTLCの合計が、リモートのmax_htlc_value_in_flight_msatを超えた場合：
@@ -1416,6 +1443,10 @@ Fees") while maintaining its channel reserve.
   - そのノードが提供する、最初のHTLCのために：
     - idを0に設定しなければならない。
   - idを連続するオファー毎に1ずつ値を増やさなければならない。
+  （XXX: 再接続した場合、キャンセルされたupdateに関して、
+  idは元に戻すのか戻さないのか？気にしないのか？
+  元に戻すと以下のようにidが重複する。
+  元に戻さない場合はidが飛ぶ）
 
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
@@ -1449,8 +1480,9 @@ A receiving node:
   - chain_hashがBitcoinブロックチェーンだと同定されるチャネルにおいて、amount_msatの4つの最上位バイトが0でない場合：
     - チャネルに失敗しなければならない。
   - 同じpayment_hashの複数のHTLCsを許さなければならない。
-  - 送信者が以前にそのHTLCのコミットメントを認めなかった場合：（XXX: revoke_and_ackまで行く前、ということか？？？）
-    - 再接続後には、繰り返しのidの値を無視しなければならない。  
+  - 送信者が以前にそのHTLCのコミットメントを認めなかった場合：
+  （XXX: 送信者のchannel_reestablishのnext_local_commitment_numberでコミットされているHTLCを知る）
+    - 再接続後には、繰り返しのidの値を無視しなければならない。
   - 他のid違反が発生した場合：
     - チャンネルに失敗してよい。
 
@@ -1462,6 +1494,10 @@ onion_routing_packetには、パスに沿った各hopのためのhopと命令の
 それは関連するデータとしてpayment_hashを設定することでそのHTLCにコミットする。
 つまりHMACの計算にpayment_hashを含める。
 これにより、以前のonion_routing_packetと別のpayment_hashを再利用するリプレイ攻撃が防止される。
+（XXX: onion_routing_packetがpayment_hashでのみHTLCにコミットしている場合、
+Base AMPにおいて、同一payment_hashが複数経路で使用されている場合、
+いずれの経路にも属する中継ノードにおいてonion_routing_packetを別の経路のものに置き換えて
+経路を変更することができる。中継ノードは自分に都合のよりルートに変更するであろう。）
 
 #### Rationale
 
@@ -1479,12 +1515,20 @@ identifier; its assumed a 64-bit counter never wraps.
 重複を処理するためのこの要件は、別個の識別子の使用につながる；
 それは決してラップしない64ビットカウンタである。
 
+（XXX: Base AMPのように
+全ての同一のpayment_hashのHTLCがコミットされてから
+fulfillされるのが保証されているのであれば問題ないが、
+そうでなければ（payment_hashの二重使用）すでにpreimageを知っている中継ノードが、
+資金を中継せずに上流のHTLCをfulfillできてしまう）
+
 Retransmissions of unacknowledged updates are explicitly allowed for
 reconnection purposes; allowing them at other times simplifies the
 recipient code (though strict checking may help debugging).
 
 未確認の更新の再送は、再接続の目的で明示的に許可される；
 他の時間にそれらを許可すると、受信者のコードが簡素化される（厳密なチェックはデバッグに役立つが）。
+（XXX: TODO: 他の時間にidが同じ場合は再送とみなすべき。
+異なるHTLCが同じidで送られるのは許容できないだろう。これは明文化されるべき）
 
 `max_accepted_htlcs` is limited to 483 to ensure that, even if both
 sides send the maximum number of HTLCs, the `commitment_signed` message will
@@ -1552,9 +1596,12 @@ the peer couldn't parse it: in this case the current node instead takes action, 
 it into a `update_fail_htlc` for relaying.
 
 reasonフィールドは、BOLT＃4で定義されている、オリジナルのHTLC開始者のためのあいまいな暗号化されたBLOBである。
-しかし、ピアがそれを解析できなかった場合のための特別な不正な形式の失敗のための変形がある：
+しかし、ピアがそれ（XXX: onion_routing_packet？）を解析できなかった場合のための特別な不正な形式の失敗のための変形がある：
 この場合、現在のノードは代わりにアクションを行い、それをupdate_fail_htlcの中へ中継用に暗号化する。
-（XXX: これは次のupdate_fail_malformed_htlcのこと？）
+（XXX: あるノード（上記、ピア）が、
+update_add_htlcのonion_routing_packetを解析できなかったら、
+上流へupdate_fail_malformed_htlcを送り、
+受け取ったピア（上記、現在のノード）がupdate_fail_htlcを上流に送るのであろう）
 
 For an unparsable HTLC:
 
@@ -1580,8 +1627,18 @@ A node:
 ノード：
   - できるだけ早くHTLCを削除すべきである。
   - タイムアウトしたHTLCは失敗するべきである。
+  （XXX: その前に下流のHTLCがタイムアウトした場合、
+  unirateral closeしてHTLCの削除がirrevocably committedされないといけない）
   - 対応するHTLCが両側のcommitment transactionsにおいてirrevocably committedされるまで：
     - update_fulfill_htlc、update_fail_htlcまたはupdate_fail_malformed_htlcを送ってはならない。
+    （XXX: 下流でirrevocably committedされる前に送られてくるのは不正であるが、
+    もし受け取ったら、irrevocably committedされるまで待つ。
+    場合によってはオンチェーンでirrevocably committedされる。
+    update_fulfill_htlcの場合、そこまで待つインセンティブはないが、
+    そのほうが単純であろう）
+    （XXX: TODO: update_fail_htlc/update_fail_malformed_htlcについては、
+    下流でHTLCの削除までirrevocably committedされる必要がある。
+    これは明文化されるべきであろう）
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
@@ -1609,8 +1666,7 @@ A receiving node:
   - failure_codeのBADONIONビットがupdate_fail_malformed_htlcのために設定されていない：
     - チャネルを失敗しなければならない。
   - update_fail_malformed_htlcのsha256_of_onionがそれを送っているonionと一致していない：
-    - 再試行するか代替のエラー応答（XXX: なに？）を選択しても良い。
-
+    - 再試行するか代替のエラー応答を選択しても良い。
   - そうでなければ、update_fail_malformed_htlcでキャンセルされた送信HTLCを有する受信ノード：
     - 与えられたfailure_codeを使用して、データにsha256_of_onionを設定して、（XXX: reason部分であろう）
     HTLCを最初に送信したリンクに送信するupdate_fail_htlcでエラーを返さなければならない。
@@ -1626,15 +1682,19 @@ HTLCをタイムアウトさせないノードは、チャネル障害を引き�
 A node that sends `update_fulfill_htlc`, before the sender, is also
 committed to the HTLC and risks losing funds.
 
-送信者の前にupdate_fulfill_htlcを送信するノードも、HTLCにコミットし、資金を失うリスクがある。
+update_fulfill_htlcを送信するノード、
+送信者の前に、
+も、HTLCにコミットし、資金を失うリスクがある。
 （XXX: ？）
 
 If the onion is malformed, the upstream node won't be able to extract
 the shared key to generate a response — hence the special failure message, which
 makes this node do it.
 
-onionが不正な形式の場合、上流ノードは共有鍵を抽出して応答を生成することができない。
-従って、このノードはそれを（XXX: なにを？）行う特別なエラーメッセージである。
+onionが不正な形式の場合、
+上流ノード（XXX: update_fail_malformed_htlc）は共有鍵を抽出して応答を生成することができない。
+従って、このノードはそれを行う特別なエラーメッセージである。
+（XXX: reasonはピアが作らなくてはならない）
 
 The node can check that the SHA256 that the upstream is complaining about
 does match the onion it sent, which may allow it to detect random bit
@@ -1685,11 +1745,17 @@ fee changes).
 送信ノード：
   - 更新を含まないcommitment_signedメッセージを送信してはならない。
   - 手数料を変更するだけのcommitment_signedメッセージを送信できる。
-  - 新たなハッシュの廃止（XXX: ？）以外はcommitment transactionを変更しない、
+  - 新たなrevocation hash以外はcommitment transactionを変更しない、
   commitment_signedメッセージを送信できる。
-  （dust、同一のHTLCの置き換え（XXX: ？）、またはわずかな複数回の料金変更による）。
+  （以下による、dust、同一のHTLCの置き換え（XXX: 消えたり追加されたり？）、またはわずかな複数回の料金変更）。
+  （XXX: これはHTLCが追加されたがそれはdustで他のHTLCは変わらないが、
+  dustになった分がto_remote or to_localからfeeに落ちたのでcommitment txの署名は変わる状態）
   - commitment transactionのBIP69辞書順に対応する、
   全てのHTLC transactionのためのhtlc_signatureを1つを含めなければならない。
+  （XXX: BIP69では出力をamountとscriptPubkeyでソートするが、BOLTでは同じ値になるHTLCができる。
+  具体的にはamountとpayment_hashが同じときである。
+  これらが同じの場合でもHTLC txがHTLC timeout txの場合、
+  cltv_expiryが異なるためhtlc_signatureが異なり順番が一意でなくなる）
 
 A receiving node:
   - once all pending updates are applied:
@@ -1704,13 +1770,14 @@ A receiving node:
 
 受信ノード：
   - すべての保留中の更新が適用されると：
-    - signatureが、そのローカルcommitment transactionに対して有効ではない場合：
+    - signatureが、そのlocal commitment transactionに対して有効ではない場合：
       - チャネルに失敗しなければならない。
-    - num_htlcsが、ローカルcommitment transactionのHTLC出力の数と同じではない場合：
+    - num_htlcsが、local commitment transactionのHTLC出力の数と同じではない場合：
       - チャネルを失敗しなければならない。
   - あるhtlc_signatureが、対応するHTLC取引に対して有効ではない：
     - チャネルを失敗しなければならない。
   - revoke_and_ackメッセージで応答しなければならない。
+  （XXX: これ！）
 
 #### Rationale
 
@@ -1816,8 +1883,8 @@ than the fee rate, as described in [BOLT #3](03-transactions.md#fee-payment).
 受信者はupdate_feeを受信する前に新しいHTLCsを追加できるので、競合の可能性がある。
 このような状況下では、一旦update_feeが最終的に受信者に承認されると、
 送信者はそれ自身のcommitment transactionで料金を支払う余裕がない可能性がある。
-（XXX: 具体的にどう対処するべきか？BOLT #3か）
-このケースでは、feeはBOLT #3に記載されているように、fee rateよりも低くなる。
+このケースでは、feeはBOLT #3に記載されているfee rateよりも低くなる。
+（XXX: それでもチャンネル失敗にならないように余裕を持って更新すべきであろう）
 
 The exact calculation used for deriving the fee from the fee rate is
 given in [BOLT #3](03-transactions.md#fee-calculation).
@@ -1861,9 +1928,9 @@ A receiving node:
   - 送信者がBitcoin feeを支払う責任がない場合：
     - チャネルを失敗しなければならない。    
   - 送信ノードが、受信ノードの現在のcommitment transactionのおける新しいfee rateで余裕がない場合：
-    - チャネルに失敗するべきではない、
+    - チャネルに失敗するべきである、
       - update_feeがコミットされるまで、このチェックを延期できる。
-      （XXX: コミットのタイミングで失敗？）
+      （XXX: それまで送信ノードは再度update_feeを行い調節する？）
 
 #### Rationale
 
@@ -1872,8 +1939,7 @@ particularly since there is no general method for the broadcasting node to use
 child-pays-for-parent to increase its effective fee.
 
 Bitcoin feesは、unilateral closesで特に有効である、ブロードキャストをするノードが、
-その有効なfeeを増加させるためのchild-pays-for-parentを使用する一般的な方法がないため。
-（XXX: child-pays-for-parentはchildの手数料を多くして、parentのTxをマイナーに承認させるようにする手法）
+その有効なfeeを増加させるためのchild-pays-for-parent（XXX: CPFP）を使用する一般的な方法がないため。
 
 Given the variance in fees, and the fact that the transaction may be
 spent in the future, it's a good idea for the fee payer to keep a good
@@ -1923,20 +1989,16 @@ node only needs to store updates upon receipt of `commitment_signed`.
 normal operationでは、更新の確認応答はcommitment_signed/revoke_and_ackの交換まで遅れる；
 従って、更新が受信されたと見なすことはできない。
 これはまた、受信ノードがcommitment_signed受信時に更新を格納するだけでよいことを意味する。
-（XXX: このときに確定する）
 
 Note that messages described in [BOLT #7](07-routing-gossip.md) are
 independent of particular channels; their transmission requirements
 are covered there, and besides being transmitted after `init` (as all
 messages are), they are independent of requirements here.
 
-BOLT＃7に記述されているメッセージは、特定のチャネルに依存しないことに注意しなさい；
+BOLT＃7に記述されているメッセージは、特定のチャネルに依存しないことに注意すること；
 それらの輸送の要求はそこにカバーされており、
 initの後に送信される（すべてのメッセージがそうである）以外は、
 ここでの要件とは独立している。
-
-（XXX: 以下、option_data_loss_protectはデータを損失した側が、
-損失していないところまでのデータを自己申告するためのものらしい）
 
 1. type: 136 (`channel_reestablish`)
 2. data:
@@ -2028,18 +2090,14 @@ The sending node:
 （XXX: 送信するどのフィールドもメッセージ受信に関わる。commitment_signedとrevoke_and_ackの受信）
   - next_local_commitment_numberは、
   受け取る予定の次のcommitment_signedのcommitment numberに設定しなければならない。
-  （XXX: 従ってlocal commitment transactionに関するもの）
   - next_remote_revocation_numberは、
   受け取る予定の次のrevoke_and_ackメッセージのcommitment numberに設定しなければならない。
-  （XXX: 従ってremote commitment transactionに関するもの）
   - それがoption_data_loss_protectをサポートしている場合：
     - next_remote_revocation_numberが0の場合：
-    （XXX: まだrevoke_and_ackされたことがないはず、もしくはデータが損失している）
       - your_last_per_commitment_secretを、すべて0に設定しなければならない
     - そうでなければ：
       - your_last_per_commitment_secretを、
       受信した最後のper_commitment_secretに設定しなければならない
-       （XXX: next_remote_revocation_numberだけでなく、現在受信済のsecretも明かす）
 
 A node:
   - if `next_local_commitment_number` is 1 in both the `channel_reestablish` it
@@ -2072,13 +2130,6 @@ A node:
 ノード：
 （XXX: 送信するどのフィールドもメッセージ受信に関わる。commitment_signedとrevoke_and_ackの受信）
   - 送受信された両方のchannel_reestablishのnext_local_commitment_numberが1の場合
-  （XXX: 自分がnext_local_commitment_number=1を送信したということは、
-  次のcommitment_signed受信ではcommitment_number=1ということで、
-  現在は0、つまりまだrevokeされたlocal commitment transactionはない。
-  自分がnext_local_commitment_number=1を受信した場合も対照的に同じ。
-  この場合、funding_lockedを送りあっても冗長かもしれないが副作用はない。
-  どちらかのnext_local_commitment_numberが1より大きい場合は、
-  すでに再接続前にnormal operationになっていたはずなので確実に冗長）
     - funding_lockedを再送しなければならない。
   - そうでなければ：
     - funding_lockedを再送してはならない。
@@ -2088,13 +2139,11 @@ A node:
   受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberに等しい場合：
   （XXX: 送信したcommitment_signedが届いていない可能性がある）
     - そのcommitment numberを次のcommitment_signedに再利用しなければならない。
-    （XXX: ここのnext_local_commitment_numberは受信したものであるので、
-    remoteのnodeのcommitment_signed受信に関わる、つまりremoteのlocal commitment transactionに関わる。
-    これが最後に送信したcommitment_signedのものと同じということはcommitment_signedが届いていなかった可能性が高い。
-    通常この場合対応するrevoke_and_ackは受信していないはず。
-    ただし、すでにrevoke_and_ackを受け取っている場合、
-    ずるをするなら相手がcommitment transactionを展開するのを待ってrevocationkeyで全てを奪うという攻撃がありうる。
-    revoke_and_ackを受信しているならエラーにしたほうがいいのでは？）
+    （XXX: reuseという表現はあぶない。
+    後述されるように、相手が嘘をついていれば、相手はcommitment_signedを受け取っていて、
+    コミットされたcommitment txを持っているかもしれない。
+    それを前提に動くのは複雑になる。
+    commitment_signedは届いていると仮定しチャネル失敗するのが安全？）
   - そうでなければ：
     - next_local_commitment_numberが、
     受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberよりも1だけ大きくない場合：
@@ -2104,19 +2153,15 @@ A node:
   受信ノードが送信した最後のrevoke_and_ackのcommitment numberと等しく、
   （XXX: 送信したrevoke_and_ackが届いていない可能性がある）
   受信ノードはまだclosing_signedを受信していない場合
-  （XXX: closing_signedを受信している場合については、
-  ここでのremoteノードがまだrevoke_and_ackを受け取っていない
-  （これはremoteノードにとってのデメリットしかない）としても、
-  closing_signedを正常に当該ノードが受信するところまで来ているということは、
-  HTLCはすでになく未解決の更新もないので特に問題にならない）：
+  （XXX: closing_signedを受信しているということはrevoke_and_ackは届いていると判断される。後述。）：
     - revoke_and_ackを再送しなければならない。
   - そうでなければ：
     - next_remote_revocation_numberが、
     受信ノードが送信した最後のrevoke_and_ackのcommitment numberより1だけ大きくない場合：
     （XXX: 1だけ大きいのが普通）
       - チャネルを失敗すべきである。
-    - revoke_and_ackを送信しておらず、（XXX: 受信した）next_remote_revocation_numberが0の場合：
-    （XXX: revoke_and_ackをまだ送信したことがないケース。これがなぜだめなのか？？？）
+    - revoke_and_ackを送信しておらず、next_remote_revocation_numberが0の場合：
+    （XXX: TODO: revoke_and_ackをまだ送信したことがないケース。これがなぜだめなのか？）
       - チャネルを失敗すべきである。
 
  A receiving node:
@@ -2136,20 +2181,16 @@ A node:
 受信ノード：
   - option_data_loss_protectがサポートしており、
   option_data_loss_protectフィールドが存在する場合：
-    - next_remote_revocation_numberが上記（XXX: ？）の期待値より大きく
-    （XXX: 次に相手に送るべきrevoke_and_ackのnumberより大きいとうことであろう。
-    自分の側でデータがロスしている可能性がある）、
+    - next_remote_revocation_numberが上記の期待値より大きく
     your_last_per_commitment_secret（XXX: 相手に持ってる最後のrevoke_and_ackのnumber）が、
-    そのnext_remote_revocation_numberマイナス1に対して、正しい場合：
+    そのnext_remote_revocation_numberマイナス1に対して、正しい場合：（XXX: 自分の側でデータがロスしている）
       - それのcommitment transactionをブロードキャストしてはならない
-      （XXX: 自分のcommitment transactionは古く、
-      相手に渡しているsecretは正しいので全部奪われる可能性がある）。
       - チャネルに失敗すべきである。
       - 送信ノードがオンチェーンにcommitment transactionをブロードキャストする場合に資金を回収するために、
       （XXX: 相手の）my_current_per_commitment_pointを保存すべきである。
-      （XXX: これは相手の申告を信頼するしかない？どっちみちデータロスしてる場合どうしようもないので）
-    - そうでなければ
-    （（XXX: 相手が申告する）your_last_per_commitment_secretまたはmy_current_per_commitment_pointが期待値と一致しない場合）：
+      （XXX: データロスしてるので相手に任せるしかない）
+    - そうでなければ（XXX: TODO: ここはotherwiseじゃなくてelse ifだろう。どちらも期待値である場合の正常系）
+    （your_last_per_commitment_secretまたはmy_current_per_commitment_pointが期待値と一致しない場合）：
       - チャネルを失敗すべきである。
 
 A node:
@@ -2165,13 +2206,13 @@ A node:
 
 ノード：
   - 以前に送信されたメッセージが失われたと仮定してはならない、
-  （XXX: 相手の挙動からメッセージが届いていないと判断してはならないということか）
+  （XXX: 相手が嘘をついているかもしない）
     - 前のcommitment_signedメッセージを送信した場合：
       - 対応するcommitment transactionがいつでも相手側によってブロードキャストされるケースを処理しなければならず、
       （XXX: 相手のchannel_reestablishからcommitment_signedが届いていないことを推測されたとしても、嘘をついてるかもしれない）
         - 注：これは特に重要であるが、
         もしノードがupdate_以前に送信された正確なメッセージを単に再送するだけでない場合。
-        （XXX: ？）
+        （XXX: 単に再送してcommitment txが上記と同じ状態になるのであれば問題ない）
   - 再接続時：
     - 以前にshutdownを送信した場合：
       - shutdownを再送しなければならない。
@@ -2213,8 +2254,7 @@ needs to be retransmitted.
 closing_signedにも確認がないので、再接続時に再送信する必要がある。
 （ただし、再接続時にネゴシエーションが再開されるため、厳密な再送信は必要ない）。
 shutdownのための唯一の確認はclosing_signedであり、どちらか一方が再送される必要がある。
-（XXX: shutdownかclosing_signedのどちらかが再送される必要がある）
-（XXX: shutdownが必ず再送されてclosingは完全にやり直しなのでは？？？）
+（XXX: TODO: 「MUST retransmit shutdown.」なのでは？）
 
 The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent. However, it's not
@@ -2230,15 +2270,9 @@ here encourages a single persistent write to disk for each
 しかし、それらは同じであるとは主張されない：
 彼らは異なった順序であるかもしれない、異なったfeeを含んでいるか、
 今追加するには余りに古いHTLCsを除外していることさえあるかもしれない。
-（XXX: この変化にどのように対処するのか？）
 それらを同一にすることを必要とすることは、
 各送信時に送信者がディスクに書き込むことが効果的であることを意味するが、
 ここではcommitment_signedの送受信毎にディスクへの単一の永続的書き込みを促進する。
-（XXX: updateの情報はそれまで消えるかもしれないオンメモリでよい）
-（XXX: 微妙なケースとして、
-片側はupdate_add_htlcを受信し、それに対するcommitment_signedを待っているが、
-再接続後、もう片側はそれはなかったことにし、そのままshutdownしようとする。
-updateが残っていると判断してunilateral closeになるであろう）
 
 A re-transmittal of `revoke_and_ack` should never be asked for, after a
 `closing_signed` has been received; since that would imply a shutdown has been
@@ -2248,7 +2282,8 @@ by the remote node.
 revoke_and_ackの再送は、closing_signedが受信された後に決して求められてはならない；
 なぜならこれは、シャットダウンが完了したことを暗示するためである、
 リモートノードによってrevoke_and_ackが受信された後にのみ発生できる。
-（XXX: revoke_and_ackを受信できていなくてもshutdownできるのでは？）
+（XXX: ここではrevoke_and_ackを受信できていないとclosing_signedできないような記述。
+おそらくclosing_signedの前提として全てのupdateがirrevocably committedなのであろう）
 
 Note that the `next_local_commitment_number` starts at 1, since
 commitment number 0 is created during opening.
@@ -2293,7 +2328,6 @@ funder open it while the fundee has forgotten it.
 同様に、fundeeのfunding_signedメッセージについて：
 決して開かない（そしてタイムアウトする）チャンネルを覚えていることは、
 fundeeがそれを忘れてしまっていて、funderがそれを開くことを許すよりも良い。
-（XXX: どちらもいつ忘れる？）
 
 `option_data_loss_protect` was added to allow a node, which has somehow fallen behind
 (e.g. has been restored from old backup), to detect that it's fallen-behind. A fallen-behind
@@ -2313,14 +2347,15 @@ option_data_loss_protectは、何らかの形で後退した（例えば、古�
 後退したノードは、
 それの現在のcommitment transactionをブロードキャストできないことを知る必要がある、
 それは全てのfundsを失うことに導く、
-リモートノードはそれがrevocation preimageを知っていることを証明することができるが。
-後退ノードによって返されたエラー（または単にそれが送信したchannel_reestablish送信の無効な数値）によって、
+リモートノードはrevocation preimageを知っていることを証明することができるが。
+後退ノードによって返されたエラー（または単にそれが送信したchannel_reestablish送信の不正な（XXX: 後退した）数値）によって、
 他のノードが現在のcommitment transactionをチェーンにドロップするようにする必要がある。
 これは、少なくとも、my_current_per_commitment_pointが有効であれば、
 後退ノードがnon-HTLC fundsを回収することを可能にする。（XXX: to_remote）
-しかし、これはまた、後退ノードがこの事実を明らかにしたことを意味する
+しかしながら、これはまた、後退ノードがこの事実を明らかにしたことを意味する
 （しかしそれは確かではない： それは嘘つきかもしれない）
-他のノードはこれを（XXX: ？）使用して以前の状態をブロードキャストできる。
+他のノードはこれを使用して（XXX: 自分に都合のよい）以前の状態をブロードキャストできる。
+（XXX: これは賭けである）
 
 # Authors
 
