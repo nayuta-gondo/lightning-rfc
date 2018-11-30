@@ -1175,7 +1175,7 @@ terminal case (C).
 
 ここでの重要な設定は、BOLT＃7のcltv_expiry_deltaとBOLT＃11の関連のmin_final_cltv_expiryである。
 cltv_expiry_deltaは、転送ケース（B）における、HTLC CLTVタイムアウトの最小の差である。
-min_final_ctlv_expiryは、端末ケース（C）における、HTLC CLTVタイムアウトと現在のブロック高の最小の差である。
+min_final_cltv_expiryは、端末ケース（C）における、HTLC CLTVタイムアウトと現在のブロック高の最小の差である。
 
 Note that if this value is too low for a channel, the risk is only to
 the node *accepting* the HTLC, not the node offering it. For this

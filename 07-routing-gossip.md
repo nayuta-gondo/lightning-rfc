@@ -92,6 +92,22 @@ short_channel_idはfunding transactionの一意な記述である。
   2. 次の3バイト：ブロック内のtransactionインデックスを示す
   3. 最下位2バイト：channelに支払うoutputインデックスを示す。
 
+The standard human readable format for `short_channel_id` is created
+by printing the above components, in the order:
+block height, transaction index, and output index.
+Each component is printed as a decimal number,
+and separated from each other by the small letter `x`.
+For example, a `short_channel_id` might be written as `539268x845x1`,
+indicating a channel on the output 1 of the transaction at index 845
+of the block at height 539268.
+
+short_channel_idのThe standard human readable formatは、
+block height、 transaction index、 およびoutput indexの順番で
+上記のコンポーネントを表記することによって作成される。
+各構成要素は10進数で表記され、小文字のxで区切られている。
+たとえば、short_channel_idは、539268x845x1と書かれていて、
+高さ539268のブロックのインデックス845にあるトランザクションの出力1のチャネルを示す。
+
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
@@ -133,6 +149,23 @@ A recipient node:
   - 有効なannouncement_signatures messageを送受信した場合：
     - channel_announcement messageをそのpeersのためにキューイングすべきである。
     （XXX: ？）
+
+#### Rationale
+
+The `short_channel_id` human readable format is designed
+so that double-clicking or double-tapping it will select the entire ID
+on most systems.
+Humans prefer decimal when reading numbers,
+so the ID components are written in decimal.
+The small letter `x` is used since on most fonts,
+the `x` is visibly smaller than decimal digits,
+making it easy to visibly group each component of the ID.
+
+人間が読める形式のshort_channel_idは、ダブルクリックまたはダブルタップすることにより、
+ほとんどのシステムでID全体が選択されるように設計されている。
+人間は数字を読むときに10進数を使うので、IDコンポーネントは10進数で書かれる。
+ほとんどのフォントでは、xが10進数より視覚的に小さいので、
+IDの各コンポーネントを視覚的に簡単にグループ化できるので、小さな文字xが使用される。
 
 ## The `channel_announcement` Message
 
