@@ -241,22 +241,23 @@ Throughout the handshake process, each side maintains these variables:
  * e：パーティーの一時的な鍵ペア。
  各セッションのために、ノードは強力な暗号のランダム性を有する新たな一時鍵を生成しなければならない。
 
- * `s`: a party's **static public key** (`ls` for local, `rs` for remote)
+ * `s`: a party's **static keypair** (`ls` for local, `rs` for remote)
 
- * s：パーティーの静的公開鍵（lsはローカル、rsはリモート）
+ * s：パーティーの静的な鍵ペア（lsはローカル、rsはリモート）
 
 The following functions will also be referenced:
 
 以下の関数も参照される：
 
-  * `ECDH(rk, k)`: performs an Elliptic-Curve Diffie-Hellman operation using
-    `rk`, which is a `secp256k1` public key, and `k`, which is a valid private key
+  * `ECDH(k, rk)`: performs an Elliptic-Curve Diffie-Hellman operation using
+    `k`, which is a valid private key, and `rk`, which is a `secp256k1` public key
     within the finite field, as defined by the curve parameters
       * The returned value is the SHA256 of the DER-compressed format of the
 	    generated point.
 
-  * ECDH(rk, k)：secp256k1公開鍵であるrkと、
-  曲線パラメータによって定義される有限体内の有効な秘密鍵であるkを使って、
+  * ECDH(k, rk)：
+  曲線パラメータによって定義される有限体内の有効な秘密鍵であるkと、
+  secp256k1公開鍵であるrkを使って、
   楕円曲線Diffie-Hellman演算を実行する。
       * 返される値は、生成されたポイントのDER圧縮形式のSHA256である。
 
@@ -382,10 +383,10 @@ poly1305タグの16バイトである。
 2. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-3. `ss = ECDH(rs, e.priv)`
+3. `es = ECDH(e.priv, rs)`
      * The initiator performs an ECDH between its newly generated ephemeral
        key and the remote node's static public key.
-4. `ck, temp_k1 = HKDF(ck, ss)`
+4. `ck, temp_k1 = HKDF(ck, es)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
 5. `c = encryptWithAD(temp_k1, 0, h, zero)`
@@ -400,9 +401,9 @@ poly1305タグの16バイトである。
 1. e = generateKey()
 2. h = SHA-256(h || e.pub.serializeCompressed())
      * 新しく生成されたephemeral keyは、実行中のハンドシェイクダイジェストに蓄積される。
-3. ss = ECDH(rs, e.priv)
+3. es = ECDH(e.priv, rs)
      * 開始者は、新たに生成されたephemeral keyとリモートノードのstatic public keyとの間でECDHを実行する。
-4. ck, temp_k1 = HKDF(ck, ss)
+4. ck, temp_k1 = HKDF(ck, es)
      * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
      （XXX: random streamみたいなものか？、ckとssが一致すれば同じものが生成される）
 5. c = encryptWithAD(temp_k1, 0, h, zero)
@@ -418,7 +419,7 @@ poly1305タグの16バイトである。
 2. Parse the read message (`m`) into `v`, `re`, and `c`:
     * where `v` is the _first_ byte of `m`, `re` is the next 33
       bytes of `m`, and `c` is the last 16 bytes of `m`
-    * The raw bytes of the remote party's ephemeral public key (`e`) are to be
+    * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
 3. If `v` is an unrecognized handshake version, then the responder MUST
@@ -426,10 +427,10 @@ poly1305タグの16バイトである。
 4. `h = SHA-256(h || re.serializeCompressed())`
     * The responder accumulates the initiator's ephemeral key into the authenticating
       handshake digest.
-5. `ss = ECDH(re, s.priv)`
+5. `es = ECDH(s.priv, re)`
     * The responder performs an ECDH between its static private key and the
       initiator's ephemeral public key.
-6. `ck, temp_k1 = HKDF(ck, ss)`
+6. `ck, temp_k1 = HKDF(ck, es)`
     * A new temporary encryption key is generated, which will
       shortly be used to check the authenticating MAC.
 7. `p = decryptWithAD(temp_k1, 0, h, c)`
@@ -445,17 +446,17 @@ poly1305タグの16バイトである。
 1. ネットワークバッファから正確に50バイトを読み取る。
 2. 読み取りメッセージ（m）をv、reおよびcに解析する：
     * ここでvはmの最初のバイト、reはmの次の33バイトであり、そしてcはmの最後の16バイトである
-    * リモートパーティーのephemeral public key（e）の生のバイトは、
+    * リモートパーティーのephemeral public key（re）の生のバイトは、
     キーのシリアライズされた合成フォーマットでエンコードされたものとして、
     アフィン座標系を使用してカーブ上のポイントにデシリアライズされる。
     （XXX: 要するに点に戻されるということか）
 3. もしvが認識できないハンドシェイクバージョンであれば、応答者は接続試行を中断しなければならない。
 4. h = SHA-256(h || re.serializeCompressed())
     * 応答者は、開始者のephemeral keyを認証ハンドシェイクダイジェストに蓄積する。
-5. ss = ECDH(re, s.priv)
+5. es = ECDH(s.priv, re)
     * 応答者は、
     そのstatic private keyと開始者のephemeral public keyとの間でECDHを実行する。
-6. ck, temp_k1 = HKDF(ck, ss)
+6. ck, temp_k1 = HKDF(ck, es)
     * 新しいtemporary encryption keyが生成され、
     これはまもなく認証MACをチェックするために使用される。
 7. p = decryptWithAD(temp_k1, 0, h, c)
@@ -496,10 +497,10 @@ poly1305タグは16バイトである。
 2. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-3. `ss = ECDH(re, e.priv)`
+3. `ee = ECDH(e.priv, re)`
      * where `re` is the ephemeral key of the initiator, which was received
        during Act One
-4. `ck, temp_k2 = HKDF(ck, ss)`
+4. `ck, temp_k2 = HKDF(ck, ee)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
 5. `c = encryptWithAD(temp_k2, 0, h, zero)`
@@ -514,9 +515,9 @@ poly1305タグは16バイトである。
 1. e = generateKey()
 2. h = SHA-256(h || e.pub.serializeCompressed())
      * 新しく生成されたephemeral keyは、実行中のハンドシェイクダイジェストに蓄積される。
-3. ss = ECDH(re, e.priv)
+3. ee = ECDH(e.priv, re)
      * ここでreはAct Oneで受信した開始者のephemeral keyである
-4. ck, temp_k2 = HKDF(ck, ss)
+4. ck, temp_k2 = HKDF(ck, ee)
      * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
 5. c = encryptWithAD(temp_k2, 0, h, zero)
      * ここでzeroは、長さゼロの平文
@@ -533,12 +534,12 @@ poly1305タグは16バイトである。
 3. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 4. `h = SHA-256(h || re.serializeCompressed())`
-5. `ss = ECDH(re, e.priv)`
+5. `ee = ECDH(e.priv, re)`
     * where `re` is the responder's ephemeral public key
     * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
-6. `ck, temp_k2 = HKDF(ck, ss)`
+6. `ck, temp_k2 = HKDF(ck, ee)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
 7. `p = decryptWithAD(temp_k2, 0, h, c)`
@@ -555,12 +556,12 @@ poly1305タグは16バイトである。
     * ここでvはmの最初のバイト、reはmの次の33バイト、そしてcはmの最後の16バイトである。
 3. もしvが認識できないハンドシェイクバージョンであれば、応答者は接続試行を中断しなければならない。
 4. h = SHA-256(h || re.serializeCompressed())
-5. ss = ECDH(re, e.priv)
+5. ee = ECDH(e.priv, re)
     * ここでreは応答者のephemeral public key
     * リモートパーティーのephemeral public key（re）の生のバイトは、
     キーのシリアライズされた合成フォーマットでエンコードされたものとして、
     アフィン座標系を使用してカーブ上のポイントにデシリアライズされる。
-6. ck, temp_k2 = HKDF(ck, ss)
+6. ck, temp_k2 = HKDF(ck, ee)
     * 認証MACを生成するために使用される新しいtemporary encryption keyが生成される。
 7. p = decryptWithAD(temp_k2, 0, h, c)
     * この操作のMACチェックが失敗するなら、開始者はそれ以上のメッセージなしで接続を終了しなければなりません。
@@ -603,9 +604,9 @@ AEAD構築で生成された暗号化されたpublic keyのタグは16バイト�
 1. `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator
 2. `h = SHA-256(h || c)`
-3. `ss = ECDH(re, s.priv)`
+3. `se = ECDH(s.priv, re)`
     * where `re` is the ephemeral public key of the responder
-4. `ck, temp_k3 = HKDF(ck, ss)`
+4. `ck, temp_k3 = HKDF(ck, se)`
     * The final intermediate shared secret is mixed into the running chaining key.
 5. `t = encryptWithAD(temp_k3, 0, h, zero)`
      * where `zero` is a zero-length plaintext
@@ -626,9 +627,9 @@ AEAD構築で生成された暗号化されたpublic keyのタグは16バイト�
 1. c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())
      * ここでsは開始者のstatic public keyである
 2. h = SHA-256(h || c)
-3. ss = ECDH(re, s.priv)
+3. se = ECDH(s.priv, re)
      * ここでreは応答者のephemeral public keyである
-4. ck, temp_k3 = HKDF(ck, ss)
+4. ck, temp_k3 = HKDF(ck, se)
      * 最終的な中間shared secretは、実行中のチェーンキーに混入する。
 5. t = encryptWithAD(temp_k3, 0, h, zero)
      * ここでzeroは、長さゼロの平文
@@ -654,9 +655,9 @@ AEAD構築で生成された暗号化されたpublic keyのタグは16バイト�
      * At this point, the responder has recovered the static public key of the
        initiator.
 5. `h = SHA-256(h || c)`
-6. `ss = ECDH(rs, e.priv)`
+6. `se = ECDH(e.priv, rs)`
      * where `e` is the responder's original ephemeral key
-7. `ck, temp_k3 = HKDF(ck, ss)`
+7. `ck, temp_k3 = HKDF(ck, se)`
 8. `p = decryptWithAD(temp_k3, 0, h, t)`
      * If the MAC check in this operation fails, then the responder MUST
        terminate the connection without any further messages.
@@ -680,9 +681,9 @@ AEAD構築で生成された暗号化されたpublic keyのタグは16バイト�
 4. rs = decryptWithAD(temp_k2, 1, h, c)
     * この時点で、応答者は開始者のstatic public keyを回復している。
 5. h = SHA-256(h || c)
-6. ss = ECDH(rs, e.priv)
+6. se = ECDH(e.priv, rs)
     * ここではeは応答者の元のephemeral keyである
-7. ck, temp_k3 = HKDF(ck, ss)
+7. ck, temp_k3 = HKDF(ck, se)
 8. p = decryptWithAD(temp_k3, 0, h, t)
     * この操作のMACチェックが失敗した場合、応答者はそれ以上のメッセージなしで接続を終了しなければならない。
 9. rk, sk = HKDF(ck, zero)
