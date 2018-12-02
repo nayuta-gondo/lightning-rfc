@@ -130,7 +130,6 @@ There are a number of conventions adhered to throughout this document:
  _receiving peers_.
         _sending peer_ --> _receiving peer_
 
-
 このドキュメントでは、いくつかの規則がある：
 
  - Length：最大ルート長は20hopsに制限されている。
@@ -148,6 +147,15 @@ There are a number of conventions adhered to throughout this document:
  - peersという用語は、直接の隣人たち（オーバレイネットワーク内の）であるホップのみを指す。
  つまり、sending peersからreceiving peersにパケットを転送する。
         _sending peer_ --> _receiving peer_
+
+# Clarifications
+
+ supported has 20 hops without counting the _origin node_ and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
+
+ サポートされている最長ルートは、origin nodeとfinal nodeをカウントせずに20 hops、
+ したがって19のintermediate nodesと最大20のチャネルを横断することができる。
+ （XXX: TODO: なんかおかしい？
+ hop==intermediate nodesであればsupported has 19 hopsのはず。hopの意味がここでは違う？）
 
 # Key Generation
 
