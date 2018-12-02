@@ -151,10 +151,12 @@ chain_hashの存在により、多くの異なるブロックチェーンにわ�
 （ターゲットチェーンをサポートしている場合）。
 
 The `temporary_channel_id` is used to identify this channel until the
-funding transaction is established.
+funding transaction is established, at which point it is replaced
+by the `channel_id`, which is derived from the funding transaction.
 
 temporary_channel_idは、
-funding transactionが確立されるまでこのチャネルを識別するために使用される。
+funding transactionが確立されるまでこのチャネルを識別するために使用される、
+その時点でfunding transactionから導出したchannel_idに置き換えられる。
 
 `funding_satoshis` is the amount the sender is putting into the
 channel. `push_msat` is an amount of initial funds that the sender is
@@ -429,6 +431,10 @@ channel_reserve_satoshisがdust_limit_satoshisに関連してdustとみなされ
 、すべてのoutputsがdustとして排除されるケースを排除する。
 accept_channelにおける同様の要件は、
 両サイドのchannel_reserve_satoshisが、両方のdust_limit_satoshisを超えることを保証する。
+
+Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
+
+チャネル障害を処理する方法の詳細は「BOLT 5:Failing a Channel」にある。
 
 #### Future
 
@@ -1073,7 +1079,7 @@ HTLC can be redeemed. The following requirements ensure this is always true.
 
 The respective **addition/removal** of an HTLC is considered *irrevocably committed* when:
 
-1. The commitment transaction **with/without** it is committed by both nodes, and any
+1. The commitment transaction **with/without** it is committed to by both nodes, and any
 previous commitment transaction **without/with** it has been revoked, OR
 2. The commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
@@ -2009,6 +2015,19 @@ initの後に送信される（すべてのメッセージがそうである）�
    * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect)
    * [`33`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
+`next_local_commitment_number`: A commitment number is a 48-bit
+incrementing counter for each commitment transaction; counters
+are independent for each peer in the channel and start at 0.
+They're only explicitly relayed to the other node in the case of
+re-establishment, otherwise they are implicit.
+
+next_local_commitment_number：
+commitment numberは、各commitment transactionの48ビット増分カウンタである。
+カウンタはチャネル内の各ピアに対して独立しており、0から開始する。
+re-establishmentの場合には、他のノードに明示的に中継されるだけであり、
+そうでない場合は暗黙的である。
+（XXX: ？）
+
 ### Requirements
 
 A funding node:
@@ -2045,7 +2064,7 @@ A node:
     - MUST reverse any uncommitted updates sent by the other side (i.e. all
     messages beginning with `update_` for which no `commitment_signed` has
     been received).
-      - Note: a node MAY have already use the `payment_preimage` value from
+      - Note: a node MAY have already used the `payment_preimage` value from
     the `update_fulfill_htlc`, so the effects of `update_fulfill_htlc` are not
     completely reversed.
   - upon reconnection:
@@ -2064,7 +2083,7 @@ A node:
     （すなわち、そのためにcommitment_signedをまだ受信していない、
     update_で始まるすべてのメッセージを戻さなければならいない）。
       - 注：
-      ノードはすでにupdate_fulfill_htlcからのpayment_preimage値を使用している可能性があるので、
+      ノードはすでにupdate_fulfill_htlcからのpayment_preimage値を使用していた可能性があるので、
       update_fulfill_htlcの効果は完全には戻らない。
       （XXX: 少なくともすでにpreimageが明らかになっているので、見なかったことにはならない）      
   - 再接続時：
@@ -2275,12 +2294,12 @@ here encourages a single persistent write to disk for each
 各送信時に送信者がディスクに書き込むことが効果的であることを意味するが、
 ここではcommitment_signedの送受信毎にディスクへの単一の永続的書き込みを促進する。
 
-A re-transmittal of `revoke_and_ack` should never be asked for, after a
-`closing_signed` has been received; since that would imply a shutdown has been
+A re-transmittal of `revoke_and_ack` should never be asked for after a
+`closing_signed` has been received, since that would imply a shutdown has been
 completed — which can only occur after the `revoke_and_ack` has been received
 by the remote node.
 
-revoke_and_ackの再送は、closing_signedが受信された後に決して求められてはならない；
+revoke_and_ackの再送は、closing_signedが受信された後に決して求められてはならない、
 なぜならこれは、シャットダウンが完了したことを暗示するためである、
 リモートノードによってrevoke_and_ackが受信された後にのみ発生できる。
 （XXX: ここではrevoke_and_ackを受信できていないとclosing_signedできないような記述。
@@ -2310,7 +2329,7 @@ funding_lockedは、normal operationの開始によって暗黙的に確認さ�
 
 A previous draft insisted that the funder "MUST remember ...if it has
 broadcast the funding transaction, otherwise it MUST NOT": this was in
-fact an impossible requirement; because, a node must either firstly commit to
+fact an impossible requirement. A node must either firstly commit to
 disk and secondly broadcast the transaction or vice versa. The new
 language reflects this reality: it's surely better to remember a
 channel which hasn't been broadcast than to forget one which has!
@@ -2322,8 +2341,8 @@ funder open it while the fundee has forgotten it.
 「funding transactionをブロードキャストしていればそれを覚えていなければならず、そうでなければそうしてはならない」
 と主張していた：
 これは実際のところ不可能な要件だった；
-なぜなら、ノードは最初にディスクにコミットして、次にtransactionをブロードキャストするか、
-またはその逆でなければならないからである。
+ノードは最初にディスクにコミットして、次にtransactionをブロードキャストするか、
+またはその逆でなければならない。
 新しい言葉遣いではこの現実を反映している：
 ブロードキャストされていないチャンネルを覚えておくことは、ブロードキャストしたものを忘れるよりも、確実により良い！
 同様に、fundeeのfunding_signedメッセージについて：
