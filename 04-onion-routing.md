@@ -320,8 +320,8 @@ ill-crafted HTLC.
 
 Field descriptions:
 
-   * `short_channel_id`: The ID of the channel used to route the message;
-     the receiving peer is the other end of the channel.
+   * `short_channel_id`: The ID of the outgoing channel used to route the
+      message; the receiving peer should operate the other end of this channel.
 
    * `amt_to_forward`: The amount, in millisatoshis, to forward to the next
      receiving peer specified within the routing information.
@@ -359,8 +359,8 @@ Field descriptions:
 
 フィールドの説明：
 
-   * short_channel_id：メッセージをルーティングするために使用されるチャネルのID。
-   受信ピアはチャネルのもう一方の端である。
+   * short_channel_id：メッセージをルーティングするために使用される発信チャネルのID。
+     受信ピアはこのチャネルのもう一方の端を操作する必要がある。
 
    * amt_to_forward：ルーティング情報内で指定された次の受信ピアに転送するmillisatoshis単位の量。
 
@@ -402,6 +402,82 @@ may lead to extraneous routing failure.
 HTLCsを転送するとき、
 nodesは上記のようにper_hop内で指定されたように、送信HTLCを構築しなければならない。
 そうしないと、指定されたHTLCパラメータからの逸脱が無関係なルーティング障害につながる可能性がある。
+
+## Non-strict Forwarding
+
+A node MAY forward an HTLC along an outgoing channel other than the one
+specified by `short_channel_id`, so long as the receiver has the same node
+public key intended by `short_channel_id`. Thus, if `short_channel_id` connects
+nodes A and B, the HTLC can forwarded across any channel connecting A and B.
+Failure to adhere will result in the receiver being unable to decrypt the next
+hop in the onion packet.
+
+ノードは、short_channel_idで指定されたノード公開鍵と同じノードを持つ限り、
+short_channel_idで指定されている以外の発信チャネルに沿ってHTLCを転送してもよい。
+したがって、short_channel_idがノードAおよびBを接続する場合、
+HTLCはAおよびBを接続する任意のチャネルを介して転送することができる。
+遵守しなければ、受信者はonion packetの次のhopを復号できなくなる。
+
+### Rationale
+
+In the event that two peers have multiple channels, the downstream node will be
+able to decrypt the next hop payload regardless of which channel the packet is
+sent across.
+
+2つのピアが複数のチャネルを有する場合、
+下流のノードは、パケットがどのチャネルを介して送信されるかにかかわらず、
+次のhopのペイロードを復号することができる。
+
+Nodes implementing non-strict forwarding are able to make real-time assessments
+of channel bandwidths with a particular peer, and use the channel that is
+locally-optimal.
+
+非厳密な転送を実装するノードは、
+特定のピアとのチャネル帯域幅のリアルタイム評価を行い、
+局所的に最適なチャネルを使用することができる。
+
+For example, if the channel specified by `short_channel_id` connecting A and B
+does not have enough bandwidth at forwarding time, then A is able use a
+different channel that does. This can reduce payment latency by preventing the
+HTLC from failing due to bandwidth constraints across `short_channel_id`, only
+to have the sender attempt the same route differing only in the channel between
+A and B.
+
+たとえば、AとBを接続するshort_channel_idで指定されたチャネルが転送時に十分な帯域幅を持たない場合、
+Aはそれとは異なるチャネルを使用できる。
+これにより、short_channel_idの帯域幅制約のためにHTLCが失敗するのを防止し、
+送信者がAとBの間のチャネルでのみ異なる同じルートを試みるようにすることで、支払いの待ち時間を短縮できる。
+
+Non-strict forwarding allows nodes to make use of private channels connecting
+them to the receiving node, even if the channel is not known in the public
+channel graph.
+
+厳密でない転送は、チャネルがパブリックチャネルグラフで知られていなくても、
+ノードが受信ノードにそれらを接続するプライベートチャネルを利用することを可能にする。
+
+### Recommendation
+
+Implementations using non-strict forwarding should consider applying the same
+fee schedule to all channels with the same peer, as senders are likely to select
+the channel which results in the lowest overall cost. Having distinct policies
+may result in the forwarding node accepting fees based on the most optimal fee
+schedule for the sender, even though they are providing aggregate bandwidth
+across all channels with the same peer.
+
+厳密でない転送を使用する実装では、
+同じピアを持つすべてのチャネルに同じ料金スケジュールを適用することを検討する必要がある。
+送信者は、全体のコストが最も低いチャネルを選択する可能性が高いからである。
+別個のポリシーを有することにより、
+転送ノードは、同じピアを有するすべてのチャネルにわたって総帯域幅を提供しているにもかかわらず、
+送信者にとって最も最適な料金スケジュールに基づいて料金を受諾することになる可能性がある。
+（XXX: 総帯域幅が大きさにも関わらず、一番すくないchannelのfeeになる可能性がある）
+
+Alternatively, implementations may choose to apply non-strict forwarding only to
+like-policy channels to ensure their expected fee revenue does not deviate by
+using an alternate channel.
+
+代わりに、実装は、同様のポリシーチャネルにのみ非厳密な転送を適用することを選択して、
+代理チャネルを使用して予想される料金収入が逸脱しないようにすることができる。
 
 ## Payload for the Last Node
 
