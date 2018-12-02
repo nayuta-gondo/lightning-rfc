@@ -112,12 +112,12 @@ A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
-      has been sent AND the funding transaction has at least six confirmations.
+      has been sent and received AND the funding transaction has at least six confirmations.
 
   - open_channel messageのannounce_channelビットが設定され、
   shutdown messageが送信されていない場合：
     - announcement_signatures messageを送信しなければならない。
-      - funding_lockedが送られ、かつfunding transactionが6つの確認を持つまで、
+      - funding_lockedが送受信され、かつfunding transactionが少なくとも6つの確認を持つまで、
       announcement_signatures messagesを送信してはいけない。
 
   - otherwise:
@@ -126,13 +126,13 @@ A node:
   - そうでなければ：
     - announcement_signatures messageを送信してはいけない。
 
-  - upon reconnection:
+  - upon reconnection (once the above timing requirements have been met):
     - MUST respond to the first `announcement_signatures` message with its own
     `announcement_signatures` message.
     - if it has NOT received an `announcement_signatures` message:
       - SHOULD retransmit the `announcement_signatures` message.
 
-  - 再接続時：
+  - 再接続時（上記のタイミング要件が満たされると）：
     - 最初のannouncement_signatures messageに対して、それ自身のannouncement_signatures messageで応答しなければならない。
     （XXX: the firstというのは再接続後の最初？channel確立後の最初でなく）
     - announcement_signatures messageを受信していない場合：
@@ -143,12 +143,31 @@ A recipient node:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
+  - if it has not sent funding_locked:
+    - MAY defer handling the announcement_signatures until after it has sent funding_locked
+    - otherwise:
+      - MUST ignore it.
 
   - node_signatureもしくはbitcoin_signatureが正しくない場合：
     - channelを失敗させてよい。
   - 有効なannouncement_signatures messageを送受信した場合：
     - channel_announcement messageをそのpeersのためにキューイングすべきである。
     （XXX: ？）
+  - funding_lockedを送信していない場合：
+    - funding_lockedを送信した後まで、announcement_signaturesの処理を延期してもよい
+  - そうでなければ：
+      - それを無視しなければならない。
+
+### Rationale
+
+The reason for allowing deferring of a premature announcement_signatures is
+that an earlier version of the spec did not require waiting for receipt of
+funding locked: deferring rather than ignoring it allows compatibility with
+this behavior.
+
+時期尚早なannouncement_signaturesの延期を許可する理由は、
+以前のバージョンの仕様は、funding lockedの受領を待つ必要がなく：
+無視するのではなく延期することにより、この動作との互換性が可能になるからである。
 
 #### Rationale
 
