@@ -85,18 +85,18 @@ pubkey2は両者の数値的に大きい方である。
 ## Commitment Transaction
 
 * version: 2
-* locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the obscured commitment transaction number
+* locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the obscured commitment number
 * txin count: 1
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
-   * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment transaction number
+   * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment number
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 
 * version: 2
-* locktime: 上位8ビットは0x20、下位24ビットは難読化されたcommitment transaction numberの下位24ビット
+* locktime: 上位8ビットは0x20、下位24ビットは難読化されたcommitment numberの下位24ビット
 * txin count: 1
    * `txin[0]` outpoint: funding_createdメッセージからの、txidおよびoutput_index
-   * `txin[0]` sequence: 上位8ビットは0x20、下位24ビットは難読化されたcommitment transaction numberの下位24ビット
+   * `txin[0]` sequence: 上位8ビットは0x20、下位24ビットは難読化されたcommitment numberの下位24ビット
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 
@@ -104,9 +104,9 @@ pubkey2は両者の数値的に大きい方である。
 locktimeの値は最上位が常に0x20となり、これは過ぎ去ったUNIX時間を表すので、
 locktimeとしては気にしなくいい）
 
-The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
+The 48-bit commitment number is obscured by `XOR` with the lower 48 bits of:
 
-48ビットのcommietment transaction numberは、以下の48ビットの下位ビットのXORによって難読化される：
+48ビットのcommietment numberは、以下の48ビットの下位ビットのXORによって難読化される：
 
     SHA256(payment_basepoint from open_channel || payment_basepoint from accept_channel)
 
@@ -1370,7 +1370,7 @@ Here are the points used to derive the obscuring factor for the commitment numbe
 
     local_payment_basepoint: 034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa
     remote_payment_basepoint: 032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991
-    # obscured commitment transaction number = 0x2bb038521914 ^ 42
+    # obscured commitment number = 0x2bb038521914 ^ 42
 
 And, here are the keys needed to create the transactions:
 
