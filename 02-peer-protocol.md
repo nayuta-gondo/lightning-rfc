@@ -1748,6 +1748,8 @@ change the commitment transaction aside from the new revocation hash
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
   to BIP69 lexicographic ordering of the commitment transaction.
+  - if it has not recently received a message from the remote node:
+      - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
 
 送信ノード：
   - 更新を含まないcommitment_signedメッセージを送信してはならない。
@@ -1763,6 +1765,8 @@ fee changes).
   具体的にはamountとpayment_hashが同じときである。
   これらが同じの場合でもHTLC txがHTLC timeout txの場合、
   cltv_expiryが異なるためhtlc_signatureが異なり順番が一意でなくなる）
+  - 最近リモートノードからメッセージを受信していない場合：
+    - committed_signedを送る前に、pingを使用しpong応答を待つべきである。
 
 A receiving node:
   - once all pending updates are applied:
@@ -1795,6 +1799,18 @@ There's little point offering spam updates: it implies a bug.
 The `num_htlcs` field is redundant, but makes the packet length check fully self-contained.
 
 num_htlcsフィールドは冗長だが、パケット長チェックは完全に自己完結している。
+
+The recommendation to require recent messages recognizes the reality
+that networks are unreliable: nodes might not realize their peers are
+offline until after sending `commitment_signed`.  Once
+`commitment_signed` is sent, the sender considers itself bound to
+those HTLCs, and cannot fail the related incoming HTLCs until the
+output HTLCs are fully resolved.
+
+最近のメッセージを要求する推奨、ネットワークが信頼できないという現実を認識している：
+ノードは、commitment_signedを送信するまで、ピアがオフラインであることを認識しない可能性がある。
+commit_signedが送信されると、送信側はHTLCにバインドされているとみなし、
+出力HTLCが完全に解決されるまで、関連する入力HTLCを失敗することはできない。
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
