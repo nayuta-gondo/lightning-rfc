@@ -973,10 +973,10 @@ closing transactionが遅れてもリスクは限定的だが、すぐにブロ�
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hash TimeLocked Contracts.
+Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
 両方のノードがfunding_lockedを交換されると（オプションとしてannouncement_signatures）、
-Hash TimeLocked Contrancts（HTLCs）を介して支払いを行うためにチャネルを使用することができる。
+Hashed Time Locked Contrancts（HTLCs）を介して支払いを行うためにチャネルを使用することができる。
 （XXX: announcement_signaturesが必要な時はそれを交換しないとNormal Operationに移行できない？）
 
 Changes are sent in batches: one or more `update_` messages are sent before a
