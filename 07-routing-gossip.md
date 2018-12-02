@@ -858,12 +858,16 @@ The origin node:
 		- MUST set this to less than or equal to the channel capacity.
 		- MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
 		  it received from the peer.
+      - for channels with `chain_hash` identifying the Bitcoin blockchain:
+        - MUST set this to less than 2^32.
 
   - htlc_maximum_msatフィールドが存在する場合：
     - message_flagsのoption_channel_htlc_maxビットを1に設定しなければならない。
     - htlc_maximum_msatを、1つのHTLCに対してこのチャネルを通じて送信される最大値に設定する必要がある。
       - チャネル容量以下に設定しなければならない。
       - ピアから受信したmax_htlc_value_in_flight_msat以下に設定しなければならない。
+        - Bitcoinブロックチェーンを識別するchain_hashを持つチャンネルの場合：
+          - これを2 ^ 32未満に設定しなければならない。
 
   - otherwise:
 	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
@@ -1024,11 +1028,14 @@ UNIX timestamp（つまり、UTC 1970-01-01以降の秒数）にすることは�
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
 by the message length) allows us to extend the `channel_update`
-with different fields in future.
+with different fields in future.  Since channels are limited to 2^32-1
+millisatoshis in Bitcoin, the `htlc_maximum_msat` has the same restriction.
 
 htlc_maximum_msatの存在を示すための明示的なoption_channel_htlc_maxフラグ
 （メッセージの長さでhtlc_maximum_msatを暗示的に持つのではなく）は、
 channel_updateを将来異なるフィールドで拡張することを可能にする。
+Bitcoinではチャンネルが2^32-1 millisatoshis に制限されているので、
+htlc_maximum_msatには同じ制限がある。
 
 The recommendation against redundant `channel_update`s minimizes spamming the network,
 however it is sometimes inevitable.  For example, a channel with a
