@@ -28,14 +28,15 @@ normal operation、
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
-    * [Message Retransmission](#message-retransmission)
+    * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
   * [Authors](#authors)
 
 # Channel
 
 ## Channel Establishment
 
-After authentication and initializing a connection, channel establishment may begin.
+After authenticating and initializing a connection ([BOLT #8](08-transport.md)
+and [BOLT #1](01-messaging.md#the-init-message), respectively), channel establishment may begin.
 This consists of the funding node (funder) sending an `open_channel` message,
 followed by the responding node (fundee) sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
@@ -47,7 +48,7 @@ transaction. Once the fundee learns the funding outpoint, it's able to
 generate the funder's commitment for the commitment transaction and send it
 over using the `funding_signed` message.
 
-認証および接続の初期化後、channel establishmentが開始されるであろう。
+認証および接続の初期化後（それぞれBOLT #8とBOLT #1）、channel establishmentが開始されるであろう。
 これは、fundingノード（funder）がopen_channelメッセージを送信し、
 応答ノード（fundee）がaccept_channelを送信することで構成される。
 チャネルパラメータが固定されると、
