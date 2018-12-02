@@ -225,7 +225,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    Each *peer* holds the other peer's signature for this transaction, so that each
    always has a commitment transaction that it can spend. After a new
    commitment transaction is negotiated, the old one is *revoked*.
-   * _See parts: commitment number, commitment revocation private key, HTLC, per-commitment secret_
+   * _See parts: commitment number, commitment revocation private key, HTLC, per-commitment secret, outpoint_
    * _See related: closing transaction, funding transaction, penalty transaction_
    * _See types: revoked commitment transaction_
 
@@ -342,6 +342,14 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    それはチェーン内の最初のsending peerでもある。
    * _See category: node_
    * _See related: final node, processing node_
+
+* *Outpoint*:
+  * A transaction hash and output index that uniquely identify an unspent transaction output. Needed to compose a new transaction, as an input.
+  * _See related: funding transaction, commitment transaction_
+
+* Outpoint:
+  * 未使用トランザクション出力を一意に識別するトランザクションハッシュおよび出力インデックス。 入力として新しいトランザクションを作成するために必要。
+  * _See related: funding transaction, commitment transaction_
 
 * *Payment hash*:
    * The *HTLC* contains the payment hash, which is the hash of the
