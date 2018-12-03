@@ -2096,6 +2096,8 @@ A node:
     - 他方から送信された、コミットされていない更新を戻さなくてはならない
     （すなわち、そのためにcommitment_signedをまだ受信していない、
     update_で始まるすべてのメッセージを戻さなければならいない）。
+    （XXX: 逆に送信側はcommitment_signed送信以降に、
+    自分のcommitment txの保留updateを元に戻してはいけない）
       - 注：
       ノードはすでにupdate_fulfill_htlcからのpayment_preimage値を使用していた可能性があるので、
       update_fulfill_htlcの効果は完全には戻らない。
@@ -2288,7 +2290,12 @@ needs to be retransmitted.
 closing_signedにも確認がないので、再接続時に再送信する必要がある。
 （ただし、再接続時にネゴシエーションが再開されるため、厳密な再送信は必要ない）。
 shutdownのための唯一の確認はclosing_signedであり、どちらか一方が再送される必要がある。
-（XXX: TODO: 「MUST retransmit shutdown.」なのでは？）
+（XXX: TODO: 「MUST retransmit shutdown.」なのでは？
+おそらく記述が古いまま。
+以下を記述すべきであろう。
+１、shutdownを再送しChannel Closeをやり直す。
+２、shutdown以降のclosing_signedを同じ値で再送する必要はない。
+）
 
 The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent. However, it's not
