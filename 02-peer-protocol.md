@@ -1024,17 +1024,12 @@ commitment transaction when the remote node acknowledges it has
 applied them via `revoke_and_ack`.
 
 直感的に反するが、これらの更新は、他のノードのcommitment transactionに適用される。
-（XXX: 更新順序を保証するため一方向のmessageで更新される。自分の側は相手のmessageによって更新される）
 ノードは、遠隔ノードがrevoke_and_ackを介してそれを適用したことを確認すると、
 それらの更新をそれ自身のcommitment transactionに追加するだけである。
-（XXX: ここを文字通りに理解する。
-local commitment transactionは、update_送信では更新されず（直感に反するのはここ）、
-update_受信か、revoke_and_ack受信で更新される。
-つまり、全て相手のmessageを受信したタイミングで更新される。
-全て片方向のmessageで更新される。
-そうでないと、あるmessage送信と別のmessage受信のタイミングの前後関係がクリティカルなときに、
-違いの認識する片側の（例えばBのlocal）commitment transactionの状態にズレが生じ、
-signatureが合わなくなる。
+（XXX: commitment_signedで相手のcommitment txに適用されたupdateのみが、
+revoke_and_ack受信で自身のcommitment txに追加されることに注意。
+commitment_signed送信とrevoke_and_ack受信の間のupdate送信については、
+その次のrevoke_and_ackで自身のcommitment txに追加される。
 ）
 
 Thus each update traverses through the following states:
@@ -1046,15 +1041,17 @@ Thus each update traverses through the following states:
 4. ... and in the sender's latest commitment transaction
 5. ... and the sender's previous commitment transaction has been revoked
 
-従って、各更新は、以下の状態を横断する。
+従って、各updateは、以下の状態を横断する。
+（XXX: 対象はupdate）
 
-（XXX: 受信者をA、送信者をBとし、update_add_htlcを例とする）
-1. 受信者の保留中（Aがupdate_add_htlcを受信）
-2. 受信者の最新のcommitment transactionにおいて（Aがcommitment_signedを受信）
-3. ... 受信者の前回のcommitment transactionが取り消され、（Bがrevoke_and_ackを受信）
+1. （XXX: updateは）受信者で保留中
+2. （XXX: updateは）受信者の最新のcommitment transactionにある
+3. ... 受信者の前回のcommitment transactionが取り消され、
 HTLCが送信者に保留中。
-4. ... 送信者の最新のcommitment transaction（Bがcommitment_signedを受信）
-5. ... 送信者の前回のcommitment transactionが取り消された（Aがrevoke_and_ackを受信）
+（XXX: TODO: ここでHTLCだけが対象になるのはおかしい。updateであろう）
+4. ... （XXX: updateは）送信者の最新のcommitment transaction
+5. ... 送信者の前回のcommitment transactionが取り消された
+（XXX: update送信側でrevoke_and_ack前とcommitment_signed前とで状態の区別が必要であろう）
 
 As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
@@ -1065,6 +1062,7 @@ particular HTLC or not (the final state, above).
 これは関係ない：
 重要なのは、両当事者が特定のHTLCがirrevocably committedであることを約束したか否かである（上の最終状態）。
 （XXX: revoke_and_ackまででirrevocably committed）
+（XXX: TODO: ここもHTLCではなく対象はupdateではないのか？）
 
 ### Forwarding HTLCs
 
