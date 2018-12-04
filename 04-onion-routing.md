@@ -631,11 +631,12 @@ shared secret ss_kと
  - blinding factorは、ephemeral public key epk_kとshared secret ss_kとの連結のSHA256ハッシュである。
  - 次のhopのephemeral private key ek_{k+1}は、現在のephemeral private key ek_kにblinding factorを掛けることによって計算される。
  - 次のhopのephemeral public key epk_{k+1}は、ephemeral private key ek_kにbase pointを乗算することにより導出される。
+ （XXX: TODO: 最後のek_kはek_{k+1}の間違いであろう）
  （XXX:<br>
  SHA256(pk_k * ek_k) => ss_k。<br>
  SHA256(epk_k || ss_k) => bf_k。<br>
  ek_k * bf_k => ek_{k+1}。<br>
- ek_k * G => epk_{k+1}。<br>
+ ek_{k+1} * G => epk_{k+1}。<br>
  ）
 
 Once the sender has all the required information above, it can construct the
@@ -713,10 +714,11 @@ origin:<br>
 SHA256(pk_k * ek_k) => ss_k。<br>
 SHA256(epk_k || ss_k) => bf_k。<br>
 ek_k * bf_k => ek_{k+1}。<br>
-ek_k * G => epk_{k+1}。<br>
+ek_{k+1} * G => epk_{k+1}。<br>
 hop:<br>
 SHA256(k_k * epk_k) => ss_k。<br>
 SHA256(epk_k || ss_k) => bf_k。<br>
+epk_k+1 * bf_k => epk_{k+1}。<br>
 ）
 
 The following Go code is an example implementation of the packet construction:
@@ -767,12 +769,14 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		ephemeralKey.Mod(&ephemeralKey, btcec.S256().Params().N)
 	}
 
-//（XXX: ？）
+//（XXX: ？？？）
+//（XXX: 埋める分だけ生成）
+//（XXX: これは後述のgenerateFiller）
 	// Generate the padding, called "filler strings" in the paper.
 	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
 
 //（XXX: routingInfoSize　== 1300 bytes、hmacSize == 32 bytes）
-//（XXX: mixHeaderはhops_data？）
+//（XXX: mixHeaderはhops_data）
 	// Allocate and initialize fields to zero-filled slices
 	var mixHeader [routingInfoSize]byte
 	var nextHmac [hmacSize]byte
@@ -788,12 +792,13 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 //（XXX: final nodeはzeros、hops_dataとpayment_hashのHMAC）
 		hopsData[i].HMAC = nextHmac
 
-//（XXX: the pseudo-random byte stream、numStreamBytes　== 1300 bytes？）
+//（XXX: the pseudo-random byte stream、numStreamBytes　== 1365）
 		// Shift and obfuscate routing information
 		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
 
 //（XXX: hops_dataを、hopDataSize == 65 bytes、シフト）
 //（XXX: per_hop_kをhops_dataの先頭にコピー）
+//（XXX: 1300 bytesだけxor）
 		rightShift(mixHeader[:], hopDataSize)
 		buf := &bytes.Buffer{}
 		hopsData[i].Encode(buf)
@@ -1023,12 +1028,12 @@ func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][share
 	fillerSize := uint((numMaxHops + 1) * hopSize)
 	filler := make([]byte, fillerSize)
 
-  //（XXX: key？）
+  //（XXX: key == "rho"）
   //（XXX: numHops 1-20）
   //（XXX: hopSize == 65 bytes）
   //（XXX: sharedSecrets、numHops個）
-  //（XXX: fillerSize）
-  //（XXX: filler）
+  //（XXX: fillerSize == 1365）
+  //（XXX: filler 1365 bytes）
 
 	// The last hop does not obfuscate, it's not forwarding anymore.
 	for i := 0; i < numHops-1; i++ {
@@ -1047,8 +1052,8 @@ func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][share
 		xor(filler, filler, streamBytes)
 	}
 
-  //（XXX: numHopsが20だったらhopSizeを2つ飛ばす）
-  //（XXX: numHopsが1だったらhopSizeを21飛ばす）
+  //（XXX: numHopsが1だったらhopSizeを21飛ばして0個）
+  //（XXX: numHopsが20だったらhopSizeを2つ飛ばして19個）
 	// Cut filler down to the correct length (numHops+1)*hopSize
 	// bytes will be prepended by the packet generation.
 	return filler[(numMaxHops-numHops+2)*hopSize:]
