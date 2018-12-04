@@ -728,12 +728,12 @@ The following Go code is an example implementation of the packet construction:
 func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
 	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
 
-  //（XXX: paymentPath: pk_1-pk_k）
-  //（XXX: sessionKey: ek_1）
-  //（XXX: hopsData: per_hop_1-per_hop_k）
-  //（XXX: assocData: payment_hash）
+//（XXX: paymentPath: pk_1-pk_k）
+//（XXX: sessionKey: ek_1）
+//（XXX: hopsData: per_hop_1-per_hop_k）
+//（XXX: assocData: payment_hash）
 
-  //（XXX: 長さと領域の確保）
+//（XXX: 長さと領域の確保）
 	numHops := len(paymentPath)
 	hopSharedSecrets := make([][sha256.Size]byte, numHops)
 
@@ -742,17 +742,17 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	ephemeralKey.Set(sessionKey.D)
 
 	for i := 0; i < numHops; i++ {
-    //（XXX: SHA256(pk_k * ek_k) => ss_k）
+//（XXX: SHA256(pk_k * ek_k) => ss_k）
 		// Perform ECDH and hash the result.
 		ecdhResult := scalarMult(paymentPath[i], ephemeralKey)
 		hopSharedSecrets[i] = sha256.Sum256(ecdhResult.SerializeCompressed())
 
-    //（XXX: ek_k * G => epk_k）
+//（XXX: ek_k * G => epk_k）
 		// Derive ephemeral public key from private key.
 		ephemeralPrivKey := btcec.PrivKeyFromBytes(btcec.S256(), ephemeralKey.Bytes())
 		ephemeralPubKey := ephemeralPrivKey.PubKey()
 
-    //（XXX: SHA256(epk_k || ss_k) => bf_k）
+//（XXX: SHA256(epk_k || ss_k) => bf_k）
 		// Compute blinding factor.
 		sha := sha256.New()
 		sha.Write(ephemeralPubKey.SerializeCompressed())
@@ -761,18 +761,18 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		var blindingFactor big.Int
 		blindingFactor.SetBytes(sha.Sum(nil))
 
-    //（XXX: ek_k * bf_k => ek_{k+1}）
+//（XXX: ek_k * bf_k => ek_{k+1}）
 		// Blind ephemeral key for next hop.
 		ephemeralKey.Mul(&ephemeralKey, &blindingFactor)
 		ephemeralKey.Mod(&ephemeralKey, btcec.S256().Params().N)
 	}
 
-  //（XXX: ？）
+//（XXX: ？）
 	// Generate the padding, called "filler strings" in the paper.
 	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
 
-  //（XXX: routingInfoSize　== 1300 bytes、hmacSize == 32 bytes）
-  //（XXX: mixHeaderはhops_data？）
+//（XXX: routingInfoSize　== 1300 bytes、hmacSize == 32 bytes）
+//（XXX: mixHeaderはhops_data？）
 	// Allocate and initialize fields to zero-filled slices
 	var mixHeader [routingInfoSize]byte
 	var nextHmac [hmacSize]byte
@@ -780,33 +780,33 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	// Compute the routing information for each hop along with a
 	// MAC of the routing information using the shared key for that hop.
 	for i := numHops - 1; i >= 0; i-- {
-    //（XXX: HMAC("rho", ss_k) => rho_key_k）
-    //（XXX: HMAC("mu", ss_k) => mu_key_k）
+//（XXX: HMAC("rho", ss_k) => rho_key_k）
+//（XXX: HMAC("mu", ss_k) => mu_key_k）
 		rhoKey := generateKey("rho", hopSharedSecrets[i])
 		muKey := generateKey("mu", hopSharedSecrets[i])
 
-    //（XXX: final nodeはzeros、hops_dataとpayment_hashのHMAC）
+//（XXX: final nodeはzeros、hops_dataとpayment_hashのHMAC）
 		hopsData[i].HMAC = nextHmac
 
-    //（XXX: the pseudo-random byte stream、numStreamBytes　== 1300 bytes？）
+//（XXX: the pseudo-random byte stream、numStreamBytes　== 1300 bytes？）
 		// Shift and obfuscate routing information
 		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
 
-    //（XXX: hops_dataを、hopDataSize == 65 bytes、シフト）
-    //（XXX: per_hop_kをhops_dataの先頭にコピー）
+//（XXX: hops_dataを、hopDataSize == 65 bytes、シフト）
+//（XXX: per_hop_kをhops_dataの先頭にコピー）
 		rightShift(mixHeader[:], hopDataSize)
 		buf := &bytes.Buffer{}
 		hopsData[i].Encode(buf)
 		copy(mixHeader[:], buf.Bytes())
 		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
 
-　　//（XXX: 最初だけ後ろをfillerで埋める？）
+//（XXX: 最初だけ後ろをfillerで埋める？）
 		// These need to be overwritten, so every node generates a correct padding
 		if i == numHops-1 {
 			copy(mixHeader[len(mixHeader)-len(filler):], filler)
 		}
 
-    //（XXX: HMAC生成。mixHeader全部とpayment_hashから。mu_key_kで）
+//（XXX: HMAC生成。mixHeader全部とpayment_hashから。mu_key_kで）
 		packet := append(mixHeader[:], assocData...)
 		nextHmac = calcMac(muKey, packet)
 	}
@@ -1047,8 +1047,8 @@ func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][share
 		xor(filler, filler, streamBytes)
 	}
 
-　// （XXX: numHopsが20だったらhopSizeを2つ飛ばす）
-  // （XXX: numHopsが1だったらhopSizeを21飛ばす）
+  //（XXX: numHopsが20だったらhopSizeを2つ飛ばす）
+  //（XXX: numHopsが1だったらhopSizeを21飛ばす）
 	// Cut filler down to the correct length (numHops+1)*hopSize
 	// bytes will be prepended by the packet generation.
 	return filler[(numMaxHops-numHops+2)*hopSize:]
