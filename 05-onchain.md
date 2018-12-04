@@ -82,9 +82,9 @@ the output is considered to be its own *resolving* transaction.
 （XXX: たぶんこの表現（Any）は誤解を生む。
 unspentをspentしてもまたそれをspentしないとresolvedとみなせないならいつまでもresolvedにならない。
 そうではなくあるunspent outputが競合状態、つまりまだ相手のものになる可能性があったり、
-場合によってはそれをspentするためにnodeがスクリプトを覚えておかなければならないといけない状態を解消したいのでは。
+それをspentするためにnodeがスクリプトを覚えておかなければならない状態を解消したいのでは。
 自分のウォレットに落ちるとこまで確定すればresolvedぐらいであろう。
-たぶん最後が推奨）
+たぶん最後が推奨として語られる）
 通常、これは別のresolving transactionでそれを費やすことによって達成される。
 後のウォレットの支出のためのoutputに注目すれば十分である場合もあるが、
 その場合、outputを含むtransactionはそれ自身がresolving transactionと見なされる。
@@ -119,7 +119,7 @@ A node:
     - MAY send a descriptive error packet.
   - SHOULD ignore invalid transactions.
 
-node：
+A node:
   - 一旦それがfunding transactionをブロードキャストするか、
   またはHTLC outputを含むcommitment transactionのcommitment signatureを送った：
     - すべてのoutputがirrevocably resolvedになるまで：
@@ -229,7 +229,7 @@ A node:
         - MUST use the *last commitment transaction*, for which it has a
         signature, to perform a *unilateral close*.
 
-node：
+A node:
   - local commitment transactionにまだto_localやHTLC outputが含まれたことがない場合：
     - 単にchannelを忘れて良い。
   - そうでなければ：
@@ -327,7 +327,7 @@ A node:
     - MUST handle HTLCs offered by the remote node as
     specified in [HTLC Output Handling: Local Commitment, Remote Offers](#htlc-output-handling-local-commitment-remote-offers).
 
-node：
+A node:
   - それのlocal commitment transaction発見時：
     - to_local outputを都合の良いアドレスに使うべきである。
     - outputを使う前にOP_CHECKSEQUENCEVERIFYの遅延が過ぎるまで待たなくてならない
@@ -337,7 +337,10 @@ node：
       （XXX: でもこれだとredeem scriptを覚えておかないといけない。Rationale参照）
     - to_remote outputを無視してもよい。
       - 注：to_remoteは、commitment transaction自体によってresolvedと見なされるため、
-      local nodeによりアクションは必要ない。
+      local nodeによるアクションは必要ない。
+      （XXX: resolvedであるか否かに関わらずピアへの出力は関係ない。
+      またto_remoteはper_commitment_pointに依存するため、
+      HDウォレットにそのまま落ちないのでcommitment tx自体で消費されると考えていいのか？）
   - 「HTLC Output Handling: Local Commitment, Local Offers」で指定されているように、
   それ自体が提供するHTLCsを処理しなければならない。
   - 「HTLC Output Handling: Local Commitment, Remote Offers」で指定されているように、
@@ -410,28 +413,27 @@ A node:
     the HTLC.
       - MAY fail the corresponding incoming HTLC sooner.
 
-node：
+A node:
   - commitment transaction HTLC outputがpayment preimageを使用して費やされた場合、
   その出力はirrevocably resolvedとみなされる。
     - transaction input witnessからpayment preimageを抽出しなければならない。
-    （XXX: たぶん対応するreceived HTLCsのためであろう）
   - commitment transaction HTLC outputがtimed outしていて、まだresolvedになっていない場合：
-  （XXX: 推奨ではないだろうが、このoutputは競合していないのでほっといてもresolvedなのではないだろうか？）
     - HTLC-timeout transactionを使用してoutputをresolveしないといけない。
     - resolving transactionが合理的な深さに達すると：
-      - 対応する着信HTLC（存在する場合）に失敗しなければならない。（XXX: 中継している反対側）
+      - 対応する入力HTLC（存在する場合）に失敗しなければならない。
       - そのHTLC-timeout transactionのoutputを解決しなければならない。
       - それを都合の良いアドレスに費やしてHTLC-timeout transactionを解決すべきである。
       　- 注：outputが費やされた場合（推奨通り）、outputはspending transactionによってresolvedになるか、
-      　そうでなければ、commitment transaction（XXX: HTLC-timeout transactionじゃないの？）
+      　そうでなければ、commitment transaction（XXX: TODO: HTLC-timeout transactionじゃないの？）
       自体によってresolvedとみなされる。
       - HTLC-timeout outputを消費する前に、OP_CHECKSEQUENCEVERIFYの遅延が過ぎるまで、
       （remote nodeのopen_channelのto_self_delayフィールドで指定された通りに）待たなければならない。
   - このcommitment transactionでoutputを持たないコミット済みHTLCの場合：
     - commitment transactionが合理的な深さに達すると、
-      - 対応する着信HTLC（存在する場合）に失敗しなければならない。
+      - 対応する入力HTLC（存在する場合）に失敗しなければならない。
     - 有効なcommitment transactionがHTLCに対応する出力を含まない場合。
-      - 対応する着信HTLCをすぐに失敗させてよい。
+    （XXX: 下流の有効なlocal/remote commitment txがいずれも当該HTLC outputを含まない）
+      - 対応する入力HTLCをすぐに失敗させてよい。
 
 ### Rationale
 
@@ -442,7 +444,7 @@ extracted the payment, it no longer cares about the fate of the HTLC-spending
 transaction itself.
 
 payment preimageは、（提供するnodeが支払いの発生元のとき）支払いを証明するか、
-（提供するノードが支払いを転送しているときに）他のpeerから対応する着信HTLCを償還する。
+（提供するノードが支払いを転送しているときに）他のpeerから対応する入力HTLCを償還する。
 nodeが支払いを（XXX: preimageを）抽出すると、
 HTLC-spending transaction自体の成り行きに関心はなくなる。
 
@@ -453,7 +455,14 @@ responsibility of the recipient to spend it before this occurs.
 両方の解決が可能である場合（例えば、nodeがタイムアウト後に支払い成功を受け取る場合）、
 いずれの解釈も許容される：
 これが起こる前にそれを費やすのは受取人の責任である。
-（XXX: タイムアウトが発生する前に余裕を持ってpreimageで受け取っていないというのが問題）
+（XXX: 下流がタイムアウトしたらオンチェーンでタイムアウトさせようとする。
+ピアのupdate_fulfill_htlcはもう受け付けないほうがいい
+（上流があきらかに余裕がある場合には受け付けてもいい）。
+勝ってタイムアウトできたら上流へupdate_fail_htlcを送る。
+負けてfulfillされた場合、上流に余裕があればupdate_fulfill_htlcを行い、
+余裕がなければオンチェーンでfulfillしなければならない
+（このときupdate_fulfill_htlcしてたらタイムアウトに負ける可能性がある）。
+channelの生成消滅コストを考えると若干条件が変わるかもしれない。）
 
 The local HTLC-timeout transaction needs to be used to time out the HTLC (to
 prevent the remote node fulfilling it and claiming the funds) before the
@@ -465,13 +474,13 @@ If the incoming HTLC is also on-chain, a node must simply wait for it to
 timeout: there is no way to signal early failure.
 
 BOLT＃2に詳述されるように、
-local nodeが、対応する着信HTLCをupdate_fail_htlcを使用して
+local nodeが、対応する入力HTLCをupdate_fail_htlcを使用して
 （おそらくpermanent_channel_failureという理由で）元に戻す前に
 local HTLC-timeout transactionを使用して、HTLCをタイムアウトさせて
 （remote nodeがfulfillingして資金を請求するのを防ぐ）必要がある。
-着信HTLCもオンチェーンの場合、nodeは単にタイムアウトするのを待たなければならない。
+入力HTLCもオンチェーンの場合、nodeは単にタイムアウトするのを待たなければならない。
 早期障害を知らせる手段はない。
-（XXX: update_fail_htlcでHTLCを取り消すことはできないということか）
+（XXX: オンチェーンの場合、もうupdate_fail_htlcはできない）
 
 If an HTLC is too small to appear in *any commitment transaction*, it can be
 safely failed immediately. Otherwise, if an HTLC isn't in the *local commitment
@@ -485,7 +494,8 @@ HTLCが小さすぎてany commitment transactionに現れない場合は、す�
 nodeは、blockchainのreorganizationまたは競争が、
 HTLCを含むcommitment transactionに切り替えないことを確認する必要がある。
 nodeがそれに失敗する前にそれをやる（したがって待機する）。
-着信HTLCがそれ自身のタイムアウトの前に失敗する要件は依然として上限として適用される。
+（XXX: これは支払い上流の話）
+入力HTLCがそれ自身のタイムアウトの前に失敗する要件は依然として上限として適用される。
 （XXX: ？）
 
 ## HTLC Output Handling: Local Commitment, Remote Offers
@@ -516,16 +526,16 @@ There are several possible cases for an offered HTLC:
 
 offered HTLCには、いくつかのケースが考えられる：
 
-1. 提供者は、それをirrevocably committedにしていない。
+1. 提供者は、それ（XXX: HTLC）をirrevocably committedにしていない。
 受信者は通常、完全にコミットするまでHTLCsを転送しないため、preimageを知らない。
 従って、（XXX: 中継者だったら知らないはずの）preimageを使用すると、
 この受信者が最終的なhop（XXX: final node）であることが明らかになってしまう。
 従って、この場合、HTLCのタイムアウトを許可するのが最善である。
-2. 提供者は、offered HTLCにirrevocably committedしているが、受信者はまだ送金HTLCにコミットしていない。
+2. 提供者は、offered HTLCにirrevocably committedしているが、受信者はまだ出力HTLCにコミットしていない。
 この場合、受信者はoffered HTLCを転送またはタイムアウトすることができる。
-（XXX: どっちでもいい）
-3. 受信者は、offered HTLCと引き換えに、送金HTLCをコミットしている。
-この場合、受信側は、送金HTLCから受信したpreimageを使用する必要がある。
+（XXX: 受信者の自由）
+3. 受信者は、offered HTLCと引き換えに、出力HTLCをコミットしている。
+この場合、受信側は、出力HTLCから受信したpreimageを使用する必要がある。
 そうでなければ、それは入金を償還せずに出金を送ることによって資金を失うだろう。
 
 ### Requirements
@@ -546,14 +556,16 @@ A local node:
     by the *remote node's* `open_channel`'s `to_self_delay` field), before
     spending that HTLC-success transaction output.
 
-local node：
-  - 提供された未解決のHTLC outputのpayment preimageを受信し（または既に所有している）、
-  それに対応する送金HTLCにコミットしている場合：
+A local node:
+  - 提供されたunresolvedのHTLC outputのpayment preimageを受信し（または既に所有している）、
+  それに対応する出力HTLCにコミットしている場合：
+  （XXX: TODO: 最後の条件は間違っている？当該入力HTLCがirrevocably committedであるべき）
     - HTLC-success transactionを使用してoutputをresolveしなければならない。
     - そのHTLC-success transactionのoutputを解決しなければならない。
   - そうでなければ：
     - remote nodeがHTLCをirrevocably committedしていない場合：
-      - それを使ってoutputをresolveにしてはいけない。（XXX: タイムアウトさせる）  
+      - それ（XXX: payment preimage）を使ってoutputをresolveにしてはいけない。
+      （XXX: final nodeであることが露呈する。）
   - 都合の良いアドレスを使ってHTLC-success transaction outputを解決すべきである。
   - HTLC-success transaction outputを使う前に、
   OP_CHECKSEQUENCEVERIFYの遅延が経過するまで待たなければならない。
@@ -565,14 +577,13 @@ transaction itself.
 
 outputが使用された場合（推奨されるように）、outputはspending transactionによってresolvedになる。
 そうでなければ、commitment transaction自体によってresolvedと見なされる。
-（XXX: resolvedってlocal nodeの観点だけで考える？）
+（XXX: TODO: ここはcommitment transactionじゃなくてHTLC-success transaction？）
 
 If it's NOT otherwise resolved, once the HTLC output has expired, it is
 considered *irrevocably resolved*.
 
 それ以外の方法で解決されない場合は、HTLC outputが期限切れになれば、irrevocably resolvedとみなされる。
 （XXX: 「それ以外の方法で解決されない場合」って？）
-（XXX: これは無条件のタイムアウト？irrevocably resolvedはlocal nodeの観点だけで考える？）
 
 # Unilateral Close Handling: Remote Commitment Transaction
 
@@ -612,12 +623,14 @@ A local node:
       - MUST send a warning regarding lost funds.
 
 
-local code：
+A local node:
   - remote nodeによる有効なcommitment transactionのブロードキャストを発見：
     - 可能なら：
       - 次のように各outputを処理しなければならない。
       - local nodeへの単純なP2WPKH outputである、関連するto_remoteについては何もしなくてよい。
         - 注：to_remoteはcommitment transaction自身によってresolvedと見なされる。
+        （XXX: TODO: to_remoteはremotepubkeyへのP2WPKH outputだが
+        per_commitment_secretに依存するので、HDウォレットに落とすまでやったほうがいい）
       - remote nodeへの支払いである、関連するto_localについては何もしなくてよい。
       　- 注：to_localはcommitment transaction自身によってresolvedと見なされる。
       - HTLC Output Handling: Remote Commitment, Local Offersで指定されるように、
@@ -625,7 +638,8 @@ local code：
       - HTLC Output Handling: Remote Commitment, Remote Offersで指定されるように、
       remote nodeによって提供されるHTLCsを処理しなければならない
     - そうでなければ（何らかの理由でブロードキャストを処理できない）：
-      - 失われた資金に関する警告を送信しなければならない。（XXX: ？）
+      - 失われた資金に関する警告を送信しなければならない。
+      （XXX: TODO: プロトコル外だがこういったことを多分やらないといけない）
 
 ## Rationale
 
@@ -636,9 +650,9 @@ commitment transaction; hence, the local node is required to handle both.
 
 commitment_signedで署名が受け取られた後、対応するrevoke_and_ackの前に、
 1つ以上の有効なunrevokedなcommitment transactionが存在する可能性がある。
-（XXX: ３つ以上もありうる？たぶんだめなんだろうけど、明示的な記述がないと思われる）
 このように、どちらのcommitmentもremote nodeのcommitment transactionとして機能することができる。
 したがって、local nodeは両方を処理する必要がある。
+（XXX: TODO: ３つ以上もありうるのであればeitherやbothという表現は不適切であろう）
 
 In the case of data loss, a local node may reach a state where it doesn't
 recognize all of the *remote node's* commitment transaction HTLC outputs. It can
@@ -656,7 +670,8 @@ transactionに署名しており、commitment numberが予想よりも大きい�
 local nodeはremote nodeのper_commitment_pointを所有するため
 従って、自己の資金をサルベージするために、そのtransactionのための、自身のremotepubkeyを導出できる。
 （XXX: to_remoteはサルベージできる）
-注：このシナリオでは、nodeはHTLCsをサルベージすることができない。（XXX: なぜ？）
+注：このシナリオでは、nodeはHTLCsをサルベージすることができない。
+（XXX: なぜ？payment_hashとcltv_expiryが残っていないだろうから？）
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
@@ -699,7 +714,7 @@ A local node:
       the HTLC:
         - MAY fail it sooner.
 
-local node：
+A local node:
   - commitment transaction HTLC outputがpayment preimageを使用して費やされた場合：
     - HTLC-success transaction input witnessからpayment preimageを抽出しなければならない。
       - 注：outputはirrevocably resolvedとみなされる。      
@@ -709,7 +724,7 @@ local node：
   （XXX: トリムされたのであろう）：  
     - commitment transactionが合理的な深さに達すると：
     （XXX: それまでは別のversionのcommitment transactionに置き換わる可能性がある）  
-      - 対応する着信HTLC（存在する場合）を失敗しなければならない。
+      - 対応する入力HTLC（存在する場合）を失敗しなければならない。
     - そうでなければ：  
       - 有効なcommitment transactionがHTLCに対応するoutputを含まない場合
       （XXX: 全ての有効なcommitment transactionでトリムされているのであろう）：
@@ -732,7 +747,7 @@ extracted the payment, it no longer need be concerned with the fate of the
 HTLC-spending transaction itself.
 
 payment preimageは、（提供ノードが支払いの発信者であるとき）支払いを証明するため、
-または（提供ノードが支払いを転送しているときに）他のピアからの対応する着信HTLCを引き換えるために役立つ。
+または（提供ノードが支払いを転送しているときに）他のピアからの対応する入力HTLCを引き換えるために役立つ。
 nodeが支払いを抽出した後、HTLC-spending transactionそのもの成り行きに関心を持つ必要はなくなる。
 
 In cases where both resolutions are possible (e.g. when a node receives payment
@@ -751,11 +766,11 @@ If the incoming HTLC is also on-chain, a node simply waits for it to
 timeout, as there's no way to signal early failure.
 
 タイムアウトすると、
-update_fail_htlcを使って（おそらくpermanent_channel_failureという理由で）対応する着信HTLCを元に戻す前に、
+update_fail_htlcを使って（おそらくpermanent_channel_failureという理由で）対応する入力HTLCを元に戻す前に、
 local nodeはHTLC outputを費やす必要がある
 （remote nodeがHTLC-success transactionを使用しないように（XXX: タイムアウト後に受信したpreimageで））。
 BOLT #2に詳述されるように。
-着信HTLCもオンチェーンである場合、早期障害を通知する手段がないため、nodeは単にタイムアウトするのを待つだけである。
+入力HTLCもオンチェーンである場合、早期障害を通知する手段がないため、nodeは単にタイムアウトするのを待つだけである。
 
 If an HTLC is too small to appear in *any commitment transaction*, it
 can be safely failed immediately. Otherwise,
@@ -768,9 +783,9 @@ own timeout still applies as an upper bound.
 HTLCが小さすぎてcommitment transactionに現れない場合は、すぐに安全に失敗できる。
 そうでなければ、HTLCがlocal commitment transactionに含まれていない場合、
 nodeは、blockchainのreorganizationまたはレースによって、
-nodeが失敗する前に（XXX: 失敗して着信HTLCを失敗させる前に）、
+nodeが失敗する前に（XXX: 入力HTLCを失敗させる前に）、
 HTLCを含むcommitment transactionに切り替わらないか確認する必要がある。
-着信HTLCがそれ自身のタイムアウトの前に失敗する要件は依然として上限として適用される。
+入力HTLCがそれ自身のタイムアウトの前に失敗する要件は依然として上限として適用される。
 （XXX: ？）
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
@@ -814,10 +829,11 @@ offered HTLCには、実際にはいくつかのケースが考えられる：
 preimageを使用すると、この受信者が最終的なhopであることが明らかになるので、
 HTLCのタイムアウトを許可するのが最善である。
 2. 提供者は、offered HTLCをirrevocably committedにしているが、
-受取人はまだ送金HTLCにコミットしていない。
+受取人はまだ出力HTLCにコミットしていない。
 この場合、受信者はそれを転送またはタイムアウトするまで待つことができる。
-3. 受信者は、offered HTLCと引き換えに、送金HTLCをコミットしている。
-この場合、受信側は、送金HTLCから受信したpreimageを使用する必要がある。
+（XXX: 受信者の自由）
+3. 受信者は、offered HTLCと引き換えに、出力HTLCをコミットしている。
+この場合、受信側は、出力HTLCから受信したpreimageを使用する必要がある。
 そうでなければ、それは入金を償還せずに出金を送ることによって資金を失うだろう。
 
 ### Requirements
@@ -831,9 +847,10 @@ outgoing HTLC:
     - if the remote node is NOT irrevocably committed to the HTLC:
       - MUST NOT *resolve* the output by spending it.
 
-local node：
-  - 提供された未解決のHTLC outputのpayment preimageを受け取っている（または既に所有している）おり、
-  それのための送金HTLCにコミットしている場合：
+A local node:
+  - 提供されたunresolvedのHTLC outputのpayment preimageを受け取っている（または既に所有している）おり、
+  それのための出力HTLCにコミットしている場合：
+  （XXX: TODO: 最後の条件は間違っている？当該入力HTLCがirrevocably committedであるべき）
     - それを手頃なアドレスに費やしてoutputをresolveにしなければならない。
   - そうでなければ：
     - remote nodeがそのHTLCをirrevocably committedにしていない場合：
@@ -853,6 +870,7 @@ channel's original funding transaction.
 
 いずれかのノードが、古いcommitment transaction（最新のcommitment transaction以外の以前のもの）を
 ブロードキャストして不正行為しようとする場合、
+（XXX: TODO: 有効なcommitment txは複数ありうるのでこの文言は不正確。）
 channelの他のnodeはrevocation private keyを使用してchannelの元のfunding transactionから、
 すべての資金を請求することができる。
 
@@ -865,6 +883,7 @@ nodeが、
 そのためのrevocation private keyを持っている、
 commitment transactionを発見すると、
 funding transaction outputはresolvedである。
+(XXX: なぜ唐突にresolvedなのか？)
 
 A local node:
   - MUST NOT broadcast a commitment transaction for which *it* has exposed the
@@ -891,7 +910,7 @@ A local node:
   - MAY use a single transaction to *resolve* all the outputs.
   - MUST handle its transactions being invalidated by HTLC transactions.
 
-local node：
+A local node:
   - それがper_commitment_secretを公開したら、commitment transactionをブロードキャストしてはならない。
   - local nodeのmain outputに関しては何もしなくて良い。これはそれ自身の単純なP2WPKH outputである。
     - 注：このoutputはcommitment transaction自身によってresolvedであるとみなされる。
@@ -900,17 +919,20 @@ local node：
   offered HTLCsを次の3つの方法のいずれかでresolveしなければならない。
     * payment revocation private keyを使用してcommitment txを費やす。
     * （既知であれば）payment preimageを使用してcommitment txを費やす。
-    * remote nodeが公開している場合は、HTLC-timeout txを費やす。（XXX: これは後述されているので不要では？）
+    * remote nodeが公開している場合は、HTLC-timeout txを費やす。
   - remote（XXX: localでは？） nodeの、
   offered HTLCsを次の2つの方法のいずれかでresolveしなければならない。
     * payment revocation keyを使用してcommitment txを費やす。
+    （XXX: TODO: なぜこちらにはprivateが付かない？）
     * HTLC timeoutが過ぎていれば、commitment txを費やす。
+    （XXX: TODO: HTLC-success txを費やすケースも入れるべき）
   - revocation private keyを使用して、remote nodeのHTLC-timeout transactionをresolveする。
   - revocation private keyを使用して、remote nodeのHTLC-success transactionをresolveする。
   - もしそれがまだ既知ではない場合、（XXX: remoteのHTLC-success transactionの）
   transaction input witnessからpayment preimageを抽出すべきである。
   - 単一のtransactionを使用してすべてのoutputをresolveすることができる。
-  - HTLC transactionsによって無効にされるそのtransactionsを処理しなければならない。（XXX: ？）
+  - HTLC transactionsによって無効にされるそのtransactionsを処理しなければならない。
+  （XXX: outputsを消費しようとしたらremoteのHTLC transactionsに負けてしまったケース）
 
 ## Rationale
 
@@ -930,10 +952,10 @@ irrevocably resolved, should still protect against this happening. [ FIXME: May 
 注：単一のtransactionが使用される場合、
 remote nodeがタイムリーにHTLC-timeoutおよびHTLC-success transactionsをブロードキャストすることにより拒絶された場合、
 それは無効になる可能性がある。
-（XXX: commitment transactionの一部のoutputがHTLC transactionsによってspentになってしまうので）
 従って、すべてのoutputsがirrevocably resolvedになるまでの持続性の要件は、この事態を未然に防ぐべきである。
 [FIXME：remote nodeがペナルティーの消費の成功を避けるために十分長い間、
 local nodeを遅らせることができるので、ここで分裂して克服しなければならないかもしれない]
+（XXX: おそらく単一のtransactionで消費すべきではない。メーリングリストのtrustless watchtower参照）
 
 ## Penalty Transactions Weight Calculation
 
@@ -943,7 +965,7 @@ witness weights (details of weight computation are in
 
 penalty transactionsのための3つの異なるスクリプトがあり、以下のwitness weightsがある
 （weight計算の詳細はAppendix Aにある）。（XXX: witness部分はweights換算でも4倍にしない。
-このto_localはもともとは相手への出力）
+このto_localはremoteへの出力）
 
     to_local_penalty_witness: 160 bytes
     offered_htlc_penalty_witness: 243 bytes
@@ -969,15 +991,15 @@ standard output script), in addition to a 2-byte witness header.
 残りのpenalty transactionは、
 pay-to-witness-script-hash（最大の標準出力スクリプト）とみなすと、
 4 + 1 + 1 + 8 + 1 + 34 + 4 = 53バイトのnon-witnessデータを占める。
-あと2-byte witness headerに加える。（XXX: 53 + 2 = 55bytes）
-（XXX:
-4: version、
-1: maker、
-1: flag、
-8: txin_count（var_int型。なんで8？）、
-1: txout_count、
-34: txouts（P2WSHとみなす）、
-4: lock_time
+あと2-byte witness headerに加える。（XXX: おそらくmaker、flagで2バイト）
+（XXX:<br>
+4: version<br>
+1: vin count<br>
+1: vout count<br>
+8: amount<br>
+1: scriptpubkeyの長さ<br>
+34: txouts（P2WSHとみなす）<br>
+4: lock_time<br>
 ）
 
 In addition to spending these outputs, a penalty transaction may optionally
@@ -997,8 +1019,9 @@ HTLC-timeout transactions are not published, which forces the node to spend from
 the commitment transaction.
 
 最悪の場合のシナリオ（XXX: 単一のトランザクションの最大サイズ）では、
-ノードは着信HTLC（XXX: サイズが大きい）のみを保持し、
+ノードは入力HTLC（XXX: サイズが大きい）のみを保持し、
 HTLC-timeout transactionsは公開されず、
+（XXX: TODO: HTLC-success transactionsにはなぜ言及されていない？）
 nodeはcommitment transactionから消費することを強いられる。
 
 With a maximum standard weight of 400000 bytes, the maximum number of HTLCs that
@@ -1008,13 +1031,13 @@ can be swept in a single transaction is as follows:
 
     max_num_htlcs = (400000 - 324 - 272 - (4 * 53) - 2) / 413 = 966
 
-（XXX:
-400000: bitcoinで最大txが100000bytes、400000weights、
-324: to_local_penalty_input_weight、
-272: to_remote、
-4 * 53: non-witness部分、
-2: witness header、
-413: accepted_htlc_penalty_input_weight
+（XXX:<br>
+400000: bitcoinで最大txが100000bytes、400000weights<br>
+324: to_local_penalty_input_weight<br>
+272: to_remote<br>
+4 * 53: non-witness部分（XXX: weightなので4倍）<br>
+2: witness header（XXX: これもwitness同様4倍しない）<br>
+413: accepted_htlc_penalty_input_weight<br>
 ）
 
 Thus, 483 bidirectional HTLCs (containing both `to_local` and
@@ -1043,7 +1066,7 @@ A node:
     - Note: watching for mempool transactions should result in lower latency
     HTLC redemptions.
 
-node：
+A node:
   - 上記のカテゴリのいずれかに該当しない、funding transaction outputを消費するtransaction
     （mutual close、unilateral close、またはrevoked transaction close）を発見すると、
     - 失われた資金に関する警告を送信しなければならない。（XXX: どうやって？）
