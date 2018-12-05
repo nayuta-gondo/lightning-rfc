@@ -297,7 +297,7 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
 HTLCを償還するには、後述するようにHTLC-success transactionを使用する。
 
-（XXX: 0 <remotehtlcsig> <localhtlcsig> <payment_preimage>）
+（XXX: 0 \<remotehtlcsig\> \<localhtlcsig\> \<payment_preimage\>）
 
 ### Trimmed Outputs
 
