@@ -131,9 +131,9 @@ To allow an opportunity for penalty transactions, in case of a revoked commitmen
 
 penalty transactionsの機会を可能にするには、revoked commitment transactionの場合、
 commitment transactionの所有者（「local node」と呼ばれる）に資金を返すすべてのアウトプットを
-to_self_delayブロック遅らせなければならない。（XXX: self宛てのみ全部）
+to_self_delayブロック遅らせなければならない。
 この遅延は、第2段階のHTLC transaction
-（local nodeによって受け入れられたHTLCs（XXX: received HTLCs）のためのHTLC-success、
+（local nodeによって受け入れられたHTLCsのためのHTLC-success、
 local nodeが提供するHTLCs（Offered HTLCs）のためのHTLC-timeout）
 で行われる。
 
@@ -141,26 +141,17 @@ The reason for the separate transaction stage for HTLC outputs is so that HTLCs 
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
 HTLC outputsのための分離されたtransaction stageの理由は、
-HTLCsがto_self_delay遅延内にあってもタイムアウトまたは履行できるようにするためである。
+HTLCsがto_self_delay遅延内にあってもタイムアウトまたはfulfillできるようにするためである。
 そうしないと、HTLC上で必要な最小限のタイムアウトがこの遅延によって長くなり、
 ネットワークを通過するHTLCsのタイムアウトが長くなる。
-（XXX: to_self_delayをタイムアウトに加算しても、
-revoked transactionsを回収する猶予にはならないので意味がないのでは？
-to_self_delayが別transactionになっていることは、
-commitment transactionがブロックに含まれたあと、
-再び相対時間待たされることに意味があるのでは？
-あとでまた考える）
+（XXX: TODO:「timeouts for HTLCs traversing the network」を長くしたところで「to_self_delay」で達成しようとしている動作を可能にすることができないのではないか？）
 
 The amounts for each output MUST be rounded down to whole satoshis. If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
 
 各出力の金額は、satoshis単位に切り捨てられなければならない。
-この金額（XXX: これはHTLC outputであろう）からHTLC transactionのfeesを差し引いた金額が
+この（XXX: HTLCの）金額からHTLC transactionのfeesを差し引いた金額が
 commitment transactionの所有者のdust_limit_satoshisの設定額を下回っている場合は、
-output（XXX: これはHTLC？）を生成してはならない（したがって、fundsはfeesに追加される）。
-（XXX: 当該HTLC outputを生成しないということか。
-update_add_htlcを受け入れない？受け入れるがfeeに落とす？
-よくわからない）
-
+outputを生成してはならない（したがって、fundsはfeesに追加される）。
 
 #### `to_local` Output
 
@@ -187,6 +178,19 @@ The output is spent by a transaction with `nSequence` field set to `to_self_dela
 この出力は、
 nSequenceフィールドにto_self_delayが設定された（その期間が経過した後にのみ有効とすることができる）、
 以下のwitnessのtransactionによって費やされる：
+（XXX:
+scriptPubkeyはP2WSHなので、<br>
+0 \<redeemScriptHash\><br>
+これが暗黙的に展開されて、<br>
+OP_HASH160 \<redeemScriptHash\> OP_EQUAL<br>
+witnessも実際は、<br>
+\<local_delayedsig\> 0 \<redeemScript\><br>
+redeemScriptが上記の長いスクリプト。<br>
+連結すると、<br>
+\<local_delayedsig\> 0 \<redeemScript\> OP_HASH160 \<redeemScriptHash\> OP_EQUAL<br>
+\<redeemScript\>は１つのアイテムとして長さを持つ（入れ子）。<br>
+）
+（XXX: redeemScriptは省略されている）
 
     <local_delayedsig> 0
 
@@ -231,7 +235,7 @@ payment preimageかrevocation keyを使用したremote nodeのいずれかに資
 The remote node can redeem the HTLC with the witness:
 
 remote nodeはこのwitnessでこのHTLCを償還できる：
-（XXX: 途中のOP_NOTIFのところはpayment_preimageのサイズが32であるってだけの比較だったような）
+（XXX: 途中のOP_NOTIFのところはpayment_preimageのサイズが32であるってだけの比較）
 
     <remotehtlcsig> <payment_preimage>
 
@@ -249,8 +253,8 @@ HTLC-timeout transactionを使用してHTLCを期限切れにさせることが�
 最初の0はOP_CHECKMULTISIGの終端。
 最後の0はpayment_preimageまたはrevocationpubkeyのダミーなので、
 条件文で弾かれOP_DROPでdropされHTLC-timeout transactionの結果となる。
-ここだけマルチシグになっているのは、この先を決められたHTLC transactionにしたかったからであろう。
-HTLC transactionのlocktimeやoutputのredeem scriptを事前に固定したかった
+ここだけマルチシグになっているのは、この先がHTLC transactionであるから。
+HTLC transactionのlocktimeやoutputのredeem scriptを両者でコミットするため。
 ）
 
 #### Received HTLC Outputs
@@ -281,9 +285,9 @@ outputは、witness script付きのP2WSHである。
 
 To timeout the HTLC, the remote node spends it with the witness:
 
-HTLCをタイムアウトさせるために、remote nodeはwitnessと一緒にそれを費やします：
-(XXX: # To remote node after timeout.のところ。
-  0はpayment_preimageまたはrevocationpubkeyのダミーを入れている。サイズが32でもない。OP_DROPでdropされる）
+HTLCをタイムアウトさせるために、remote nodeはwitnessと一緒にそれを費やす：
+(XXX: # To remote node after timeout.のケース。
+  0はpayment_preimageまたはrevocationpubkeyのダミー。サイズが32でもない。OP_DROPでdropされる）
 
     <remotehtlcsig> 0
 
@@ -312,7 +316,7 @@ limit.
 生成されないこれらの出力は「trimmed」と呼ばれる。
 trimmed outputは作成するには小さすぎると見なされ、commitment transaction feeに追加される。
 HTLCsでは、第2段階のHTLC transactionも制限を下回る可能性があることを考慮する必要がある。
-（XXX: 積極的に生成されるdust_limit_satoshis以下のoutputはそもそも許されないのか、trimされるのか？）
+（XXX: htlc_minimum_msatはdust_limit_satoshis以上である必要はないであろう）
 
 #### Requirements
 
@@ -324,7 +328,7 @@ The base fee:
 基本料金：
   - commitment transaction outputsが決定される前に：
     - Fee Calculationで指定されているように、to_localまたto_remote outputsから減算する必要がある。
-    （XXX: たぶんfunder側から？）
+    （XXX: funder側から）
 
 The commitment transaction:
   - if the amount of the commitment transaction `to_local` output would be
@@ -353,7 +357,6 @@ less than `dust_limit_satoshis` set by the transaction owner:
       [Received HTLC Outputs](#received-htlc-outputs).
 
 The commitment transaction：
-（XXX: 結局dust_limit_satoshisはそれ自身のcommitment transactionのoutputに関わる）
   - commitment transaction to_local outputの量が、transaction所有者によって設定されたdust_limit_satoshis未満の場合：
     - そのoutputを含んではいけない。
   - そうでなければ：
@@ -486,7 +489,7 @@ transaction should look like.
 closing時に回復できない差が生じる可能性がある。
 （XXX: はじめにdust_limit_satoshisを渡し合っているのに今更？）
 
-これは、それぞれの側が独自のものを使用する理由dust_limit_satoshisであり、
+これは、それぞれの側が独自のdust_limit_satoshisを使用する理由であり、
 結果として、closing transactionがどのようであるべきかについて意見が一致しない場合には、
 署名の検証に失敗する可能性がある。
 
@@ -500,12 +503,13 @@ has been used.
 他方の側がclosing protocolに失敗する理由はない。
 これは明示的に許可されている。
 署名は、どの変形が使用されたかを示す。
+（XXX: 「相手」のoutputを排除するケースでのみ齟齬が生じる）
 
 There will be at least one output, if `dust_limit_satoshis` is greater
 than twice the funding amount.
 
 dust_limit_satoshisが資金の2倍を超える場合、少なくとも1つのoutputがある。
-（XXX: 間違い？逆？）
+（XXX: TODO: 逆？）
 
 ## Fees
 
@@ -513,12 +517,15 @@ dust_limit_satoshisが資金の2倍を超える場合、少なくとも1つのou
 
 ### Fee Calculation
 
+（XXX: transactionの実データサイズからの割合でfeeを決めることはできない。
+なぜなら、暑名が固定長ではないので。従って以下のような決定的な計算を行っているのであろう。）
+
 The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate_per_kw` and the
 *expected weight* of the transaction.
 
 commitment transactionsとHTLC transactionsのfee算出は、
-現在のfeerate_per_kwおよび transactionの予想されるweightに基づいている。
+現在のfeerate_per_kwおよびtransactionの予想されるweightに基づいている。
 
 The actual and expected weights vary for several reasons:
 
@@ -532,7 +539,7 @@ The actual and expected weights vary for several reasons:
 * Bitcoinは、サイズが変わるDER-encoded signaturesを使用する。
 * Bitcoinはまた、可変長整数も使用するため、大きな数のoututsが1ではなく3バイトでエンコードされる。
 * to_remote outputは、dust limit以下である可能性がある。
-* to_local oputputから一旦feesが控除されると、dust limit以下である可能性がある。
+* to_local outputから一旦feesが控除されると、dust limit以下である可能性がある。
 
 Thus, a simplified formula for *expected weight* is used, which assumes:
 
@@ -544,6 +551,8 @@ Thus, a simplified formula for *expected weight* is used, which assumes:
 
 * 署名は73バイト長（最大長）である。
 * 少量の出力がある（したがって、それらを1バイトとカウントする）。
+（XXX: count_tx_outは1バイトでは収まらない可能性があるが、
+おそらく署名が全て最大長である可能性がありえないのでこれでいいのだろう。）
 * 常にto_local outputとto_remote outputの双方がある。
 
 This yields the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
@@ -559,6 +568,9 @@ Note the reference to the "base fee" for a commitment transaction in the require
 以下の要件におけるcommitment transactionの「base fee」への言及に注意すること。
 これは、funderが支払うものである。
 実際のfeeは、丸め込みとoutputsの切り捨てのため、ここで計算された金額よりも高くなることがある。
+（XXX: 以下to_local/to_remoteのトリムは明示されていないのでそれがtrimmed outputsの話なのか？
+roundingについてもto_local/to_remoteについてのことか？
+HTLCについては以下で全て言及されていると思う。）
 
 #### Requirements
 
@@ -597,9 +609,9 @@ For example, suppose there is a `feerate_per_kw` of 5000, a `dust_limit_satoshis
 * two offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * two received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
-たとえば、feerate_per_kwが5000、dust_limit_satoshisが546satoshis、commitment transactionが以下とする：
-* 5000000、1000000millisatoshisの2つのoffered HTLCs（5000 and 1000 satoshis）
-* 7000000、800000millisatoshisの2つのreceived HTLCs（7000 and 800 satoshis）
+たとえば、feerate_per_kwが5000、dust_limit_satoshisが546 satoshis、commitment transactionが以下とする：
+* 5000000、1000000 millisatoshisの2つのoffered HTLCs（5000 and 1000 satoshis）
+* 7000000、800000 millisatoshisの2つのreceived HTLCs（7000 and 800 satoshis）
 
 The HTLC-timeout transaction `weight` is 663, and thus the fee is 3315 satoshis.
 The HTLC-success transaction `weight` is 703, and thus the fee is 3515 satoshis
@@ -620,37 +632,37 @@ commitment transaction weightは以下のように計算される。
   * an HTLC-timeout transaction of 5000 - 3315 satoshis that spends this output
   * `weight` increases to 896
 
-  * 5000satoshisのoffered HTLCは546 + 3315を上回り、結果として：
-    * commitment transactionで5000satoshiのoutput
-    * このoutputを費やしている5000 - 3315satoshisのHTLC-timeout transaction
-    * weightが896に増加（XXX: 724 + 172）
+* 5000 satoshisのoffered HTLCは546 + 3315を上回り、結果として：
+  * commitment transactionで5000 satoshiのoutput
+  * このoutputを費やしている5000 - 3315 satoshisのHTLC-timeout transaction
+  * weightが896に増加（XXX: 724 + 172）
 
 * The offered HTLC of 1000 satoshis is below 546 + 3315 so it is trimmed.
 
-* 1000satoshisのoffered HTLCは546 + 3315未満であるので、トリミングされる。
+* 1000 satoshisのoffered HTLCは546 + 3315未満であるので、トリミングされる。
 
 * The received HTLC of 7000 satoshis is above 546 + 3515 and results in:
   * an output of 7000 satoshi in the commitment transaction
   * an HTLC-success transaction of 7000 - 3515 satoshis that spends this output
   * `weight` increases to 1068
 
-  * 7000satoshisのreceived HTLCは546 + 3515を上回り、結果として：
-    * commitment transactionで7000satoshiのoutput
-    * このoutputを費やしている7000 - 3515satoshisのHTLC-success transaction
-    * weightが1068に増加
+* 7000 satoshisのreceived HTLCは546 + 3515を上回り、結果として：
+  * commitment transactionで7000 satoshiのoutput
+  * このoutputを費やしている7000 - 3515 satoshisのHTLC-success transaction
+  * weightが1068に増加
 
 * The received HTLC of 800 satoshis is below 546 + 3515 so it is trimmed.
 
-* 800satoshisのreceived HTLCは546 + 3515未満であるので、トリミングされる。
+* 800 satoshisのreceived HTLCは546 + 3515未満であるので、トリミングされる。
 
 The base commitment transaction fee is 5340 satoshi; the actual
 fee (which adds the 1000 and 800 satoshi HTLCs that would make dust
 outputs) is 7140 satoshi. The final fee may be even higher if the
 `to_local` or `to_remote` outputs fall below `dust_limit_satoshis`.
 
-base commitment transaction feeは5340satoshiである。
+base commitment transaction feeは5340 satoshiである。
 （XXX: 5000 * 1068 / 1000。ここにはtrimされた分はまだ含まれていない）
-実際のfeeは7140satoshiである（これにはdust outputsになる1000と800のHTLCsを追加する）。
+実際のfeeは7140 satoshiである（これにはdust outputsになる1000と800のHTLCsを追加する）。
 （XXX: feeに落ちた分。5340 + 1000 + 800。trimされた分が追加された）
 dust_limit_satoshis未満のto_localかto_remote outputsが下に落ちて最終的なfeeは、さらに高い可能性がある。
 
@@ -674,9 +686,9 @@ A node:
   - if the resulting fee rate is too low:
     - MAY fail the channel.
 
-node：
+A node:
   - 結果としてfee rateが低すぎる場合：
-    - channelが失敗してもよい。
+    - channelを失敗してもよい。
 
 （XXX: feeが足りなくて結果としてfee rateが少なくなるようなcommitment transactionは展開できないだろう。
 そしてchannelは失敗し、直前のcommitment transactionが展開される？）
@@ -732,9 +744,10 @@ The HTLC-success and HTLC-timeout transactions use `local_delayedpubkey` and `re
 These are changed for every transaction based on the `per_commitment_point`.
 
 各commitment transactionは、独自のキーのセットを使用する：localpubkeyとremotepubkey。
+（XXX: remotepubkeyはto_remoteで使われるがこれはremote nodeにとってのlocalpubkey）
 HTLC-successとHTLC-timeout transactionsはlocal_delayedpubkeyとrevocationpubkeyを使用する。
+（XXX: to_localもであろう）
 これらは、per_commitment_pointに基づいてtransaction毎に変更される。
-（XXX: localpubkey/remotepubkeyはto_remoteで使われる）
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -756,10 +769,8 @@ watcherにはper_commitment_secretの値 （これはコンパクトに収納で
 penalty transactionに必要なスクリプトを再生成するために使用される、
 revocation_basepointとdelayed_payment_basepointが与えられる。
 したがって、watcherは、penalty inputごとに署名を付与（および格納）するだけでよい。
-（XXX: watcherが作るscriptは多分BOLT #5の最後、redeem scriptは生成しないといけない？
-to_local_scriptだけでなく、
-offered_htlc_scriptとaccepted_htlc_scriptを復元するために、
-もっといろんな情報が必要では？）
+（XXX: watcherはひとまずto_localとHTLC transactionsを回収できればいい。
+HTLC outputsを直接回収する必要はない）
 
 Changing the `localpubkey` and `remotepubkey` every time ensures that commitment
 transaction ID cannot be guessed; every commitment transaction uses an ID
@@ -769,12 +780,14 @@ revealing `localpubkey`; even if both peers use the same _watcher_, nothing is r
 
 localpubkeyおよびをremotepubkeyを毎回変更することは、
 commitment transaction IDが推測されないことを保証する。
-（XXX: たぶんあるバージョンのcommitment transaction IDが委譲されても別のバージョンは推測できない）
+（XXX: あるバージョンのcommitment transaction IDが委譲されても別のバージョンは推測できない）
 すべてのcommitment transactionは、そのoutput scriptでIDを使用する。
 分割されたlocal_delayedpubkeyは、それはpenalty transactionで必要とされる、
-（XXX: to_localのredeem scriptで必要）
+（XXX: to_localとHTLC transactionsのredeem scriptで必要）
 localpubkeyを明らかにせずにwatcherと共有することを可能にする。
-（XXX: localpubkeyはremote commitment transactionが展開されたときのto_remoteを回収するとき必要だが、
+（XXX: 相手のcommitment transactionでのremotepubkey。
+自分にとってはlocalpubkey。
+remote commitment transactionが展開された後to_remoteを回収するとき必要だが、
 緊急性はないのでwatcherに委譲する必要はない）
 両方のピアが同じwatcherを使用しても、何も明らかにされない。
 
@@ -787,7 +800,7 @@ cannot relate the `local_delayedpubkey` or `revocationpubkey` with their bases.
 HTLC-successおよび/またはHTLC-timeout transactionsはwatcherに何も明らかにしない。
 watcherは、対応するper_commitment_secretを知らず、
 local_delayedpubkeyまたはrevocationpubkeyとそれらのベースを関連づけることができないため。
-（XXX: 完全に理解できてない？）
+（XXX: ？）
 
 For efficiency, keys are generated from a series of per-commitment secrets
 that are generated from a single seed, which allows the receiver to compactly
@@ -797,8 +810,6 @@ store them (see [below](#efficient-per-commitment-secret-storage)).
 per-commitment secretsから生成される（以下参照）。
 
 ### `localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation
-
-（XXX: localpubkey/remotepubkeyはto_remoteで使われる）
 
 These pubkeys are simply generated by addition from their base points:
 
@@ -817,10 +828,8 @@ remotepubkeyは、remote nodeのpayment_basepointを使用する。
 local_delayedpubkeyは、local nodeのdelayed_payment_basepointを使用する。
 local_htlcpubkeyは、local nodeのhtlc_basepointを使用する。
 そして、remote_delayedpubkeyは、remote nodeのdelayed_payment_basepointを使用する。
-（XXX: basepointというのはpeerに明かされている）
-（XXX: なんでremote_htlcpubkeyは書いてないのか？
-remote_htlcpubkeyは、remote nodeのhtlc_basepointを使用する。）
-（XXX: per_commitment_pointは後述？）
+（XXX: basepointはopen時に交換する）
+（XXX: TODO: remote_htlcpubkeyが書いていない？）
 
 The corresponding private keys can be similarly derived, if the basepoint
 secrets are known (i.e. the private keys corresponding to `localpubkey`, `local_htlcpubkey`, and `local_delayedpubkey` only):
@@ -863,7 +872,7 @@ And this is used to derive the revocation pubkey from the remote node's
 `revocation_basepoint`:
 
 そしてこれはremote nodeのrevocation_basepointからrevocation pubkeyを導出するために使用される：
-（XXX: たぶんrough-key攻撃みたいなものを防ぐために、単純な加算になっていないのであろう）
+（XXX: rough-key攻撃を防ぐために、単純な加算になっていないのであろう）
 
 	revocationpubkey = revocation_basepoint * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_point * SHA256(per_commitment_point || revocation_basepoint)
 
@@ -883,7 +892,7 @@ is known:
 
 ### Per-commitment Secret Requirements
 
-（XXX: たぶんshachainという）
+（XXX: shachain）
 
 A node:
   - MUST select an unguessable 256-bit seed for each connection,
