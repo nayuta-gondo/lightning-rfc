@@ -1021,7 +1021,6 @@ the commitment transaction.
 最悪の場合のシナリオ（XXX: 単一のトランザクションの最大サイズ）では、
 ノードは入力HTLC（XXX: サイズが大きい）のみを保持し、
 HTLC-timeout transactionsは公開されず、
-（XXX: TODO: HTLC-success transactionsにはなぜ言及されていない？）
 nodeはcommitment transactionから消費することを強いられる。
 
 With a maximum standard weight of 400000 bytes, the maximum number of HTLCs that
