@@ -59,7 +59,7 @@ channelのannouncementをネットワークの他の部分に許可するオプ�
 これには送信者がchannel_announcement messageを作成するために必要なsignaturesが含まれている。
 （XXX: ここでオプトインという表現は不適切だと思う。
 意味としてはchannel_announcementを交換したらこのchannelを公開することができるようになる。
-このタイミングで公開することを「決める」とう意図のものではない）
+このタイミングで公開することを「決める」という意図のものではない）
 
 1. type: 259 (`announcement_signatures`)
 2. data:
@@ -93,6 +93,8 @@ short_channel_idはfunding transactionの一意な記述である。
   1. 最上位3バイト：ブロックの高さを示す
   2. 次の3バイト：ブロック内のtransactionインデックスを示す
   3. 最下位2バイト：channelに支払うoutputインデックスを示す。
+
+（XXX: channel_idはTXIDとoutputインデックスのXOR）
 
 The standard human readable format for `short_channel_id` is created
 by printing the above components, in the order:
@@ -135,8 +137,10 @@ A node:
       - SHOULD retransmit the `announcement_signatures` message.
 
   - 再接続時（上記のタイミング要件が満たされると）：
+  （XXX: TODO: 条件が足りない。クロスするケースがある。
+  再接続時のannouncement_signatures messageの送信は一度だけという条件が必要）
     - 最初のannouncement_signatures messageに対して、それ自身のannouncement_signatures messageで応答しなければならない。
-    （XXX: the firstというのは再接続後の最初？channel確立後の最初でなく）
+    （XXX: TODO: the firstというのは再接続後の最初。）
     - announcement_signatures messageを受信していない場合：
       - announcement_signatures messageを再送すべきである。
 
@@ -150,7 +154,9 @@ A recipient node:
     - otherwise:
       - MUST ignore it.
 
+A recipient node:
   - node_signatureもしくはbitcoin_signatureが正しくない場合：
+  （XXX: これらはchannel_announcementに入るもの）
     - channelを失敗させてよい。
   - 有効なannouncement_signatures messageを送受信した場合：
     - channel_announcement messageをそのpeersのためにキューイングすべきである。
@@ -158,7 +164,8 @@ A recipient node:
   - funding_lockedを送信していない場合：
     - funding_lockedを送信した後まで、announcement_signaturesの処理を延期してもよい
   - そうでなければ：
-      - それを無視しなければならない。
+      - それ（XXX: 受信したannouncement_signatures）を無視しなければならない。
+      （XXX: なぜchannel失敗ではないのか？）
 
 ### Rationale
 
@@ -220,7 +227,6 @@ verifying that it is indeed a P2WSH funding transaction output for those keys
 specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 
 全てのnodesがunspent transaction outputsを知っていると仮定すると、
-（XXX: ？）
 nodeによる、short_channel_idから与えられるoutputの発見と、それが実際にBOLT #3で指定されたように、
 それらのkeysのP2WSH funding transaction outputであることの確認により、最初の証明は達成される。
 
@@ -232,6 +238,7 @@ The last two proofs are accomplished through explicit signatures:
 bitcoin_signature_1とbitcoin_signature_2が、
 それぞれのbitcoin_keyとそれぞれの対応するnode_idが署名されることにより、
 それぞれ生成される。
+（XXX: bitcoin_keyは冗長？）
 
 It's also necessary to prove that `node_1` and `node_2` both agree on the
 announcement message: this is accomplished by having a signature from each
@@ -329,6 +336,7 @@ The receiving node:
   - featuresフィールドに未知の偶数ビットがある場合：
     - messageの残りの部分を解析してはならない。
     - そのnodeのローカルネットワークビューにchannelを追加してはいけない。
+    （XXX: 使用できない）
     - announcementを転送すべきでない。
 
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
@@ -345,7 +353,7 @@ The receiving node:
   - if the specified `chain_hash` is unknown to the receiver:
     - MUST ignore the message.
 
-  - 指定されたchain_hashがレシーバーに知られていない場合：
+  - 指定されたchain_hashを受信者が知らない場合：
     - messageを無視しなければならない。
 
   - otherwise:
@@ -355,7 +363,8 @@ The receiving node:
     `node_signature_2` are invalid OR NOT correct:
       - SHOULD fail the connection.
 
-    - bitcoin_signature_1、bitcoin_signature_2、node_signature_1もしくはnode_signature_2が無効または正しく無い場合。
+    - bitcoin_signature_1、bitcoin_signature_2、node_signature_1もしくはnode_signature_2
+    が無効または正しく無い場合。
       - 接続に失敗すべきである。
 
     - otherwise:
@@ -376,11 +385,8 @@ The receiving node:
 
       - そうでなければ：
         - 参照されたtransactionが以前にchannelとしてannounceされているものではない場合：
-          - 再放送のためにmessagesをキューに入れるべきである。
-          （もしかするとブロックチェーンのリオーガニゼーションが発生して、
-          参照されたtransactionが以前にchannelとして発表されているものと一致する可能性があるからそれまで）
+          - rebroadcastingのためにmessagesをキューに入れるべきである。
           - 期待される長さの最小値より長いmessagesに対してはNOTを選択することができる。
-          （XXX: かなり長ければもうreorgが発生しないだろうってこと？）
 
       - if it has previously received a valid `channel_announcement`, for the
       same transaction, in the same block, but for a different `node_id_1` or
@@ -391,7 +397,6 @@ The receiving node:
 
       - 以前に同じtransaction、同じブロック内ではあるが、
       別のnode_id_1かnode_id_2のものとして有効なchannel_announcementを受け取っていれば：
-      （これはshort_channel_idで判断されるのであろう。）
         - 前のmessageのnode_id_1とnode_id_2をブラックリストに載せ、
         このnode_id_1とnode_id_2も同様にし、それらに接続された任意のchannelsも忘れるべきだ。
         （XXX: 鍵が漏洩したと考えられる）
@@ -602,7 +607,7 @@ The receiving node:
 
   - signatureが有効なsignatureではない場合
   （node_id（XXX: の秘密鍵）を使用して、aliasの次の未知のフィールドを含む、signatureフィールドの後に続くmessage全体のdouble-SHA256（XXX: への署名））。
-  （XXX: なんで最後でないaliasに言及？間違い？）
+  （XXX: TODO: なんで最後でないaliasに言及？間違い？）
     - 接続に失敗すべきである。
     - messageをさらに処理してはならない。
 
@@ -619,7 +624,7 @@ The receiving node:
   - MAY forward `node_announcement`s that contain an _unknown_ `features` _bit_,
   regardless of if it has parsed the announcement or not.
 
-  - それ（XXX: final node）がannouncementを解析したかどうかに関係なく、
+  - それ（XXX: node）がannouncementを解析したかどうかに関係なく、
   未知のfeaturesビット含むnode_announcementを転送することができる。
 
   - SHOULD ignore the first `address descriptor` that does NOT match the types
@@ -743,13 +748,15 @@ of *relaying* payments, not *sending* payments. When making a payment
  the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
-このchannel_update gossip messageが有用なのは、支払いを中継するコンテキストであり、
+このchannel_update gossip messageが有用なのは、支払いを中継する（XXX: 受信側）コンテキストであり、
 支払いを送信するコンテキストではないことに注意してください。
-A -> B -> C -> Dの支払いを作るとき、B -> C（Bによって発表）とC -> D （Cによって発表）のchannelに関係するchannel_updateのみが関わる。
-（XXX: C -> Dはいるんだっけ？）
+A -> B -> C -> Dの支払いを作るとき、
+B -> C（Bによって発表）とC -> D （Cによって発表）のchannelに関係するchannel_updateのみが関わる。
+（XXX: 要するにBとCが中継を行うときに関わる）
 ルートを構築する際には、HTLCの金額と有効期限をdestinationからsourceまで逆方向に計算する必要がある。
+（XXX: feeとcltv_expiry_deltaをそれぞれ足し合わせていく）
 ルートの最後のHTLCに使用される正確なamount_msatのための初期値とcltv_expiryのための最小値は、支払い要求で提供される（BOLT＃11を参照）。
-（XXX: 逆に、最後のルートのcltv_expiryはinvoiceだけで決まるんだっけ？）
+（XXX: 逆に、最後のルートのcltv_expiryはinvoiceの値に下駄を履かせる）
 
 1. type: 258 (`channel_update`)
 2. data:
@@ -839,8 +846,8 @@ The origin node:
   `channel_announcement` message.
 
   - chain_hashとshort_channel_idに、
-  channel_announcement messageに指定されたchannelを一意に識別する32バイトのハッシュと、
-  8バイトのchannel IDを一致させるように設定する必要がある。
+  32バイトのハッシュと8バイトのchannel IDに一致させるように設定する必要がある、
+  channel_announcement messageに指定されたchannelを一意に識別する。
 
   - if the origin node is `node_id_1` in the message:
     - MUST set the `direction` bit of `channel_flags` to 0.
@@ -869,7 +876,7 @@ The origin node:
       - チャネル容量以下に設定しなければならない。
       - ピアから受信したmax_htlc_value_in_flight_msat以下に設定しなければならない。
         - Bitcoinブロックチェーンを識別するchain_hashを持つチャンネルの場合：
-          - これを2 ^ 32未満に設定しなければならない。
+          - これを2^32未満に設定しなければならない。
 
   - otherwise:
 	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
@@ -1298,6 +1305,8 @@ The receiver of `query_channel_range`:
     - chain_hashに、query_channel_rangeのそれと同じに設定しなければならない。
     - short_channel_idに、first_blocknumから first_blocknum + number_of_blocks - 1のブロックの中で知っている、
     全てのオープンなchannelをエンコードしなければならない。
+    （XXX: たぶん最後のブロックまで入らなければ、
+    query_channel_rangeがまた投げられるのであろう）
     - number_of_blocksを、ブロックの結果（XXX: ブロックに含まれるshort_channel_id）がencoded_short_idsに収まるように、
     ブロックの最大数に制限しなければならない
     - chain_hashの最新のチャンネル情報を保持しない場合：
@@ -1311,10 +1320,11 @@ A single response might be too large for a single packet, and also a peer can
 store canned results for (say) 1000-block ranges, and simply offer each reply
 which overlaps the ranges of the request.
 
-1つのパケットに対して1つの応答が大きすぎる可能性があるので、peerは1000ブロックの範囲で封じた結果を格納し、
+1つのパケットに対して1つの応答が大きすぎる可能性があるので、
+peerは1000ブロックの範囲で封じた結果を格納し、
 単純に要求の範囲と重複する各応答を提供する可能性がある。（XXX: say？）
-（XXX: 前もって結果を固めて準備するので、query_channel_rangeに対して、
-reply_channel_rangeは大雑把に範囲が重なるようにして返すことがある？できる？）
+（XXX: requirementsと矛盾しないか？
+入るだけ入れるためには1000ブロック単位とかにしてはいけないのでは？）
 
 ### The `gossip_timestamp_filter` Message
 
@@ -1332,7 +1342,7 @@ messages would be received.
 このmessageは、nodeが将来のgossip messagesを特定の範囲に制限することを可能にする。
 gossip messagesを必要とするnodeは、これを送信しなければならず、
 さもなければ、gossip_queriesネゴシエーションは、gossip messagesが受信されないことを意味する。
-（XXX: このmessageはgossip messagesを受信する場合にはMUSTか？）
+（XXX: このmessageはgossip messagesを受信する場合にはMUST）
 
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
@@ -1360,7 +1370,8 @@ The receiver:
 	- MAY wait for the next outgoing gossip flush to send these.
 
   - これら（XXX: gossip messages）を送るために次の送信gossipフラッシュを待ってよい。
-  (XXX: これはRebroadcastingにも適用されるのであろう）
+  (XXX: これはRebroadcastingにも適用されるのであろう。
+  gossip_timestamp_filterを受信したタイミングで送る必要はない）
 
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
@@ -1373,7 +1384,6 @@ The receiver:
 
   - channel_announcementに対応するchannel_updatesがない場合：
     - channel_announcementを送信してはいけない。
-    （XXX: timestempがわからないので）
 
   - Otherwise:
 	  - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
@@ -1397,8 +1407,7 @@ likely in the case of pruned channels.
 
 channel_announcementにはtimestampがないので、可能性のあるものを生成する。
 channel_updateがない場合はまったく送信されないが、これは刈り取られたchannelsの場合に最も可能性が高い。
-（XXX: channel_announcementは残したまま、channel_updateのみを刈り取るのか？
-channel_updateはまた来る可能性があるから？）
+（XXX: どのような理由でchannel_updateが刈り取られたのか？古い？）
 
 Otherwise the `channel_announcement` is usually followed immediately by a
 `channel_update`. Ideally we would specify that the first (oldest) `channel_update`'s
@@ -1407,24 +1416,24 @@ the network will not have this, and further would require the first `channel_upd
 timestamp to be stored. Instead, we allow any update to be used, which
 is simple to implement.
 
-そうでなければ（XXX: channel_updateが刈り取られているのでなければ）、
+そうでなければ、
 channel_announcementは通常直後にchannel_updateが続く。
 理想的には、我々は最初の（一番古い）channel_updateのtimestampを
 channel_announcementの時間として使用することを指定するが、
 ネットワーク上の新しいnodesはこれを持たず、
 さらに、最初のchannel_updateタイムスタンプを保存する必要がある。
-代わりに、任意のupdate（XXX: channel_update？）を使用することができ、これは実装が簡単である。
+代わりに、任意のupdate（XXX: channel_update）を使用することができ、これは実装が簡単である。
 
-（XXX: 本当はchannel_announcementのtimestampとしては最古のchannel_updateのものが適切だが、
-簡単のため、どれでもいいということか？）
+（XXX: なぜ最古のものがいいのか？
+新しいものがあるのに古いchannel_updateを送ることがあるのか？）
 
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
 
 それでもなおchannel_announcementが欠けている場合、
 それを取得するためにquery_short_channel_idsを使用することができる。
-（XXX: gossip_timestamp_filterを設定していても所望のchannel_announcementを得ることができない場合、
-short_channel_idで明示的に指定して取得する、ということか？）
+
+（XXX: TODO: なんかgossip_queriesは全体的に不明点が多い）
 
 ## Initial Sync
 
@@ -1447,7 +1456,7 @@ value of `initial_routing_sync` is still important to control
 interactions with them.
 
 注：gossip_queriesは古いノードとは動作しないので、
-initial_routing_syncの値はまだ、彼らとの相互作用を制御ために重要である。
+initial_routing_syncの値はまだ、彼らとの相互作用を制御するために重要である。
 
 ### Requirements
 
@@ -1487,8 +1496,9 @@ A receiving node:
   `node_announcement` with an updated `timestamp`:
     - SHOULD update its local view of the network's topology accordingly.
 
-  - updateしたtimestampを持つ、
-    新しいchannel_announcementかchannel_updateかnode_announcementを受信すると：
+  - 新しいchannel_announcementか、
+  updateしたtimestampを持つ、
+  channel_updateかnode_announcementを受信すると：
     - それに従って、ネットワークのトポロジのローカルビューをupdateすべきである。
 
   - after applying the changes from the announcement:
@@ -1501,7 +1511,8 @@ A receiving node:
         for its peers.
 
   - announcementからの変更を適用した後：
-    - 対応するorigin nodeに関連付けられたchannelがない場合は、
+    - 対応する（XXX: node_announcementの？）
+    origin nodeに関連付けられたchannelがない場合は、
       - origin nodeをその既知のnodesのセットからパージしてもよい。
     - そうでなければ：
       - 適切なメタデータをupdateし、announcementに関連付けられたsignatureを格納すべきである。
@@ -1520,7 +1531,7 @@ A node:
     - Note: this results in staggered announcements that are unique (not
     duplicated).
 
-  - messagesの到着時刻とは無関係に、60秒おきに、発信gossip messagesをフラッシュすべきである。
+  - messagesの到着時刻とは無関係に、60秒おきに、出力gossip messagesをフラッシュすべきである。
     - 注：これにより、staggeredな（XXX: ？）announcementsが一意になる（重複しない）。
 
   - MAY re-announce its channels regularly.
@@ -1535,7 +1546,7 @@ A node:
 
   - 接続確立時：
     - 全てのchannel_announcement messageを送信し、
-    （XXX: これは再接続時？切断してた間のものを全部送る？）
+    （XXX: これは切断時に受信してたものを全部送る？）
     続けて最新のnode_announcementとchannel_update messagesを送信すべきである。
 
 ### Rationale
@@ -1547,7 +1558,8 @@ regular intervals; such a store-and-delayed-forward broadcast is called a
 _staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
 
-gossip messageが処理されると、processing nodeのpeers向けの送信messagesのリストに追加され、
+gossip messageが処理されると、
+processing nodeのpeers向けの出力messagesのリストに追加され、
 origin nodeからの古いupdatesが置き換えられる。
 このgossip messagesのリストは定期的にフラッシュされる。
 そのようなstore-and-delayed-forward broadcastは、staggered broadcastと呼ばれる。
@@ -1631,6 +1643,7 @@ A node:
     - channelを無視してよい。
     - 注：これは個々のnodeのポリシーであり、転送peersによって強制されてはならない
     例えば、古くなったgossip messagesを受信したときにchannlesを閉じるなど。
+    （XXX: ？）
 
 #### Rationale
 
@@ -1644,12 +1657,12 @@ view would be forwarded to other peers indefinitely.
 
 いくつかのシナリオでは、channelsが使用不能になり、
 そのendpointがこれらのchannelsのupdatesを送信できなくなるだろう。
-（XXX: endpoints？）
 たとえば、両方のendpointが秘密鍵へのアクセスを失い、
 channel_updateに署名することも、オンチェーンのchannelを閉じることもできない 。
-この場合、このchannelsはネットワークの他の部分から分離されるので、計算された経路の一部になる可能性は低い。
+この場合、このchannelsはネットワークの他の部分から分離されるので、
+計算された経路の一部になる可能性は低い。
 ただし、ローカルネットワークビューに残っていると、他のpeersに無期限に転送される。
-（XXX: peers？）
+（XXX: ？）
 
 ## Recommendations for Routing
 
@@ -1687,9 +1700,13 @@ random offset would.
 
 尤もらしいオフセットを作成するために、origin nodeはグラフ上の限定されたランダムウォークを開始し、
 目的の受信者から開始してcltv_expiry_deltaを合計し、その結果の合計をオフセットとして使用してよい。
-（XXX: ランダムにルーティングしてみて合計する。平均？）
-これにより、実際のルートへのshadow route extensionが効果的に作成され、
-単純にランダムオフセットを選択するよりも、この攻撃ベクタに対する保護が向上する。
+（XXX: 受信者から先にルートが延びているように見せかける。
+送信者側のシャドウルートは意味がない（cltvは受信者側から足しこまれるので）。
+ただし、あまり既存のchannel_updateの値をそのまま足しこむとcltv_expiry_deltaの値が分散しているときにルートが推測できるのでは？
+極端な例として全てのノードのcltv_expiry_deltaの値が被らない2^xの値とする。
+中継ノードはシャドウルート込みではあるが残りの完全なルートが一意に特定できる。
+ランダムな値も足す必要がある）
+（XXX: シャドウルートは受信者隠蔽のためであるのに送信者に依存しているのでトラストレスな思想にそぐわない。同様に現行のルーティングでは解決策がない）
 
 Other more advanced considerations involve diversification of route selection,
 to avoid single points of failure and detection, and balancing of local
@@ -1698,7 +1715,7 @@ channels.
 他の高度な考慮事項には、
 ルート選択の多様化、
 単一障害点の回避と検出、
-およびローカル（XXX: 自分の関与する）channelsのバランシングが含まれる。
+およびローカルchannelsのバランシングが含まれる。
 
 ### Routing Example
 
@@ -1772,6 +1789,9 @@ Cの9のmin_final_cltv_expiryの要求を使用することになる。
    * `onion_routing_packet`:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
+
+（XXX: ここでシャドウルートは中継者が居ないので受信者を隠蔽する意味がないが、
+追加しないと受信者に送信者が漏洩する）
 
 **A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to
 pay B the fee it specified in the B->C `channel_update`, calculated as
