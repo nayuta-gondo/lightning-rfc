@@ -56,8 +56,10 @@ It contains the necessary signatures, by the sender, to construct the `channel_a
 
 これは、channelの2つのendpoints間のdirect messageで、
 channelのannouncementをネットワークの他の部分に許可するオプトインメカニズムを提供する。
-（XXX: なんでオプトインをchannel_flagsだけで表さないのか？、特定のchannelのみに適用するため？）
 これには送信者がchannel_announcement messageを作成するために必要なsignaturesが含まれている。
+（XXX: ここでオプトインという表現は不適切だと思う。
+意味としてはchannel_announcementを交換したらこのchannelを公開することができるようになる。
+このタイミングで公開することを「決める」とう意図のものではない）
 
 1. type: 259 (`announcement_signatures`)
 2. data:
