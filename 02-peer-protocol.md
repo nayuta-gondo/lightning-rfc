@@ -578,7 +578,6 @@ The `funding_output_index` can only be 2 bytes, since that's how it's packed int
 funding_output_indexは、
 それがchannel_idにパックされてgossip protocolを通して使われているので、2バイトのみである。
 65535の出力の上限は過度に負担にならないはずである。
-（XXX: channel_idにパック？short_channel_idのことか）
 
 A transaction with all Segregated Witness inputs is not malleable, hence the funding transaction recommendation.
 
