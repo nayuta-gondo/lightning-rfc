@@ -975,7 +975,10 @@ closing transactionが遅れてもリスクは限定的だが、すぐにブロ�
 
 Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
-両方のノードがfunding_lockedを交換されると（オプションとしてannouncement_signatures）、
+両方のノードがfunding_lockedを交換されると（オプションとしてannouncement_signatures
+（XXX: announcement_signaturesを送らなくてもNormal Operationとなる。
+announcement_signaturesはfunding_locked以降に送らないといけないためこのような注釈をつけたのであろうが、
+不要だと思う））、
 Hashed Time Locked Contrancts（HTLCs）を介して支払いを行うためにチャネルを使用することができる。
 （XXX: announcement_signaturesが必要な時はそれを交換しないとNormal Operationに移行できない？）
 
