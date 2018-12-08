@@ -18,9 +18,8 @@ to direct peers.
 
 ルーティングメッセージ（XXX: gossip）のfeaturesフラグは、globalfeaturesフラグのサブセットであり、
 localfeaturesとして、定義により、直接のpeersにとってのみ重要である。
-（XXX: featuresはlocalfeatures。
-ピア間のメッセージで渡せばいいだけだろうになんでgossip？
-directに接続するときに前もって知りたい情報だからかな？）
+（XXX: TODO: なにかいまいちよくわからないが、
+とりあえずfeaturesとglobalfeaturesのフラグは今は未定義）
 
 Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
 an _even_ bit). They are generally assigned in pairs so that features
