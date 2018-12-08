@@ -27,9 +27,10 @@ for manual entry, which is unlikely to happen often given the length
 of Lightning invoices.
 
 Lightning invoiceのフォーマットは、Bitcoin Segregated Witnessですでに使用されているbech32 encodingを使用する。
-6桁のchecksumの手入力用の最適化さえも、Lightning invoicesのために再利用することができるが、
+それは単純にLightning invoicesのために再利用することができる、
+その6桁のchecksumは手入力用に最適化されているが、
 Lightning invoicesの長さを考慮してそのようにすることが頻繁に発生する可能性は低い。
-（XXX: invoiceが長すぎるからってこと？）
+（XXX: invoiceは長いので手入力することはない）
 
 If a URI scheme is desired, the current recommendation is to either
 use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
@@ -69,7 +70,7 @@ bitcoin testnetの場合は lntb、
 bitcoin regtestの場合は lnbcrt
 ）
 1. amount：その通貨でのoptionalな数にoptionalなmultiplier文字が続く。
-ここでエンコードされる単位は、支払い単位の「社会の」慣習である。
+ここでエンコードされる単位は、支払い単位の「社会的」慣習である。
 Bitcoinの場合、単位はbitcoinでsatoshisではない。
 
 The following `multiplier` letters are defined:
@@ -97,7 +98,7 @@ A writer:
 	  multiplier or omitting the multiplier
 
 作者：    
-  - 成功裏に支払うために必要な通貨を使用してprefixを符号化しなければならない
+  - 支払いの成功ために必要な通貨を使用してprefixを符号化しなければならない
   - 支払いに必要な最小額が必要な場合：
     - amountを含めなければならない
     - amountを先行ゼロのない正の10進整数として符号化しなければならない
@@ -152,7 +153,7 @@ Lightning invoiceのdata partは、複数のsectionsで構成されている：
 
 1. timestamp：1970年からの秒（35 bits, big-endian）
 1. ゼロ個以上のタグ付けされた部品
-1. signature：上記のbitcoin-style signature（520 bits）
+1. signature：上のbitcoin-style signature（520 bits）
 
 ## Requirements
 
@@ -187,7 +188,7 @@ identity of the payee node can be implied.
 SHA-2標準が実際にはビット境界でのハッシュをサポートしていても、それは広範には実装されていないため、
 signatureはバイトの整数をカバーする。
 recovery IDは受け取り人nodeの身元を暗示することができるためpublic-keyの回復を可能にする。
-（XXX: ？）
+（XXX: TODO: 署名からpublickey回復）
 
 ## Tagged Fields
 
@@ -199,6 +200,8 @@ Each Tagged Field is of the form:
 1. `type` (5 bits)
 1. `data_length` (10 bits, big-endian)
 1. `data` (`data_length` x 5 bits)
+
+（XXX: 5bit単位）
 
 Currently defined tagged fields are:
 
@@ -285,8 +288,10 @@ A writer MAY include one or more `f` fields. For bitcoin payments, a writer MUST
 a public key hash, or `18` followed by a script hash.
 
 作者は、1つ以上のfフィールドを含めることができる。
-bitcoinの支払いの場合、作成者は有効なwitness versionとprogramにfフィールドを設定するか、
-17に続けてpublic key hashを指定するか、18に続いてscript hashを設定しなければならない。
+bitcoinの支払いの場合、作成者は
+有効なwitness versionとprogramにfフィールドを設定するか、
+17に続けてpublic key hashを指定するか、
+18に続いてscript hashを設定しなければならない。
 
 A writer MUST include at least one `r` field if there is not a
 public channel associated with its public key. The `r` field MUST contain
@@ -303,12 +308,10 @@ pubkeyはchannelの始点のnode IDである；
 short_channel_idは、channelを識別する短いchannel IDフィールドである；
 fee_base_msat、fee_proportional_millionths、およびcltv_expiry_deltaは、BOLT＃7で指定されたとおりである。
 作者は、複数のルーティングオプションを提供するために複数のフィールドを含めることができる。
-（XXX: channel_updateのフィールドを含めるのであろう）
 
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
 
 作者は、フィールドデータを0を使って5ビットの倍数にパディングしなければならない。
-（XXX: ？）
 
 If a writer offers more than one of any field type, it MUST specify
 the most-preferred field first, followed by less-preferred fields in
@@ -332,9 +335,8 @@ matches the hashed description.
 A reader MUST use the `n` field to validate the signature instead of
 performing signature recovery if a valid `n` field is provided.
 
-有効なnフィールドが提供されている場合、署名回復を実行するのではなく、
-署名を検証するために読者はnフィールドを使用しなければならない。
-（XXX: 誤り訂正みたいな？）
+読者は署名を検証するためにnフィールドを使用しなければならない、
+有効なnフィールドが提供されているか、署名回復を実行するのではなく。
 
 ### Rationale
 
@@ -380,7 +382,6 @@ on-chain payment if necessary.
 xフィールドは、支払いが拒否される時期を警告する；これは主に混乱を避けるためである。
 デフォルトは、ほとんどの支払いに対して合理的であり、
 必要に応じてon-chainの支払いに十分な時間を与えるように選択された。
-（XXX: LNを使わずに支払う）
 
 The `c` field gives a way for the destination node to require a specific
 minimum CLTV expiry for its incoming HTLC. Destination nodes may use this
@@ -389,10 +390,8 @@ on their fee estimation policy and their sensitivity to time locks. Note
 that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
-cフィールドは、着信nodeが着信HTLCに対して特定のminimum CLTV expiryを要求する方法を与える。
-宛先nodeは、fee推定ポリシーとtime locksに対する感応度に応じて、これを使用してデフォルトのものより高い、
-より控えめな値を要求することがある。
-（XXX: 厳しくないという意味で控えめ、リアルタイムなfeeの変動を考慮して支払いタイミングを測るのか？）
+cフィールドは、宛先nodeが入力HTLCに対して特定のminimum CLTV expiryを要求する方法を与える。
+宛先nodeは、fee推定ポリシーとtime locksに対する感応度に応じて、これを使用してデフォルトのものより高い、より控えめな値を要求することがある。
 注：ルート内のremote nodesはchannel_updateメッセージに必要なcltv_expiry_deltaを指定する。
 彼らはいつでも更新する可能性がある。
 
@@ -431,8 +430,7 @@ reflected XSS attacks when decoding and displaying payment descriptions. Avoid
 optimistically rendering the contents of the payment request until all
 validation, verification, and sanitization have been successfully completed.
 
-Payment descriptionsは、HTML / Javascriptコンテキストまたはその他の動的に解釈されるレンダリングフレームワークで表示される前に、
-必ずサニタイズする必要がある。
+Payment descriptionsは、HTML / Javascriptコンテキストまたはその他の動的に解釈されるレンダリングフレームワークで表示される前に、必ずサニタイズする必要がある。
 実装者は、Payment descriptionsをデコードして表示する際に、reflected XSS attacksの可能性に注意を払う必要がある。
 すべてのvalidation、verification、およびsanitizationが正常に完了するまで、支払い要求の内容を楽観的に表示しないこと。
 
@@ -441,8 +439,7 @@ escaping to protect against injection vulnerabilities against persistence
 engines that support SQL or other dynamically interpreted querying languages.
 
 さらに、prepared statements、input validation、および/またはescapingを使用して、
-SQLやその他のdynamically interpreted querying languagesをサポートする永続性エンジンに対する、
-脆弱性注入から保護することを検討すること。
+SQLやその他のdynamically interpreted querying languagesをサポートする永続性エンジンに対する、脆弱性注入から保護することを検討すること。
 
 * [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_%28Cross_Site_Scripting%29_Prevention_Cheat_Sheet)
 * [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
@@ -472,7 +469,7 @@ signature, and after checking that conditions such as fees,
 expiry, and block timeout are acceptable, attempt a payment. It can use `r` fields to
 augment its routing information if necessary to reach the final node.
 
-その意図は（XXX: ？）、支払人が署名から受取人のnode IDを復元し、
+その意図は（XXX: ？）、支払人が署名から受取人のnode IDを復元し（XXX: ？）、
 手数料、有効期限、ブロックのタイムアウトなどの条件が満たされていることを確認した後、
 支払いを試みることである。
 rフィールドを使用して、必要に応じて最終nodeに到達するためにルーティング情報を増やすことができる。
