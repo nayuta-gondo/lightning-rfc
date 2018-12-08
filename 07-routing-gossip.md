@@ -1120,7 +1120,9 @@ from `reply_channel_range`.
 これはノードが特定のchannels（short_channel_idで同定される）の
 channel_announcementとchannel_updateを問い合わせるための一般的なメカニズムである；
 これは通常、channel_announcementのないchannel_updateを見る場合か
-（XXX: channel_updateだけ受け取っていて、channel_announcementが欲しい）、
+（XXX: channel_updateだけ受け取っていて、channel_announcementが欲しい。
+逆にchannel_announcementだけ受け取っているケースは考えられないのか？
+新しいデータだけ持っているということか）、
 またはreply_channel_rangeから以前に未知のshort_channel_idを取得しているためである。
 
 #### Requirements
@@ -1129,7 +1131,8 @@ The sender:
 
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
 
-  - このpeerに前回query_short_channel_idsを送信し、reply_short_channel_ids_endを受信していない場合は、
+  - このpeerに前回query_short_channel_idsを送信し、
+  reply_short_channel_ids_endを受信していない場合は、
   query_short_channel_idsを送信してはならない。
 
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
@@ -1149,12 +1152,12 @@ The sender:
    `short_channel_id` for which it has no `channel_announcement`.
 
   - channel_announcementを持たないshort_channel_idのchannel_updateを受信した場合は、それを送ってよい。
-  （XXX: encoded_short_idsにshort_channel_idを含めて送って良いということであろう）
+  （XXX: encoded_short_idsにshort_channel_idを含めて送って良い）
 
   - SHOULD NOT send this if the channel referred to is not an unspent output.
 
   - 参照されたchannelがUTXOでない場合、これを送信すべきではない。
-  （XXX: encoded_short_idsにshort_channel_idを含めて送ってはいけないということであろう）
+  （XXX: encoded_short_idsにshort_channel_idを含めて送ってはいけない）
 
 The receiver:
 
@@ -1186,7 +1189,7 @@ The receiver:
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
 
   - これらを送信するために次の発信gossipのフラッシュを待つべきではない。
-  (XXX: Rebroadcastingのように周期的に遅延して応答するのでなく、すぐに応答すべきということであろう)
+  (XXX: すぐに応答すべき)
 
   - MUST follow with any `node_announcement`s for each `channel_announcement`
 
@@ -1230,7 +1233,7 @@ indicate it doesn't know anything, and the sender doesn't need to rely on
 timeouts.  It also causes a natural rate limiting of queries.
 
 明示的なreply_short_channel_ids_end messageは、受信者が何も知らないことを示すことができ、
-送信者はタイムアウトに頼る必要がないことを意味する。それはまた、クエリの自然なレート制限をもたらす。
+送信者はタイムアウトに頼る必要がないことを意味する。それはまた、クエリの自然なレート制限をもたらす。（XXX: reply_short_channel_ids_endが来るまで次のクエリは行えない）
 
 ### The `query_channel_range` and `reply_channel_range` Messages
 
@@ -1260,6 +1263,7 @@ The sender of `query_channel_range`:
   - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
 
   - 前のquery_channel_rangeがこのpeerに送られ、全てのreply_channel_range応答を受け取っていないなら、これを送ってはいけない。
+  （XXX: reply_channel_rangeは複数回に分けて全部送る）
 
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the `reply_channel_range` to refer to
@@ -1289,7 +1293,6 @@ The receiver of `query_channel_range`:
   - リクエストされたfirst_blocknumから first_blocknum + number_of_blocks - 1 を、
   その組み合わせられた範囲がカバーする、
   1つ以上のreply_channel_rangeで応答しなければならない。
-  （XXX: 後述されるようにぴったりカバーする必要はない）
 
   - For each `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
@@ -1303,12 +1306,18 @@ The receiver of `query_channel_range`:
 
   - それぞれのreply_channel_rangeついて：
     - chain_hashに、query_channel_rangeのそれと同じに設定しなければならない。
-    - short_channel_idに、first_blocknumから first_blocknum + number_of_blocks - 1のブロックの中で知っている、
+    - short_channel_idに、first_blocknumからfirst_blocknum + number_of_blocks - 1のブロックの中で知っている、
     全てのオープンなchannelをエンコードしなければならない。
-    （XXX: たぶん最後のブロックまで入らなければ、
-    query_channel_rangeがまた投げられるのであろう）
     - number_of_blocksを、ブロックの結果（XXX: ブロックに含まれるshort_channel_id）がencoded_short_idsに収まるように、
     ブロックの最大数に制限しなければならない
+    （XXX: channelが存在しないブロックもあることを考慮する。例えば、<br>
+    block=998にはchannelがある<br>
+    block=999にはない<br>
+    block=1000にはchannelがあるがそれを加えるとreply_channel_rangeメッセージに収まらない<br>
+    このときnumber_of_blocksには998までではなく最大の999まで入れた値にする。
+    block=1000は次のreply_channel_rangeメッセージで送る。
+    そうすると最後のreply_channel_rangeは必ずfirst_blocknum + number_of_blocks - 1までのnumber_of_blocksとなり最後がわかる。もし最後の方のブロックにchannelがなくても。
+    ）
     - chain_hashの最新のチャンネル情報を保持しない場合：
       - completeに、0を設定すべきである。
     - そうでなければ：
@@ -1323,8 +1332,8 @@ which overlaps the ranges of the request.
 1つのパケットに対して1つの応答が大きすぎる可能性があるので、
 peerは1000ブロックの範囲で封じた結果を格納し、
 単純に要求の範囲と重複する各応答を提供する可能性がある。（XXX: say？）
-（XXX: requirementsと矛盾しないか？
-入るだけ入れるためには1000ブロック単位とかにしてはいけないのでは？）
+（XXX: TODO: 最初と末尾でrangeをオーバーしてもいいのか？だめだろう？）
+（XXX: gossip_timestamp_filterがあるため複数のノードに対して応答の使い回しはできない？）
 
 ### The `gossip_timestamp_filter` Message
 
@@ -1342,12 +1351,15 @@ messages would be received.
 このmessageは、nodeが将来のgossip messagesを特定の範囲に制限することを可能にする。
 gossip messagesを必要とするnodeは、これを送信しなければならず、
 さもなければ、gossip_queriesネゴシエーションは、gossip messagesが受信されないことを意味する。
-（XXX: このmessageはgossip messagesを受信する場合にはMUST）
+（XXX: TODO: このmessageはgossip messagesを受信する場合にはMUST？
+「将来の」というのはどういうことか？Rebroadcastingだけか？全てか？）
 
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
 
 注：このフィルタは以前のフィルタを置き換えるので、複数回使用してpeerからのgossipを変更することができる。
+（XXX: これがクエリの応答の途中で行われた場合、どこから有効になるのか？
+まあ次からだろう）
 
 #### Requirements
 
@@ -1371,7 +1383,8 @@ The receiver:
 
   - これら（XXX: gossip messages）を送るために次の送信gossipフラッシュを待ってよい。
   (XXX: これはRebroadcastingにも適用されるのであろう。
-  gossip_timestamp_filterを受信したタイミングで送る必要はない）
+  gossip_timestamp_filterを受信したタイミングで送る必要はない。
+  timestampが変わると新たに送られる条件になるものが存在する可能性がある）
 
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
@@ -1391,6 +1404,7 @@ The receiver:
 
   - そうでなければ：
     - channel_announcementのtimestampは、対応するのchannel_updateのtimestampであると見なさなければならない。
+    （XXX: TODO: ２つあるけどどうするの？）
     - channel_announcementを送信するかどうかは、最初の対応するchannel_updateを受信した後に考えなければならない。
 
   - If a `channel_announcement` is sent:
@@ -1423,17 +1437,14 @@ channel_announcementの時間として使用することを指定するが、
 ネットワーク上の新しいnodesはこれを持たず、
 さらに、最初のchannel_updateタイムスタンプを保存する必要がある。
 代わりに、任意のupdate（XXX: channel_update）を使用することができ、これは実装が簡単である。
-
-（XXX: なぜ最古のものがいいのか？
-新しいものがあるのに古いchannel_updateを送ることがあるのか？）
+（XXX: なぜ最古のものがいいのか？）
+（XXX: 任意と書いているが実際は持っているものの最新であろう）
 
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
 
 それでもなおchannel_announcementが欠けている場合、
 それを取得するためにquery_short_channel_idsを使用することができる。
-
-（XXX: TODO: なんかgossip_queriesは全体的に不明点が多い）
 
 ## Initial Sync
 
