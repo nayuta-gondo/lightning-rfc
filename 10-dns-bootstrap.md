@@ -8,8 +8,8 @@ Its purpose is twofold:
  - Bootstrap: providing the initial node discovery for nodes that have no known contacts in the network
  - Assisted Node Location: supporting nodes in discovery of the current network address of previously known peers
 
- この仕様は、ドメインネームシステム（DNS）に基づくノード発見メカニズムについて説明する。
- その目的は2つある：
+この仕様は、ドメインネームシステム（DNS）に基づくノード発見メカニズムについて説明する。
+その目的は2つある：
 
  - ブートストラップ：ネットワークに既知の連絡先がないノードの初期ノード検出を提供する
  - ノード位置のアシスト：既知のピアの現在のネットワークアドレスを発見するノードをサポートする
@@ -48,7 +48,7 @@ The subdomains consist of a number of dot-separated _conditions_ that further na
 A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types,
 specifying conditions for the desired results the seed should return.
 
-クライアントは、使用してクエリを発行することができる
+クライアントは、
 A、AAAAまたはSRVクエリタイプを使って、クエリを発行できる、
 seedが返すべき期待する結果を得るための条件を指定して。
 
@@ -137,7 +137,7 @@ name.
     - MUST select the record matching the `node_id`, if any, AND return all
     addresses associated with that node.
 
-DNS seed：
+The DNS seed:
   - seed root domainの条件がツリーの上の方へ、つまり完全修飾ドメイン名の右から左へ評価しなければならない。
     - 例えば上のケースを評価した場合：最初にn10が評価され、それからa2、最後がr0である。
   - 条件（キー）が2回以上指定されている場合：
@@ -202,11 +202,10 @@ The DNS seed:
 - if no entries match all the conditions:
   - MUST return an empty reply.
 
-DNS seed：
+The DNS seed:
   - 応答の追加セクションで、SRVエントリのIPアドレスを示す、対応するAおよびAAAAレコードをさらに返すことができる。
   - 繰り返しのクエリを検出したときにこれらの追加レコードを省略してもよい。
     - 理由：返される結果のサイズが大きいために、中間のリゾルバによって応答が破棄される可能性があるため
-    （XXX: a repeated queryって具体的にどんな条件？）
   - すべての条件に一致するエントリがない場合：
     - 空の応答を返さなければならない。
 
@@ -220,14 +219,14 @@ The DNS seed:
     the `_nodes._tcp.` alias for `SRV` queries) with _random and unbiased_
     samples from the set of all known good nodes, in accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>.
 
-DNS seed：
+The DNS seed:
   - 60秒未満のTTLを返信してはならない。
   - 障害のあるノード、信頼できないノード、またはスパム防止を含むさまざまな理由で、
   ローカルビューからノードをフィルタリングしてもよい。
   - Bitcoin DNS Seedポリシーに従って、
   無作為なクエリ（すなわち、seed root domainへのクエリとSRVクエリのための`_nodes._tcp.`エイリアスへのクエリ）に対する応答は、
   すべての既知の正常なノードのセットからのランダムサンプルでなければならず、偏ってはいけない。
-  （XXX: なにこのエイリアスって？）
+  （XXX: ？）
 
 ## Examples
 
