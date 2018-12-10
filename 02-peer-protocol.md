@@ -1756,9 +1756,10 @@ fee changes).
   - 手数料を変更するだけのcommitment_signedメッセージを送信できる。
   - 新たなrevocation hash以外はcommitment transactionを変更しない、
   commitment_signedメッセージを送信できる。
-  （以下による、dust、同一のHTLCの置き換え（XXX: 消えたり追加されたり？）、またはわずかな複数回の料金変更）。
+  （以下による、dustで同一のHTLCの置き換え、またはわずかか複数回の料金変更）。
   （XXX: これはHTLCが追加されたがそれはdustで他のHTLCは変わらないが、
   dustになった分がto_remote or to_localからfeeに落ちたのでcommitment txの署名は変わる状態）
+  （XXX: TODO: これはその上の行の手数料の変更のみに含まれないのか？）
   - commitment transactionのBIP69辞書順に対応する、
   全てのHTLC transactionのためのhtlc_signatureを1つを含めなければならない。
   （XXX: BIP69では出力をamountとscriptPubkeyでソートするが、BOLTでは同じ値になるHTLCができる。
