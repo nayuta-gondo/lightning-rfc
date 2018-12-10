@@ -46,8 +46,9 @@ state is completely distinct from any inner protocol message header or
 conventions.
 
 Lightningメッセージを送信する前に、
-ノードはノード間で送信されるすべてのメッセージを暗号化して認証するために使用される暗号化セッション状態を最初に開始しなければならない。
-この暗号化セッション状態の初期化は、内部のプロトコルメッセージヘッダまたは規則とは全く異なる。
+ノードはノード間で送信されるすべてのメッセージを暗号化して認証するために使用される、
+暗号化セッション状態を最初に開始しなければならない。
+この暗号化セッション状態の初期化は、内部のプロトコルメッセージヘッダまたは規則とは全く別個である。
 
 The transcript between two nodes is separated into two distinct segments:
 
