@@ -1369,20 +1369,18 @@ A fulfilling node:
   - 実行しよう（fulfill）としているHTLCごとに：
     - 実行（fulfillment）の期限を推定しなければならない。
   - 実行（fulfillment）期限がすでに過ぎているHTLCを失敗しなければならない（かつ転送しない）。
-  （XXX: 下流にupdate_add_htlcを行っていない、
-  または下流のHTLCがupdate_fail_htlcされているという前提がないと、
-  上流を失敗させると資金を失う可能性がある。
-  ここではまだ下流にupdate_add_htlcを行っておらず、
-  すでにタイムアウトしている場合にそれを行わない前提で、
-  上流にupdate_fail_htlcを行うという理解であっているか？）
+  （XXX: outgoing HTLCをコミットすると、
+  自力ではincoming HTLCに対してupdate_fail_htlcしてはいけない。
+  outgoing HTLCをコミットする前の話であろう）
   - 実行した(has fulfilled)HTLCが、現在のcommitment transactionにあり、
-  （XXX: fulfillした状態というのがどのような状態かよくわからない？）
+  （XXX: ここのfulfillした状態というのがどのような状態かよくわからない。
+  commitment transactionにあるということは、まだコミットされていない？）
   かつ実行（fulfillment）のタイムアウトのデッドラインを過ぎている：
-  （XXX: update_fulfill_htlcしたのにcommitment_signedが送られてこない？）
     - 接続に失敗しなければならない。
-    （XXX: 再接続して再度update_fulfill_htlcを送るのか？
-    preimageを持っているのにタイムアウトしているということは
-    チャネルを失敗させ、unirateral closeして資金を取得しないといけないのでは？）
+    （XXX: TODO: incoming/outgoingどっち？
+    どっちがタイムアウトしている？
+    どちらかfulfillとタイムアウトのレース状態になっていないか？
+    再接続ではなくチャンネル失敗しなくて良いのか？）
 
 ### Adding an HTLC: `update_add_htlc`
 
