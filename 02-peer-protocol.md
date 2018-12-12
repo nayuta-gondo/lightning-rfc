@@ -1234,7 +1234,7 @@ the longest possible time to redeem it on-chain:
    transaction.
 
 転送ノード（B）の最悪のケースは、
-送信HTLCの実行（fulfillment）を見つけるために可能な限り長い時間を要し、
+出力HTLCの実行（fulfillment）を見つけるために可能な限り長い時間を要し、
 またオンチェーンで償還するために可能な限り長い時間を要する：
 
 1. B->CのHTLCはブロックNでタイムアウトし、BはCを待つのをあきらめるまでGブロック待つ。
@@ -1244,37 +1244,52 @@ BはHTLCを使用するが、それは含まれるまでSブロック要する�
 HTLCを実行（XXX: オンチェーンで）（fulfill）し、
 BがブロックN+G+S+1を見るとき、そのtransactionを見るだけである。
 （XXX: preimageを抽出する）
-（XXX: ここの1はブロックが含まれて次のブロックで償還か？
-実際はcommitment txと同じブロックで償還できるかもしれないが、
-ここではより時間が掛かるケースであろう）
 3. 最悪の場合：Rの深さのreorgがあり、そこでCが勝ち実行（fulfill）する。
 BはN+G+S+Rのtransactionを見ているだけである。
-（XXX: preimageを抽出する）
-（XXX: 1がより長いRに変わった）
-
-（XXX: ？？？<br>
-Cがfulfillを行ってBがpreimageを見つけるまでのワーストケース<br>
-N:HTLCがタイムアウト<br>
-G:Bが猶予を待つ<br>
-S:B or Cがcommitment txをブロードキャストしブロックに含まれる<br>
-R:reorgしたがCが即時fulfill実行、Bはpreimage抽出（クリティカルだがCが勝ち）<br>
-fulfillされなければ資金は戻ってくるのでそのケースは考えなくていい？<br>
-）<br>
 
 4. Bは今、受信A->BのHTLCを実行する（fulfill）必要があるが、Aは応答しない：
 BはAを待つのをやめるまで、さらにGブロックを待つ。
 AまたはBがブロックチェーンにコミットする。
-5. 悪いケース：BはブロックN+G+S+R+G+1（XXX: ？）にある
-Aのcommitment transaction見、（XXX: ここまではcommitment tx）
+5. 悪いケース：BはブロックN+G+S+R+G+1にある
+Aのcommitment transaction見、
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
-（XXX: これで+Sか？）
 6. 最悪の場合：Aがcommitment transactionを使用するために使う、別のreorgの深さRがあるため、
 BはブロックN+G+S+R+G+R (XXX: ？) でAのcommitment transactionを見、
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
-（XXX: これで+Sか？）
 7. BのHTLCの使用は、タイムアウトする前に少なくともR深くする必要がある。
 そうしないと、別のreorgがAのトランザクションをタイムアウトさせる可能性がある。
-（XXX: これで+Rか？）
+
+（XXX: TODO: わからん）
+
+（XXX:<br>
+XXX: TODO: B->Cでタイムアウトするケースをまず考えてみる。
+この場合、A->Bについてはもう考えなくてよくなる<br>
+N:<br>
+XXX: B->C<br>
+G:猶予<br>
+S:commit txがブロックに含まれるまで<br>
+R:reorg<br>
+S:Bがタイムアウトで回収する（勝つ）<br>
+R:reorg<br>
+XXX: 最後のreorgは絶対勝たなくてはいけないので必要<br>
+）
+
+（XXX:<br>
+XXX: TODO: こうではないの？<br>
+N:<br>
+XXX: B->C<br>
+G:猶予<br>
+S:commit txがブロックに含まれるまで<br>
+R:reorg<br>
+S:Cがpreimageで回収する（負けるがpreimageを得る）<br>
+XXX: preimageが回収できればreorgはどうでもいい、ということか？<br>
+XXX: A->B<br>
+G:猶予<br>
+S:commit txがブロックに含まれるまで<br>
+R:reorg<br>
+S:Bがpreimageで回収する（勝つ）<br>
+R:reorg<br>
+）
 
 Thus, the worst case is `3R+2G+2S`, assuming `R` is at least 1. Note that the
 chances of three reorganizations in which the other node wins all of them is
@@ -1286,14 +1301,14 @@ required to timeout or fulfill as soon as possible; but if `G` is too low it inc
 risk of unnecessary channel closure due to networking delays.
 
 従って、最悪の場合は3R+2G+2S、Rは少なくとも1であると仮定する。
-すべての3回（XXX: どれ？）のreorgの機会で、
-他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。（XXX: ？）
-（XXX: 比較的）高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
+（XXX: なぜ1？）
+すべての3回のreorgの機会で、
+他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。
+高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
 Sは小さくすべきである；（XXX: feeを適切に支払ってブロックに入りやすくする）
 とはいえ、ブロック時間が不規則で空きブロックがまだ発生している場合の、S=2は最小限とみなすべきである。
-（XXX: 通常はもっと大きく見積もる必要がある？）
 同様に、猶予期間Gは、ノードができるだけ早くタイムアウトまたは実行する（fulfill）必要があるため、
-低く（1または2）することができる；（XXX: タイムアウト後の猶予なので）
+低く（1または2）することができる；
 しかし、Gが低すぎる場合には、それはネットワーク遅延による不要なチャネル閉鎖のリスクを増大させる。
 
 There are four values that need be derived:
@@ -1322,12 +1337,12 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
 不確定な場合、12のcltv_expiry_deltaが妥当（R = 2、G = 1、S = 2）である。
 
 2. offered HTLCs（XXX: B->C）のデッドライン：
-チャネルが（XXX: タイムアウトで？）失敗し、オンチェーンでタイムアウトしなければならない
-（XXX: オンチェーンに展開しなければならない？）デッドライン。
+チャネルが失敗し、オンチェーンでタイムアウトしなければならないデッドライン。
+（XXX: レースに負けるかもしないが）
 これはHTLCのcltv_expiryの後のGブロックである：
 1ブロックが妥当である。
 
-3. このノードが実行した（fulfill）受信HTLC（A->B）のデッドライン：
+3. このノードが実行した（fulfill）received HTLC（XXX: A->B）のデッドライン：
 チャネルが失敗し、そのcltv_expiryの前、オンチェーンで実行される（fulfilled）デッドライン 。
 上記のステップ4-7を参照し、
 これは、cltv_expiryの前の、2R+G+Sブロックの締め切りを暗示する：
@@ -1337,8 +1352,6 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
 終端ノードCの最悪のケースは2R+G+Sブロックである（再度、上記のステップ1-3が当てはまらない）。
 BOLT＃11のデフォルト値は9である。
 これは、この計算で示唆されている7よりわずかに控えめである。
-
-（XXX: TODO: ここまで。また見直す）
 
 #### Requirements
 
@@ -1369,20 +1382,18 @@ A fulfilling node:
   - 実行しよう（fulfill）としているHTLCごとに：
     - 実行（fulfillment）の期限を推定しなければならない。
   - 実行（fulfillment）期限がすでに過ぎているHTLCを失敗しなければならない（かつ転送しない）。
-  （XXX: 下流にupdate_add_htlcを行っていない、
-  または下流のHTLCがupdate_fail_htlcされているという前提がないと、
-  上流を失敗させると資金を失う可能性がある。
-  ここではまだ下流にupdate_add_htlcを行っておらず、
-  すでにタイムアウトしている場合にそれを行わない前提で、
-  上流にupdate_fail_htlcを行うという理解であっているか？）
+  （XXX: outgoing HTLCをコミットすると、
+  自力ではincoming HTLCに対してupdate_fail_htlcしてはいけない。
+  outgoing HTLCをコミットする前の話であろう）
   - 実行した(has fulfilled)HTLCが、現在のcommitment transactionにあり、
-  （XXX: fulfillした状態というのがどのような状態かよくわからない？）
+  （XXX: ここのfulfillした状態というのがどのような状態かよくわからない。
+  commitment transactionにあるということは、まだコミットされていない？）
   かつ実行（fulfillment）のタイムアウトのデッドラインを過ぎている：
-  （XXX: update_fulfill_htlcしたのにcommitment_signedが送られてこない？）
     - 接続に失敗しなければならない。
-    （XXX: 再接続して再度update_fulfill_htlcを送るのか？
-    preimageを持っているのにタイムアウトしているということは
-    チャネルを失敗させ、unirateral closeして資金を取得しないといけないのでは？）
+    （XXX: TODO: incoming/outgoingどっち？
+    どっちがタイムアウトしている？
+    どちらかfulfillとタイムアウトのレース状態になっていないか？
+    再接続ではなくチャンネル失敗しなくて良いのか？）
 
 ### Adding an HTLC: `update_add_htlc`
 
