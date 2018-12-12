@@ -1237,6 +1237,10 @@ the longest possible time to redeem it on-chain:
 出力HTLCの実行（fulfillment）を見つけるために可能な限り長い時間を要し、
 またオンチェーンで償還するために可能な限り長い時間を要する：
 
+（XXX: TODO: 片側のチャネルのHTLCについて考えると、
+オンチェーンに展開されるのはcommitment txを回収するためのtxの２つがあるが、
+以下では１つずつについてしか答えられていない？）
+
 1. B->CのHTLCはブロックNでタイムアウトし、BはCを待つのをあきらめるまでGブロック待つ。
 BまたはCはブロックチェーンにコミットし、
 BはHTLCを使用するが、それは含まれるまでSブロック要する。
@@ -1263,10 +1267,16 @@ BはブロックN+G+S+R+G+R (XXX: ？) でAのcommitment transactionを見、
 N:<br>
 G:outgoing HTLC<br>
 S:outgoing HTLC<br>
+commit txがブロックに含まれるまで？<br>
+それを回収するtxは？<br>
 R:outgoing HTLC<br>
-G:<br>
+commit txのreorg？<br>
+G:incoming HTLC<br>
+commit txがブロックに含まれるまでは？<br>
 R:incoming HTLC<br>
+なんでreorgだけ？<br>
 S:incoming HTLC<br>
+それを回収するtx？<br>
 R:incoming HTLC<br>
 ）
 
@@ -1280,14 +1290,14 @@ required to timeout or fulfill as soon as possible; but if `G` is too low it inc
 risk of unnecessary channel closure due to networking delays.
 
 従って、最悪の場合は3R+2G+2S、Rは少なくとも1であると仮定する。
-すべての3回（XXX: どれ？）のreorgの機会で、
-他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。（XXX: ？）
-（XXX: 比較的）高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
+（XXX: なぜ1？）
+すべての3回のreorgの機会で、
+他方のノードがそれらの全てで勝つのは、2以上のRでは低いことに留意すること。
+高いfeesが使用されるので（かつHTLC使用はほとんど任意のfeesを使うことができる）、
 Sは小さくすべきである；（XXX: feeを適切に支払ってブロックに入りやすくする）
 とはいえ、ブロック時間が不規則で空きブロックがまだ発生している場合の、S=2は最小限とみなすべきである。
-（XXX: 通常はもっと大きく見積もる必要がある？）
 同様に、猶予期間Gは、ノードができるだけ早くタイムアウトまたは実行する（fulfill）必要があるため、
-低く（1または2）することができる；（XXX: タイムアウト後の猶予なので）
+低く（1または2）することができる；
 しかし、Gが低すぎる場合には、それはネットワーク遅延による不要なチャネル閉鎖のリスクを増大させる。
 
 There are four values that need be derived:
@@ -1316,12 +1326,12 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
 不確定な場合、12のcltv_expiry_deltaが妥当（R = 2、G = 1、S = 2）である。
 
 2. offered HTLCs（XXX: B->C）のデッドライン：
-チャネルが（XXX: タイムアウトで？）失敗し、オンチェーンでタイムアウトしなければならない
-（XXX: オンチェーンに展開しなければならない？）デッドライン。
+チャネルが失敗し、オンチェーンでタイムアウトしなければならないデッドライン。
+（XXX: レースに負けるかもしないが）
 これはHTLCのcltv_expiryの後のGブロックである：
 1ブロックが妥当である。
 
-3. このノードが実行した（fulfill）受信HTLC（A->B）のデッドライン：
+3. このノードが実行した（fulfill）received HTLC（XXX: A->B）のデッドライン：
 チャネルが失敗し、そのcltv_expiryの前、オンチェーンで実行される（fulfilled）デッドライン 。
 上記のステップ4-7を参照し、
 これは、cltv_expiryの前の、2R+G+Sブロックの締め切りを暗示する：
@@ -1331,8 +1341,6 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
 終端ノードCの最悪のケースは2R+G+Sブロックである（再度、上記のステップ1-3が当てはまらない）。
 BOLT＃11のデフォルト値は9である。
 これは、この計算で示唆されている7よりわずかに控えめである。
-
-（XXX: TODO: ここまで。また見直す）
 
 #### Requirements
 
