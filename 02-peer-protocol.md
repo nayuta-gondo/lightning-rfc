@@ -1234,7 +1234,7 @@ the longest possible time to redeem it on-chain:
    transaction.
 
 転送ノード（B）の最悪のケースは、
-送信HTLCの実行（fulfillment）を見つけるために可能な限り長い時間を要し、
+出力HTLCの実行（fulfillment）を見つけるために可能な限り長い時間を要し、
 またオンチェーンで償還するために可能な限り長い時間を要する：
 
 1. B->CのHTLCはブロックNでタイムアウトし、BはCを待つのをあきらめるまでGブロック待つ。
@@ -1244,37 +1244,31 @@ BはHTLCを使用するが、それは含まれるまでSブロック要する�
 HTLCを実行（XXX: オンチェーンで）（fulfill）し、
 BがブロックN+G+S+1を見るとき、そのtransactionを見るだけである。
 （XXX: preimageを抽出する）
-（XXX: ここの1はブロックが含まれて次のブロックで償還か？
-実際はcommitment txと同じブロックで償還できるかもしれないが、
-ここではより時間が掛かるケースであろう）
+（XXX: ここの1はなに？）
 3. 最悪の場合：Rの深さのreorgがあり、そこでCが勝ち実行（fulfill）する。
 BはN+G+S+Rのtransactionを見ているだけである。
-（XXX: preimageを抽出する）
-（XXX: 1がより長いRに変わった）
-
-（XXX: ？？？<br>
-Cがfulfillを行ってBがpreimageを見つけるまでのワーストケース<br>
-N:HTLCがタイムアウト<br>
-G:Bが猶予を待つ<br>
-S:B or Cがcommitment txをブロードキャストしブロックに含まれる<br>
-R:reorgしたがCが即時fulfill実行、Bはpreimage抽出（クリティカルだがCが勝ち）<br>
-fulfillされなければ資金は戻ってくるのでそのケースは考えなくていい？<br>
-）<br>
-
 4. Bは今、受信A->BのHTLCを実行する（fulfill）必要があるが、Aは応答しない：
 BはAを待つのをやめるまで、さらにGブロックを待つ。
 AまたはBがブロックチェーンにコミットする。
-5. 悪いケース：BはブロックN+G+S+R+G+1（XXX: ？）にある
-Aのcommitment transaction見、（XXX: ここまではcommitment tx）
+5. 悪いケース：BはブロックN+G+S+R+G+1にある
+Aのcommitment transaction見、
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
-（XXX: これで+Sか？）
+（XXX: Bが積極的にcommitment txを展開しても同じSブロックか）
 6. 最悪の場合：Aがcommitment transactionを使用するために使う、別のreorgの深さRがあるため、
 BはブロックN+G+S+R+G+R (XXX: ？) でAのcommitment transactionを見、
 マイニングされるためのSブロックを要する、HTLC出力を使わなければならない。
-（XXX: これで+Sか？）
 7. BのHTLCの使用は、タイムアウトする前に少なくともR深くする必要がある。
 そうしないと、別のreorgがAのトランザクションをタイムアウトさせる可能性がある。
-（XXX: これで+Rか？）
+（XXX:<br>
+N:<br>
+G:outgoing HTLC<br>
+S:outgoing HTLC<br>
+R:outgoing HTLC<br>
+G:<br>
+R:incoming HTLC<br>
+S:incoming HTLC<br>
+R:incoming HTLC<br>
+）
 
 Thus, the worst case is `3R+2G+2S`, assuming `R` is at least 1. Note that the
 chances of three reorganizations in which the other node wins all of them is
