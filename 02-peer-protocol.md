@@ -8,6 +8,13 @@ establishment、
 normal operation、
 およびclosingという3つのフェーズがある。
 
+（XXX: 以下、updateのpendingという言葉に曖昧さがあると思う。例えば以下の複数の状態が考えられる。<br>
+自身のcommit txについて（相手のものについても対称的に同じ）、<br>
+・updateをpeerに送ったがまだ自身のcommit txに落ちていない状態<br>
+・update（送受信双方）がpeerからcommitされていない状態<br>
+・updateがpeerからcommitされたがまだ前のcommit txがrevokeされていない状態<br>
+）
+
 # Table of Contents
 
   * [Channel](#channel)
@@ -765,6 +772,7 @@ A sending node:
   - funding_lockedを送る前にshutdownを送っても良い、
   すなわちfunding transactionがminimum_depthに達する前に。
   - 受信ノードのcommitment transactionで保留中の更新がある場合：
+  （XXX: ここのpendingがどのような状態かはっきりしない）
     - shutdownを送信してはならない。
   - shutdown後にupdate_add_htlcを送ってはならない。
   - いずれのcommitment transactionにもHTLCが残っていない場合：
