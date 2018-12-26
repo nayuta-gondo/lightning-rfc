@@ -838,7 +838,7 @@ to the commitment transaction (in particular, `update_fee` would be
 possible otherwise).
 
 シャットダウンは終了の希望を暗示しているため、それは新しいHTLCが追加または受け入れないことを暗示する。
-HTLCが一度クリアされると、ピアはすぐに交渉を終了する可能性があるため、
+HTLCが一度クリアされると、ピアはすぐにclosing negotiationを開始する可能性があるため、
 commitment transactionへの更なる更新を禁止する
 （特に、そうでなければ（XXX: HTLCが残っていれば）update_feeは可能であろう）。
 
