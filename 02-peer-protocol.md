@@ -373,7 +373,10 @@ are not valid DER-encoded compressed secp256k1 pubkeys.
   - funderの最初のcommitment transactionのためのファンドの金額が、完全なfee paymentには不十分である。
   - to_localとto_remoteの両方の最初のcommitment transactionの金額が、
   channel_reserve_satoshis以下（BOLT 3参照）。
-  （XXX: push_msatで資金が動くかもしれないが、それでも条件を満たすようにする）
+  （XXX: push_msatで資金が動くかもしれないが、それでもoutputがなくならないように。
+  この段階で相手のdust_limit_satoshisがわからないので、dust_limit_satoshisを条件にできない。
+  channel_reserve_satoshisは双方のdust_limit_satoshisよりも大きくならないといけないという条件があるので、
+  channel_reserve_satoshisを比較対象にしている）
 
 The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
