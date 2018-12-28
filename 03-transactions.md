@@ -48,6 +48,12 @@ commitment transactions、
 
 # Transactions
 
+（XXX:
+bip-0062のminimal pushの要件は、
+このbipがStatus: Withdrawnなので、Consensus Layerでは必須ではないであろうが、
+2nd layerでは必須と思われるので明文化する必要がある。
+）
+
 ## Transaction Input and Output Ordering
 
 Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
