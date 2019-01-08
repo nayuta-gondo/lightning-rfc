@@ -1780,7 +1780,14 @@ fee changes).
   commitment_signedメッセージを送信できる。
   （以下による、dustで同一のHTLCの置き換え、またはわずかか複数回の料金変更）。
   （XXX: これはHTLCが追加されたがそれはdustで他のHTLCは変わらないが、
-  dustになった分がto_remote or to_localからfeeに落ちたのでcommitment txの署名は変わる状態）
+  dustになった分がto_remote or to_localからfeeに落ちたのでcommitment txの署名は変わる状態か。
+  場合によってはmsat単位なのでfeeも変わらない可能性もあるが、
+  それでもHTLCを確定されるためにcommitment_signedを送ってもいい。
+  fee changesについてもfeerateが変わっても小さすぎて
+  commitment transactionには変化がない場合がありうる。
+  ただそのような変化はそもそもcommitしなくてもirreversibly committedされたと判断しても問題なさそうだが、
+  そうするとupdate_fulfill_htlc/update_fail_htlc/update_fail_malformed_htlc
+  が来た時につじつまが合わなくなる。再接続でキャンセルするととくに）
   （XXX: TODO: これはその上の行の手数料の変更のみに含まれないのか？）
   - commitment transactionのBIP69辞書順に対応する、
   全てのHTLC transactionのためのhtlc_signatureを1つを含めなければならない。
