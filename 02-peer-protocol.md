@@ -2210,11 +2210,17 @@ A node:
   受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberに等しい場合：
   （XXX: 送信したcommitment_signedが届いていない可能性がある）
     - そのcommitment numberを次のcommitment_signedに再利用しなければならない。
-    （XXX: reuseという表現はあぶない。
+    （XXX:
     後述されるように、相手が嘘をついていれば、相手はcommitment_signedを受け取っていて、
     コミットされたcommitment txを持っているかもしれない。
-    それを前提に動くのは複雑になる。
-    commitment_signedは届いていると仮定しチャネル失敗するのが安全？）
+    再接続前に送信された未コミットのupdate_メッセージを全く同じように再送すれば、
+    全く同じcommitment_signedをができて問題ない？
+    実はそうでもなくその間に相手がcommitment_signedが投げてきてrevoke_and_ackを返信してしまうとremote commit txに新たな更新が追加されるので、
+    同じcommitment_signedを投げれなくなるだろう。
+    つまりこれらのケースを考慮するとcommitment_signedの再送は同じcommitment numberのremote commit txがフォークする可能性を考慮しないといけない。
+    ただフォークされた複数のremote commit txは次のrevoke_and_ackでどちらもリボークされる。
+    またその前にremoteがunlrateral closeをした場合、複数のどのremote commit txが展開されたかは気にする必要はない。
+    そのtxをパースしてcommitment numberを取り出し、各種鍵を導出して出力を消費すればいい）
   - そうでなければ：
     - next_local_commitment_numberが、
     受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberよりも1だけ大きくない場合：
