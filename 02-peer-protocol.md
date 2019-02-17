@@ -2210,6 +2210,7 @@ A node:
   受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberに等しい場合：
   （XXX: 送信したcommitment_signedが届いていない可能性がある）
     - そのcommitment numberを次のcommitment_signedに再利用しなければならない。
+    （XXX: PR: おそらく対応するrevoke_and_ackを受信済みの場合にはchannelを失敗させるべきであろう）
     （XXX:
     後述されるように、相手が嘘をついていれば、相手はcommitment_signedを受け取っていて、
     コミットされたcommitment txを持っているかもしれない。
