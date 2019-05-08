@@ -1355,17 +1355,34 @@ handling by the processing node.
 
 processing nodeによる安全な処理のために、CLTV expiryが現在のブロックの高さに近すぎる。
 
-1. type: PERM|15 (`unknown_payment_hash`)
+1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
+2. data:
+   * [`8`:`htlc_msat`]
 
-The `payment_hash` is unknown to the final node.
+The `payment_hash` is unknown to the final node or the amount for that
+`payment_hash` is incorrect.
 
-payment_hashはfinal nodeには不明である。
+payment_hashがfinal nodeに知られていないか、そのpayment_hashのための金額が正しくない。
 
 1. type: PERM|16 (`incorrect_payment_amount`)
 
-The amount for that `payment_hash` is incorrect.
+Originally used to differentiate incorrect final amount from unknown payment
+hash. Sadly, sending this response allows for probing attacks whereby a node
+which receives an HTLC for forwarding can check guesses as to its final
+destination by sending payments with the same hash but much lower values to
+potential destinations and check the response.
 
-そのpayment_hashの金額は間違っている。
+もともとは、不正確な最終金額と未知のpayment hashを区別するために使用されていた。
+残念なことに、この応答を送ることでプロービング攻撃が可能になり、
+それによって転送のためにHTLCを受け取るノードは、
+同じハッシュだがもっと低い値で支払いを潜在的な宛先に送ってレスポンスをチェックすることによって、
+その最終宛先に関しての推測をチェックすることができる。
+（XXX: このような攻撃を行うのはfinal nodeのひとつまえのnodeであろう。
+しかし、この対応でそれを防ぐことができるのであろうか？
+通常未知のpayment_hashエラーも不正確な最終金額エラーも起きない。
+そう考えると、意図的に最終金額を少なくしたときにincorrect_or_unknown_payment_detailsが
+発生した場合、最終金額が不正確であったためにこのエラーが起きたことは自明であり、
+そうであればプロービング攻撃は可能であると思う）。
 
 1. type: 17 (`final_expiry_too_soon`)
 
@@ -1525,10 +1542,10 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MAY succeed in accepting the HTLC.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
-    - MUST return an `incorrect_payment_amount` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the payment hash is unknown:
     - MUST fail the HTLC.
-    - MUST return an `unknown_payment_hash` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the amount paid is more than twice the amount expected:
     - SHOULD fail the HTLC.
     - SHOULD return an `incorrect_payment_amount` error.
@@ -1552,10 +1569,10 @@ intermediate hopはだめだが、final nodeはよい：
     - HTLCを受け入れることに成功してもよい。
   - 支払い金額が期待される額を下回る場合：
     - HTLCに失敗しなければならない。
-    - incorrect_payment_amountエラーを返さなければならない。
+    - incorrect_or_unknown_payment_detailsエラーを返さなければならない。
   - 支払いハッシュが不明な場合：
     - HTLCに失敗しなければならない。
-    - unknown_payment_hashエラーを返さなければならない。
+    - incorrect_or_unknown_payment_detailsエラーを返さなければならない。
   - 支払い額が予想額の2倍を超える場合：
     - HTLCは失敗するべきである。
     - incorrect_payment_amountエラーを返すべきである。
