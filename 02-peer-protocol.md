@@ -158,10 +158,11 @@ chain_hashの存在により、多くの異なるブロックチェーンにわ�
 （ターゲットチェーンをサポートしている場合）。
 
 The `temporary_channel_id` is used to identify this channel until the
+The `temporary_channel_id` is used to identify this channel on a per-peer basis until the
 funding transaction is established, at which point it is replaced
 by the `channel_id`, which is derived from the funding transaction.
 
-temporary_channel_idは、
+temporary_channel_idは、ピア単位で、
 funding transactionが確立されるまでこのチャネルを識別するために使用される、
 その時点でfunding transactionから導出したchannel_idに置き換えられる。
 
@@ -445,6 +446,27 @@ accept_channelにおける同様の要件は、
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
 
 チャネル障害を処理する方法の詳細は「BOLT 5:Failing a Channel」にある。
+
+#### Practical Considerations for temporary_channel_id
+
+Note that as duplicate `temporary_channel_id`s may exist from different
+peers, APIs which reference channels by their channel id before the funding
+transaction is created are inherently unsafe. The only protocol-provided
+identifier for a channel before funding_created has been exchanged is the
+(source_node_id, destination_node_id, temporary_channel_id) tuple. Note that
+any such APIs which reference channels by their channel id before the funding
+transaction is confirmed are also not persistent - until you know the script
+pubkey corresponding to the funding txo nothing prevents duplicative channel
+ids.
+
+重複したtemporary_channel_idが異なるピアから存在するかもしれないので、
+funding transactionが作成される前にchannel idによってチャンネルを参照するAPIは本質的に安全ではない。
+funding_createdが交換される前にチャネルに提供される唯一のプロトコル提供の識別子は、
+（source_node_id、destination_node_id、temporary_channel_id）タプルである。
+funding transactionが確認される前にchannel idでchannelを参照するそのようなAPIも永続的ではないことに注意。
+ - funding txoに対応するscript pubkeyが重複するchannel idsを妨げるものが何もないことがわかるまで。
+
+（XXX: ？？？）
 
 #### Future
 
