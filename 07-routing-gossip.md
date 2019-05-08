@@ -178,8 +178,6 @@ this behavior.
 以前のバージョンの仕様は、funding lockedの受領を待つ必要がなく：
 無視するのではなく延期することにより、この動作との互換性が可能になるからである。
 
-#### Rationale
-
 The `short_channel_id` human readable format is designed
 so that double-clicking or double-tapping it will select the entire ID
 on most systems.

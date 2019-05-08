@@ -899,7 +899,7 @@ shutdown応答要件は、
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
-signs the close transaction with the `scriptpubkey` fields from the
+signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
 the other node then replies similarly, using a fee it thinks is fair.  This
 exchange continues until both agree on the same fee or when one side fails
@@ -909,7 +909,7 @@ the channel.
 最終的な現在のcommitment transactionにはHTLCsがなくなり、
 closing fee negotiationが開始される。
 funderは、公正であると思うfeeを選択し、shutdownメッセージのscriptpubkeyフィールドと共に
-close transaction（XXX: closing transactionの間違い？）に署名し
+closing transactionに署名し
 （選択したfeeとともに）署名を送信する。
 もう片方のノードは同様に、公平だと思う料金を使って同様に返信する。
 この交換は、両方が同じ料金で同意するまで、または一方の側がチャネルに失敗するときまで続く。
@@ -946,7 +946,7 @@ The sending node:
   - BOLT＃3で指定されるように、signatureは、closing transactionのBitcoinシグニチャに設定しなければならない。
 
 The receiving node:
-  - if the `signature` is not valid for either variant of close transaction
+  - if the `signature` is not valid for either variant of closing transaction
   specified in [BOLT #3](03-transactions.md#closing-transaction):
     - MUST fail the connection.
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
@@ -1020,38 +1020,20 @@ Changes are sent in batches: one or more `update_` messages are sent before a
 変更はバッチで送信される。
 次の図のように、commitment_signedメッセージの前に1つ以上のupdate_メッセージが送信される。
 
-        +-------+                            +-------+
-        |       |--(1)---- add_htlc   ------>|       |
-        |       |--(2)---- add_htlc   ------>|       |
-        |       |<-(3)---- add_htlc   -------|       |
-        |       |                            |       |
-        |       |--(4)----   commit   ------>|       |
-        |   A   |                            |   B   |
-        |       |<-(5)--- revoke_and_ack-----|       |
-        |       |<-(6)----   commit   -------|       |
-        |       |                            |       |
-        |       |--(7)--- revoke_and_ack---->|       |
-        |       |--(8)----   commit   ------>|       |
-        |       |                            |       |
-        |       |<-(9)--- revoke_and_ack-----|       |
-        +-------+                            +-------+
-
-（区切り）
-
-        +-------+                                   +-------+
-        |       |--(1)-----  update_add_htlc  ----->|       |
-        |       |--(2)-----  update_add_htlc  ----->|       |
-        |       |<-(3)-----  update_add_htlc  ------|       |
-        |       |                                   |       |
-        |       |--(4)----- commitment_signed ----->|       |
-        |   A   |                                   |   B   |
-        |       |<-(5)------- revoke_and_ack  ------|       |
-        |       |<-(6)----- commitment_signed ------|       |
-        |       |                                   |       |
-        |       |--(7)------- revoke_and_ack  ----->|       |
-        +-------+                                   +-------+
-
-（XXX: なんで図でメッセージ名を省略する。。。）
+        +-------+                               +-------+
+        |       |--(1)---- update_add_htlc ---->|       |
+        |       |--(2)---- update_add_htlc ---->|       |
+        |       |<-(3)---- update_add_htlc -----|       |
+        |       |                               |       |
+        |       |--(4)--- commitment_signed --->|       |
+        |   A   |<-(5)---- revoke_and_ack ------|   B   |
+        |       |                               |       |
+        |       |<-(6)--- commitment_signed ----|       |
+        |       |--(7)---- revoke_and_ack ----->|       |
+        |       |                               |       |
+        |       |--(8)--- commitment_signed --->|       |
+        |       |<-(9)---- revoke_and_ack ------|       |
+        +-------+                               +-------+
 
 Counter-intuitively, these updates apply to the *other node's*
 commitment transaction; the node only adds those updates to its own
@@ -1072,7 +1054,7 @@ Thus each update traverses through the following states:
 1. pending on the receiver
 2. in the receiver's latest commitment transaction
 3. ... and the receiver's previous commitment transaction has been revoked,
-   and the HTLC is pending on the sender
+   and the update is pending on the sender
 4. ... and in the sender's latest commitment transaction
 5. ... and the sender's previous commitment transaction has been revoked
 
@@ -1082,8 +1064,7 @@ Thus each update traverses through the following states:
 1. （XXX: updateは）受信者で保留中
 2. （XXX: updateは）受信者の最新のcommitment transactionにある
 3. ... 受信者の前回のcommitment transactionが取り消され、
-HTLCが送信者に保留中。
-（XXX: TODO: ここでHTLCだけが対象になるのはおかしい。updateであろう）
+updateが送信者に保留中。
 4. ... （XXX: updateは）送信者の最新のcommitment transaction
 5. ... 送信者の前回のcommitment transactionが取り消された
 （XXX: update送信側でrevoke_and_ack前とcommitment_signed前とで状態の区別が必要であろう）
@@ -1091,13 +1072,12 @@ HTLCが送信者に保留中。
 As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
 what matters is whether both sides have irrevocably committed to a
-particular HTLC or not (the final state, above).
+particular update or not (the final state, above).
 
 2つのノードの更新が独立しているので、2つのcommitment transactionは無期限に同期していない可能性がある。
 これは関係ない：
-重要なのは、両当事者が特定のHTLCがirrevocably committedであることを約束したか否かである（上の最終状態）。
+重要なのは、両当事者が特定のupdateがirrevocably committedであることを約束したか否かである（上の最終状態）。
 （XXX: revoke_and_ackまででirrevocably committed）
-（XXX: TODO: ここもHTLCではなく対象はupdateではないのか？）
 
 ### Forwarding HTLCs
 

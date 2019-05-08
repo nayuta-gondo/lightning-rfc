@@ -276,9 +276,9 @@ unilateral closesよりもmutual closesを好むバイアスがある。
 
 # Mutual Close Handling
 
-A mutual close transaction *resolves* the funding transaction output.
+A closing transaction *resolves* the funding transaction output.
 
-mutual close transactionは、funding transaction outputをresolvesする。
+closing transactionは、funding transaction outputをresolvesする。
 
 In the case of a mutual close, a node need not do anything else, as it has
 already agreed to the output, which is sent to its specified `scriptpubkey` (see
