@@ -464,9 +464,9 @@ funding transactionが作成される前にchannel idによってチャンネル
 funding_createdが交換される前にチャネルに提供される唯一のプロトコル提供の識別子は、
 （source_node_id、destination_node_id、temporary_channel_id）タプルである。
 funding transactionが確認される前にchannel idでchannelを参照するそのようなAPIも永続的ではないことに注意。
- - funding txoに対応するscript pubkeyが重複するchannel idsを妨げるものが何もないことがわかるまで。
-
-（XXX: ？？？）
+ - あなたが、funding output（XXX: funding txのoutput。P2WSHのマルチシグ）に対応するscript pubkeyを知るまで、
+ 重複するchannel idを妨げるものは何もない
+ （XXX: channel_idはfunding txのtxidとindexよりなる。いまいち意味がわからない）。
 
 #### Future
 
