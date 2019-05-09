@@ -1479,6 +1479,12 @@ Fees") while maintaining its channel reserve.
   元に戻すと以下のようにidが重複する。
   元に戻さない場合はidが飛ぶ）
 
+`id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
+been received). It MUST continue incrementing instead.
+
+updateが完了した後（すなわち、 revoke_and_ackを受け取った後）、idを0にリセットしてはならない。
+代わりに増加し続けなければならない。
+
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
     - SHOULD fail the channel.
