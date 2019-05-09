@@ -511,11 +511,10 @@ has been used.
 署名は、どの変形が使用されたかを示す。
 （XXX: 「相手」のoutputを排除するケースでのみ齟齬が生じる）
 
-There will be at least one output, if `dust_limit_satoshis` is greater
-than twice the funding amount.
+There will be at least one output, if the funding amount is greater
+than twice `dust_limit_satoshis`.
 
-dust_limit_satoshisが資金の2倍を超える場合、少なくとも1つのoutputがある。
-（XXX: TODO: 逆？）
+資金がdust_limit_satoshisの2倍を超える場合、少なくとも1つのoutputがある。
 
 ## Fees
 
