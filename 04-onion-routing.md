@@ -1517,14 +1517,14 @@ forwarding nodeは良いが、final nodeはだめである：
   - onionによって指定されたreceiving peerが知られていない場合：
     - unknown_next_peerエラーを返す。
   - HTLCの量が現在指定されている最小量よりも少ない場合：
-    - 入力HTLCの量と出力チャネルの現在のチャネル設定を報告する。
+    - 出力HTLCの量と出力チャネルの現在のチャネル設定を報告する。
     - amount_below_minimumエラーを返す。
   - HTLCが十分なfeeを支払っていない場合：
     - 入力HTLCの量と出力チャネルの現在のチャネル設定を報告する。
     - fee_insufficientエラーを返す。
   - 入力のcltv_expiryマイナスoutgoing_cltv_valueが、
   出力チャネルのためのcltv_expiry_deltaを下回っている：
-    - cltv_expiryと出力チャネルの現在のチャネル設定を報告する。
+    - cltv_expiryと出力HTLCと現在の出力チャネルのチャネル設定を報告する。
     - incorrect_cltv_expiryエラーを返す。
   - cltv_expiryが現在に不当に近い場合：
     - 出力チャネルの現在のチャネル設定を報告する。
