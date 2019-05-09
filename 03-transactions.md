@@ -56,7 +56,15 @@ bip-0062のminimal pushの要件は、
 
 ## Transaction Input and Output Ordering
 
-Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
+Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).  In the case of identical HTLC outputs, the outputs are ordered in increasing `cltv_expiry` order.
+
+## Rationale
+
+Two offered HTLCs which have the same `amount_msat` and `payment_hash`
+will have identical outputs, even if their `cltv_expiry` differs.
+This only matters because the same ordering is used to send
+`htlc_signatures` and the HTLC transactions themselves are different,
+thus the two peers must agree on the canonical ordering for this case.
 
 辞書式順序：BIP69参照。
 
@@ -726,7 +734,7 @@ committed HTLCs:
    add a [`to_local` output](#to_local-output).
 6. If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
    add a [`to_remote` output](#to_remote-output).
-7. Sort the outputs into [BIP 69 order](#transaction-input-and-output-ordering).
+7. Sort the outputs into [BIP 69+CLTV order](#transaction-input-and-output-ordering).
 
 (XXX: 区切り)
 
