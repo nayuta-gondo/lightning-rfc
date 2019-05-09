@@ -58,6 +58,9 @@ bip-0062のminimal pushの要件は、
 
 Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).  In the case of identical HTLC outputs, the outputs are ordered in increasing `cltv_expiry` order.
 
+辞書式順序：BIP69参照。
+同一のHTLC出力の場合、出力はcltv_expiryの昇順で並べられる。
+
 ## Rationale
 
 Two offered HTLCs which have the same `amount_msat` and `payment_hash`
@@ -66,7 +69,11 @@ This only matters because the same ordering is used to send
 `htlc_signatures` and the HTLC transactions themselves are different,
 thus the two peers must agree on the canonical ordering for this case.
 
-辞書式順序：BIP69参照。
+同じ amount_msatとpayment_hashを持つ2つのoffered HTLCsは、
+たとえそれらのcltv_expiryが異なっていても、同じ出力を持ちます。
+これは、htlc_signaturesの送信に同じ順序が使用され、
+HTLCトランザクション自体が異なるために問題になるだけである。
+したがって、2つのピアはこの場合の正規順序について同意する必要がある。
 
 ## Use of Segwit
 
