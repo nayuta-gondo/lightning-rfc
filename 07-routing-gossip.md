@@ -962,33 +962,28 @@ The receiving node:
     - channel updateを無視しなければならない。
 
   - if `timestamp` is NOT greater than that of the last-received
-  `channel_announcement` for this `short_channel_id` AND for `node_id`:
+  `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
 
-  - timestampが、最後に受信したこのshort_channel_idとnode_idのchannel_announcementよりも大きくない場合：
+  - timestampが、最後に受信したこのshort_channel_idとnode_idのchannel_updateよりも大きくない場合：
     - messageを無視すべきである。
-    （XXX: channel_announcementにはtimestampがないのでchannel_updateの間違い？）
 
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_announcement`
+    - if the `timestamp` is equal to the last-received `channel_update`
     AND the fields (other than `signature`) differ:
-    （channel_updateの間違い？？？）
       - MAY blacklist this `node_id`.
       - MAY forget all channels associated with it.
 
   - そうでなければ：
-    - timestampが、最後に受信にしたchannel_announcementに等しく、 かつ（signature以外の）フィールドが異なる場合：
-    （XXX: channel_updateの間違い？）
+    - timestampが、最後に受信にしたchannel_updateに等しく、 かつ（signature以外の）フィールドが異なる場合：
       - このnode_idをブラックリストに入れてよい。
       - それに関連する全てのchannelsを忘れてよい。
 
   - if the `timestamp` is unreasonably far in the future:
-    - MAY discard the `channel_announcement`.
-    （channel_updateの間違い？？？）
+    - MAY discard the `channel_update`.
 
   - timestampが不合理に未来に遠い場合は：
-    - そのchannel_announcementを捨てても良い。
-    （XXX: channel_updateの間違い？）
+    - そのchannel_updateを捨てても良い。
 
   - otherwise:
     - SHOULD queue the message for rebroadcasting.
