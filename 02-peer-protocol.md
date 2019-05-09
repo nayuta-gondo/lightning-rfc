@@ -1794,7 +1794,7 @@ fee changes).
   そうするとupdate_fulfill_htlc/update_fail_htlc/update_fail_malformed_htlc
   が来た時につじつまが合わなくなる。再接続でキャンセルするととくに）
   （XXX: TODO: これはその上の行の手数料の変更のみに含まれないのか？）
-  - commitment transactionのBIP69+CLTV辞書順に対応する、
+  - commitment transactionの（XXX: outputの）順に対応する、
   全てのHTLC transactionのためのhtlc_signatureを1つを含めなければならない。
   （XXX: BIP69では出力をamountとscriptPubkeyでソートするが、BOLTでは同じ値になるHTLCができる。
   具体的にはamountとpayment_hashが同じときである。
