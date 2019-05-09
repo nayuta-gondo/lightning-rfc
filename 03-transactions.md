@@ -831,11 +831,10 @@ and the `remote_delayedpubkey` uses the remote node's `delayed_payment_basepoint
 
 localpubkeyは、local nodeのpayment_basepointを使用する。
 remotepubkeyは、remote nodeのpayment_basepointを使用する。
-local_delayedpubkeyは、local nodeのdelayed_payment_basepointを使用する。
 local_htlcpubkeyは、local nodeのhtlc_basepointを使用する。
+remote_htlcpubkeyは、remote nodeのhtlc_basepointを使用する。
+local_delayedpubkeyは、local nodeのdelayed_payment_basepointを使用する。
 そして、remote_delayedpubkeyは、remote nodeのdelayed_payment_basepointを使用する。
-（XXX: basepointはopen時に交換する）
-（XXX: TODO: remote_htlcpubkeyが書いていない？）
 
 The corresponding private keys can be similarly derived, if the basepoint
 secrets are known (i.e. the private keys corresponding to `localpubkey`, `local_htlcpubkey`, and `local_delayedpubkey` only):
