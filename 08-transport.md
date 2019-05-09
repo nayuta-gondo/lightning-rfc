@@ -103,11 +103,14 @@ ECDHは、どのactが実行されているかに基づいて実行され、
 ECDH出力をハッシュダイジェストにミックスすると、インクリメンタルなTripleDHハンドシェイクが形成される。
 （XXX: act -> ECDH -> チェーンキーck、暗号鍵k）
 
-Using the language of the Noise Protocol, `e` and `s` (both public keys)
+Using the language of the Noise Protocol, `e` and `s` (both public keys with `e` being
+the ephemeral key and `s` being the static key which in our case is usually the `nodeid`)
 indicate possibly encrypted keying material, and `es`, `ee`, and `se` each indicate an
 ECDH operation between two keys. The handshake is laid out as follows:
 
-ノイズプロトコルの言語を使用して、eそしてs（両方とも公開鍵）は、おそらく暗号化キーイングマテリアルを示し、
+ノイズプロトコルの言語を使用して、eそしてs
+（公開鍵は、eはephemeral keyであり、sはstatic keyであり、（XXX: sは）我々のケースでは通常 `nodeid`である）は、
+おそらく暗号化キーイングマテリアルを示し、
 es、ee、及びseは、それぞれ2つのキーの間のECDH操作を示する。
 ハンドシェイクは次のように配置されている。
 
