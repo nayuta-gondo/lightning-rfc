@@ -621,7 +621,7 @@ shared secret ss_kと
  - The ephemeral private key for the next hop `ek_{k+1}` is computed by
  multiplying the current ephemeral private key `ek_k` by the blinding factor.
  - The ephemeral public key for the next hop `epk_{k+1}` is derived from the
- ephemeral private key `ek_k` by multiplying with the base point.
+ ephemeral private key `ek_{k+1}` by multiplying with the base point.
 
 （XXX: 区切り）
 
