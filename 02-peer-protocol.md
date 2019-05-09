@@ -1770,7 +1770,7 @@ updates.
   - MAY send a `commitment_signed` message that only
 alters the fee.
   - MAY send a `commitment_signed` message that doesn't
-change the commitment transaction aside from the new revocation hash
+change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
@@ -2188,6 +2188,9 @@ A node:
   commitment number of the last `commitment_signed` message the receiving
   node has sent:
       - SHOULD fail the channel.
+    - if it has not sent `commitment_signed`, AND `next_local_commitment_number`
+    is not equal to 1:
+      - SHOULD fail the channel.
   - if `next_remote_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
@@ -2197,7 +2200,7 @@ A node:
     commitment number of the last `revoke_and_ack` the receiving node has sent:
       - SHOULD fail the channel.
     - if it has not sent `revoke_and_ack`, AND `next_remote_revocation_number`
-    is equal to 0:
+    is not equal to 0:
       - SHOULD fail the channel.
 
 ノード：
