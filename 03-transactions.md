@@ -384,7 +384,7 @@ The commitment transaction：
 
 ## HTLC-Timeout and HTLC-Success Transactions
 
-These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction that can be spent by a valid penalty transaction.
+These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. Both HTLC-timeout/HTLC-success transactions can be spent by a valid penalty transaction.
 
 これらのHTLC transactionsは、HTLC-timeout transactionがタイムロックされていることを除いてほぼ同じである。
 HTLC-timeout transactionは、有効なpenalty transactionによって費やされるtransactionでもある。
