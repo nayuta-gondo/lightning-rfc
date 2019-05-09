@@ -52,7 +52,7 @@ transaction and both versions of the commitment transaction, as described in
 The funder then sends the outpoint of the funding output with the `funding_created`
 message, along with the signature for the fundee's version of the commitment
 transaction. Once the fundee learns the funding outpoint, it's able to
-generate the funder's commitment for the commitment transaction and send it
+generate the signature for the funder's version of the commitment transaction and send it
 over using the `funding_signed` message.
 
 認証および接続の初期化後（それぞれBOLT #8とBOLT #1）、channel establishmentが開始されるであろう。
