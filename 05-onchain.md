@@ -424,8 +424,7 @@ A node:
       - そのHTLC-timeout transactionのoutputを解決しなければならない。
       - それを都合の良いアドレスに費やしてHTLC-timeout transactionを解決すべきである。
       　- 注：outputが費やされた場合（推奨通り）、outputはspending transactionによってresolvedになるか、
-      　そうでなければ、commitment transaction（XXX: TODO: HTLC-timeout transactionじゃないの？）
-      自体によってresolvedとみなされる。
+      　そうでなければ、HTLC-timeout transaction自体によってresolvedとみなされる。
       - HTLC-timeout outputを消費する前に、OP_CHECKSEQUENCEVERIFYの遅延が過ぎるまで、
       （remote nodeのopen_channelのto_self_delayフィールドで指定された通りに）待たなければならない。
   - このcommitment transactionでoutputを持たないコミット済みHTLCの場合：
@@ -576,8 +575,7 @@ the spending transaction, otherwise it's considered *resolved* by the HTLC-succe
 transaction itself.
 
 outputが使用された場合（推奨されるように）、outputはspending transactionによってresolvedになる。
-そうでなければ、commitment transaction自体によってresolvedと見なされる。
-（XXX: TODO: ここはcommitment transactionじゃなくてHTLC-success transaction？）
+そうでなければ、HTLC-success transaction自体によってresolvedと見なされる。
 
 If it's NOT otherwise resolved, once the HTLC output has expired, it is
 considered *irrevocably resolved*.
