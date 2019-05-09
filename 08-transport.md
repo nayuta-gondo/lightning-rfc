@@ -584,7 +584,7 @@ Act Threeの間に、開始者は、ハンドシェイクのこの時点で累�
 強い前方秘匿で暗号化された応答者にstatic public keyを転送する。
 
 The handshake is _exactly_ 66 bytes: 1 byte for the handshake version, 33
-bytes for the ephemeral public key encrypted with the `ChaCha20` stream
+bytes for the static public key encrypted with the `ChaCha20` stream
 cipher, 16 bytes for the encrypted public key's tag generated via the AEAD
 construction, and 16 bytes for a final authenticating tag.
 
