@@ -291,8 +291,7 @@ outputは、witness script付きのP2WSHである。
     OP_IF
         OP_CHECKSIG
     OP_ELSE
-        <remote_htlcpubkey> OP_SWAP
-            OP_SIZE 32 OP_EQUAL
+        <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
         OP_IF
             # To local node via HTLC-success transaction.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
@@ -1185,7 +1184,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - remotepubkey: 33 bytes
         - OP_SWAP: 1 byte
         - OP_SIZE: 1 byte
-        - 32: 2 bytes
+        - OP_DATA: 1 byte (32 length)
+        - 32: 1 byte
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_HASH160: 1 byte
