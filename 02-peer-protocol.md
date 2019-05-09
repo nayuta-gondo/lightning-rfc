@@ -1693,7 +1693,7 @@ A receiving node:
 
 受信ノード：
   - idが、それの現在のcommitment transactionのHTLCに対応していない場合：
-    - チャネルを失敗しなければならない。    
+    - チャネルを失敗しなければならない。
   - update_fulfill_htlcのpayment_preimageの値が、
   対応するHTLCのpayment_hashのSHA256ハッシュでない場合:
     - チャネルを失敗しなければならない。
@@ -1781,7 +1781,7 @@ fee changes).
 送信ノード：
   - 更新を含まないcommitment_signedメッセージを送信してはならない。
   - 手数料を変更するだけのcommitment_signedメッセージを送信できる。
-  - 新たなrevocation hash以外はcommitment transactionを変更しない、
+  - 新たなrevocation number以外はcommitment transactionを変更しない、
   commitment_signedメッセージを送信できる。
   （以下による、dustで同一のHTLCの置き換え、またはわずかか複数回の料金変更）。
   （XXX: これはHTLCが追加されたがそれはdustで他のHTLCは変わらないが、
@@ -1984,7 +1984,7 @@ A receiving node:
   - update_feeが適時に処理するには低すぎる場合、または不当に大きい場合：
     - チャネルを失敗するべきである。
   - 送信者がBitcoin feeを支払う責任がない場合：
-    - チャネルを失敗しなければならない。    
+    - チャネルを失敗しなければならない。
   - 送信ノードが、受信ノードの現在のcommitment transactionのおける新しいfee rateで余裕がない場合：
     - チャネルに失敗するべきである、
       - update_feeがコミットされるまで、このチェックを延期できる。
@@ -2138,7 +2138,7 @@ A node:
       - 注：
       ノードはすでにupdate_fulfill_htlcからのpayment_preimage値を使用していた可能性があるので、
       update_fulfill_htlcの効果は完全には戻らない。
-      （XXX: 少なくともすでにpreimageが明らかになっているので、見なかったことにはならない）      
+      （XXX: 少なくともすでにpreimageが明らかになっているので、見なかったことにはならない）
   - 再接続時：
     - チャネルがエラー状態にある場合：
       - エラーパケットを再送し、そのチャネルの他のパケットを無視すべきである。
@@ -2232,6 +2232,8 @@ A node:
     受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberよりも1だけ大きくない場合：
     （XXX: 1だけ大きいのが普通）
       - チャネルを失敗すべきである。
+    - もしそれがcommitment_signedを送ったことがなくnext_local_commitment_numberが1ではない場合、
+      - チャネルを失敗すべきである。
   - 受信したnext_remote_revocation_numberが、
   受信ノードが送信した最後のrevoke_and_ackのcommitment numberと等しく、
   （XXX: 送信したrevoke_and_ackが届いていない可能性がある）
@@ -2243,8 +2245,9 @@ A node:
     受信ノードが送信した最後のrevoke_and_ackのcommitment numberより1だけ大きくない場合：
     （XXX: 1だけ大きいのが普通）
       - チャネルを失敗すべきである。
-    - revoke_and_ackを送信しておらず、next_remote_revocation_numberが0の場合：
-    （XXX: TODO: revoke_and_ackをまだ送信したことがないケース。これがなぜだめなのか？）
+    - revoke_and_ackを送信しておらず、next_remote_revocation_numberが0でない場合：
+      - チャネルを失敗すべきである。
+    - もしそれがrevoke_and_ackを送ったことがなくnext_remote_revocation_numberが0ではない場合、
       - チャネルを失敗すべきである。
 
  A receiving node:
