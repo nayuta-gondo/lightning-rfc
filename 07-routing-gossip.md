@@ -599,13 +599,12 @@ The receiving node:
 
   - if `signature` is NOT a valid signature (using `node_id` of the
   double-SHA256 of the entire message following the `signature` field, including
-  unknown fields following `alias`):
+any future fields appended to the end):
     - SHOULD fail the connection.
     - MUST NOT process the message further.
 
   - signatureが有効なsignatureではない場合
-  （node_id（XXX: の秘密鍵）を使用して、aliasの次の未知のフィールドを含む、signatureフィールドの後に続くmessage全体のdouble-SHA256（XXX: への署名））。
-  （XXX: TODO: なんで最後でないaliasに言及？間違い？）
+  （node_id（XXX: の秘密鍵）を使用して、最後に追加される将来のフィールドも含め、signatureフィールドの後に続くmessage全体のdouble-SHA256（XXX: への署名））。
     - 接続に失敗すべきである。
     - messageをさらに処理してはならない。
 
