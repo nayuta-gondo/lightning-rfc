@@ -401,7 +401,7 @@ A node:
       convenient address.
         - Note: if the output is spent (as recommended), the output is
         *resolved* by the spending transaction, otherwise it is considered
-        *resolved* by the commitment transaction itself.
+        *resolved* by the HTLC-timeout transaction itself.
       - MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as
       specified by the remote node's `open_channel` `to_self_delay` field)
       before spending that HTLC-timeout output.
@@ -572,7 +572,7 @@ A local node:
   （remote nodeのopen_channelのto_self_delayで指定されるように）。
 
 If the output is spent (as is recommended), the output is *resolved* by
-the spending transaction, otherwise it's considered *resolved* by the commitment
+the spending transaction, otherwise it's considered *resolved* by the HTLC-success
 transaction itself.
 
 outputが使用された場合（推奨されるように）、outputはspending transactionによってresolvedになる。
