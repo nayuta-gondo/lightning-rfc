@@ -630,8 +630,7 @@ shared secret ss_kと
  これはshared secret ss_kを生成するためにSHA256でハッシュされる。
  - blinding factorは、ephemeral public key epk_kとshared secret ss_kとの連結のSHA256ハッシュである。
  - 次のhopのephemeral private key ek_{k+1}は、現在のephemeral private key ek_kにblinding factorを掛けることによって計算される。
- - 次のhopのephemeral public key epk_{k+1}は、ephemeral private key ek_kにbase pointを乗算することにより導出される。
- （XXX: TODO: 最後のek_kはek_{k+1}の間違いであろう）
+ - 次のhopのephemeral public key epk_{k+1}は、ephemeral private key ek_{k+1}にbase pointを乗算することにより導出される。
  （XXX:<br>
  SHA256(pk_k * ek_k) => ss_k。<br>
  SHA256(epk_k || ss_k) => bf_k。<br>
