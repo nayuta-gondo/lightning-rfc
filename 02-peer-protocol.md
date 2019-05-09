@@ -63,7 +63,7 @@ funderは、BOLT＃3で説明される、
 funding transactionと、commitment transactionの両方のバージョンを登録することができる。
 その後、funderは、funding outputのoutpointをfunding_createdメッセージとともに、
 「fundeeのバージョンのcommitment transaction」への（XXX: funderによる）署名を加えて送信する。
-fundeeがfunding outputを知ると、commitment transactionのためのfunderのコミットメント（XXX: 署名）を生成し、
+fundeeがfunding outputを知ると、funderのバージョンのcommitment transactionのための署名を生成し、
 それをfunding_signedメッセージを使用して送信することができる。
 
 Once the channel funder receives the `funding_signed` message, it
