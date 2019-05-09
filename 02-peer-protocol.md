@@ -1509,8 +1509,8 @@ A receiving node:
   - 送信ノードが現在のfeerate_per_kwで余裕がないamount_msatを受け取る（そのchannel reserveを維持したまま）。
     - チャネルに失敗すべきである。
   - 送信ノードが、
-  それのmax_accepted_htlcsより大きなHTLCsを、それのローカルのcommitment transactionに追加するか、
-  それのmax_htlc_value_in_flight_msatより大きなoffered HTLCsを、それのローカルcommitment transactionに追加する。
+  receiverのmax_accepted_htlcsより大きなHTLCsを、それのlocal commitment transactionに追加するか、
+  receiverのmax_htlc_value_in_flight_msatより大きなoffered HTLCsを、それのlocal commitment transactionに追加する。
     - チャネルに失敗すべきである。
   - 送信ノードがcltv_expiryを500000000以上に設定する場合：
     - チャネルに失敗すべきである。
