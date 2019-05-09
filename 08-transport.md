@@ -589,8 +589,7 @@ cipher, 16 bytes for the encrypted public key's tag generated via the AEAD
 construction, and 16 bytes for a final authenticating tag.
 
 ハンドシェイクは正確に66バイトである：ハンドシェイクバージョンは1バイト、
-ChaCha20ストリーム暗号で暗号化されたephemeral public keyは33バイト、
-（XXX: TODO: ここephemeralではなくstaticでは？）
+ChaCha20ストリーム暗号で暗号化されたstatic public keyは33バイト、
 AEAD構築で生成された暗号化されたpublic keyのタグは16バイト、
 最終認証タグは16バイトである。
 
