@@ -1121,17 +1121,17 @@ to that outgoing HTLC.
 
 ノード：
   - 受信HTLCがirrevocably committedされるまで：
-    - 受信HTLCに応答してHTLC（update_add_htlc）を提供してはいけない。
+    - 受信HTLCに応答して、対応する送信HTLC（update_add_htlc）を提供してはならない。
   - 送信HTLCの削除がirrevocably committedになるまで、
   またはオンチェーンの送信HTLC出力がHTLC-timeout transactionによって費やされるまで（十分な深さで）：
-    - 送信HTLCのためにコミットした受信HTLCを失敗（update_fail_htlc）してはならない。
-  - 一旦cltv_expiryに達するか、（cltv_expiry - current_height）が送信チャンネルのcltv_expiry_delta未満の場合：
+    - 送信HTLCに対応する受信HTLCを失敗（update_fail_htlc）してはならない。
+  - 一旦受信HTLCのcltv_expiryに達するか、（cltv_expiry - current_height）が対応する送信HTLCのcltv_expiry_delta未満の場合：
     - 受信HTLCに失敗（update_fail_htlc）しなければならない。
-    （XXX: すでにタイムアウトしている）
+    （XXX: 到着時にすでにタイムアウトしているケース）
   - 受信HTLCのcltv_expiryが将来に不当に遠い場合：
     - 受信HTLCに失敗（update_fail_htlc）すべきである。
   - 送信HTLCのupdate_fulfill_htlc受信時か、オンチェーンのHTLCの使用からpayment_preimageの発見時
-    - 送信HTLCにコミットした受信HTLCをupdate_fulfill_htlcしなければならない。
+    - 送信HTLCに対応した受信HTLCをupdate_fulfill_htlcしなければならない。
 
 #### Rationale
 
