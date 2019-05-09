@@ -1197,12 +1197,13 @@ terminal case (C).
 cltv_expiry_deltaは、転送ケース（B）における、HTLC CLTVタイムアウトの最小の差である。
 min_final_cltv_expiryは、端末ケース（C）における、HTLC CLTVタイムアウトと現在のブロック高の最小の差である。
 
-Note that if this value is too low for a channel, the risk is only to
-the node *accepting* the HTLC, not the node offering it. For this
-reason, the `cltv_expiry_delta` for the *outgoing* channel is used as
-the delta across a node.
+Note that a node is at risk if it accepts an HTLC in one channel and
+offers an HTLC in another channel with too small of a difference between
+the CLTV timeouts.  For this reason, the `cltv_expiry_delta` for the
+*outgoing* channel is used as the delta across a node.
 
-この値がチャネルにとって低すぎる場合、リスクは、提供するノードではなく、HTLCを受け入れるノードのみに注意すること。
+ノードがあるチャネルでHTLCを受け入れ、別のチャネルでHTLCを提供すると、
+CLTVタイムアウト間の差が小さすぎる場合、ノードが危険にさらされることに注意すること。
 この理由のため、送信チャネルのためのcltv_expiry_deltaは、ノードを横切るデルタとして使用される。
 （XXX: 受信と送信の間を考えなくてはならないのでノードで考えなければならない。受信側と送信側の差分として）
 
