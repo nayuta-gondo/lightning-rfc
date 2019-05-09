@@ -914,17 +914,15 @@ A local node:
   - local nodeのmain outputに関しては何もしなくて良い。これはそれ自身の単純なP2WPKH outputである。
     - 注：このoutputはcommitment transaction自身によってresolvedであるとみなされる。
   - revocation private keyを使用してremote nodeのmain outputをresolveしなければならない。
-  - local（XXX: remoteでは？） nodeの、
-  offered HTLCsを次の3つの方法のいずれかでresolveしなければならない。
+  - remote nodeの、offered HTLCsを次の3つの方法のいずれかでresolveしなければならない。
     * payment revocation private keyを使用してcommitment txを費やす。
     * （既知であれば）payment preimageを使用してcommitment txを費やす。
     * remote nodeが公開している場合は、HTLC-timeout txを費やす。
-  - remote（XXX: localでは？） nodeの、
+  - local nodeの、
   offered HTLCsを次の2つの方法のいずれかでresolveしなければならない。
-    * payment revocation keyを使用してcommitment txを費やす。
-    （XXX: TODO: なぜこちらにはprivateが付かない？）
+    * payment revocation private keyを使用してcommitment txを費やす。
     * HTLC timeoutが過ぎていれば、commitment txを費やす。
-    （XXX: TODO: HTLC-success txを費やすケースも入れるべき）
+    * remote nodeが公開している場合は、HTLC-success txを費やす。
   - revocation private keyを使用して、remote nodeのHTLC-timeout transactionをresolveする。
   - revocation private keyを使用して、remote nodeのHTLC-success transactionをresolveする。
   - もしそれがまだ既知ではない場合、（XXX: remoteのHTLC-success transactionの）
