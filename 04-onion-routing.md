@@ -56,6 +56,7 @@ along the route.
 
 ルートに沿った各hopは、送信者のアイデンティティを隠すために、origin nodeのためのephemeral keyしか見ることができない。
 ephemeral keyは中間の各hopによってブラインドされてから、次のノードに転送され、ルートに沿ってリンクできないonionsを作る。
+（XXX: 各hopがブラインドする？）
 
 This specification describes _version 0_ of the packet format and routing
 mechanism.
@@ -130,14 +131,14 @@ There are a number of conventions adhered to throughout this document:
 このドキュメントでは、いくつかの規則がある：
 
  - Length：最大ルート長は20hopsに制限されている。
- （XXX: 中間ノードは19であるが、ここではhop==跳躍？ぐらいの意味であろう）
+ （XXX: 20 channels）
  - HMAC：パケットの完全性検証は、FIPS 198 Standard / RFC 2104で定義されているように、
  Keyed-Hash Message Authentication Codeに基づいている、SHA256ハッシュアルゴリズムを使用する。
  - Elliptic curve：楕円曲線を含むすべての計算では、secp256k1で指定されているように、Bitcoin curveが使用されている。
  - Pseudo-random stream：ChaCha20がpseudo-random byte streamを生成するために使用される。
  その生成のために、固定ヌルナンス（0x0000000000000000）が、
  shared secretから派生したキーと、
- メッセージとして期待される出力サイズの0x00-byte streamとともに使用される。
+ メッセージとして期待される出力サイズの0x00-byte streamとともに使用される。（XXX: 0x00-byte streamって？）
  - origin nodeおよびfinal nodeという用語は、それぞれ、初期パケット送信者および最終パケット受信者を指す。
  - hopとnodeという用語は同じ意味で使用されることもあるが、hopは通常、end nodeではなくルート内のintermediate nodeを指す。
         _origin node_ --> _hop_ --> ... --> _hop_ --> _final node_
@@ -205,7 +206,6 @@ pseudo-random byte streamは、パスの各hopでパケットを難読化する�
 各hopは次のhopのアドレスとHMACのみを回復することができる。
 pseudo-random byte streamは、必要な長さの0x00-byte streamを暗号化（ChaCha20を使用）することによって生成される。
 これは、shared secretから得られたキーとゼロナンス（0x00000000000000）で初期化される。
-（XXX: それとも「shared secretとゼロナンス（0x00000000000000）から得られたキー」なのか？）
 
 The use of a fixed nonce is safe, since the keys are never reused.
 
