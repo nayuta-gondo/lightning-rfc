@@ -23,6 +23,7 @@ All data fields are unsigned big-endian unless otherwise specified.
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
+  * [Type-Length-Value Format](#type-length-value-format)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
@@ -156,6 +157,165 @@ a buffer with 6-bytes of pre-padding.
 しかし、typeフィールドの後に6バイトのパディングを追加することは無駄であると考えた。
 6バイトのプレパディングを持つバッファでmessageを復号化することによって、アライメントを達成できる。
 （XXX: 先頭６バイトを気にせず復号？）
+
+## Type-Length-Value Format
+
+Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
+the backwards-compatible addition of new fields to existing message types.
+
+プロトコル全体で、TLV (Type-Length-Value)形式は、
+既存のメッセージタイプに後方互換性のある新しいフィールドの追加を可能にするために使用される。
+
+A `tlv_record` represents a single field, encoded in the form:
+
+`tlv_record`は、以下の形式でエンコードされた単一のフィールドを表す：
+
+* [`varint`: `type`]
+* [`varint`: `length`]
+* [`length`: `value`]
+
+A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
+concatenation of the encoded `tlv_record`s. When used to extend existing
+messages, a `tlv_stream` is typically placed after all currently defined fields.
+
+`tlv_stream`は、エンコードされた`tlv_record`の連結として表現される一連の(0の可能性がある)`tlv_record'である。
+（XXX: zeroという表現はよくないだろう。）
+既存のメッセージを拡張するために使用される場合、
+`tlv_stream`は通常、現在定義されているすべてのフィールドの後に配置される。
+
+The `type` is a varint encoded using the bitcoin CompactSize format. It
+functions as a message-specific, 64-bit identifier for the `tlv_record`
+determining how the contents of `value` should be decoded.
+
+`type`はビットコインCompactSizeフォーマットを用いて符号化されたvarintである。
+`value`の内容をデコードする方法を決定する `tlv_record`のメッセージ固有の64ビット識別子として機能する。
+
+The `length` is a varint encoded using the bitcoin CompactSize format
+signaling the size of `value` in bytes.
+
+`length`は、ビットコインCompactSizeフォーマットを使用して符号化されたvarintであり、
+バイト単位で`value'のサイズを示す。
+
+The `value` depends entirely on the `type`, and should be encoded or decoded
+according to the message-specific format determined by `type`.
+
+`value`は完全に`type`に依存し、
+`type`によって決定されるメッセージ固有のフォーマットに従ってエンコードまたはデコードされるべきである。
+
+### Requirements
+
+The sending node:
+ - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
+ - MUST minimally encode `type` and `length`.
+ - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
+
+The sending node:
+ - `tlv_stream`s内の`tlv_record`を単調に増加する`type`で順序付けしなければならない。
+ - `type`と`length`は最低限の長さでエンコードしなければならない。
+ - 冗長な可変長符号化を`tlv_record`で使用すべきではありません。
+
+The receiving node:
+ - if zero bytes remain before parsing a `type`:
+   - MUST stop parsing the `tlv_stream`.
+ - if a `type` or `length` is not minimally encoded:
+   - MUST fail to parse the `tlv_stream`.
+ - if decoded `type`s are not monotonically-increasing:
+   - MUST fail to parse the `tlv_stream`.
+ - if `type` is known:
+   - MUST decode the next `length` bytes using the known encoding for `type`.
+ - otherwise, if `type` is unknown:
+   - if `type` is even:
+     - MUST fail to parse the `tlv_stream`.
+   - otherwise, if `type` is odd:
+     - MUST discard the next `length` bytes.
+
+The receiving node:
+ - `type`を解析する前に0バイトが残っている場合:
+   - `tlv_stream`の解析を停止しなければならない。
+ - `type`または`length`のエンコードが最小でない場合:
+   - `tlv_stream`の解析に失敗しなければならない。
+ - デコードされた`type`sが単調に増加していない場合:
+   - `tlv_stream`の解析に失敗しなければならない。
+ - `type`がわかっている場合:
+   - 次の`length`バイトを`type`の既知のエンコーディングを使ってデコードしなければならない。
+ - そうではなく、`type`が未知の場合:
+   - `type`が偶数の場合:
+     - `tlv_stream`の解析に失敗しなければならない。
+   - そうではなく、`type`が奇数ならば:
+     - 次の`length`バイトを破棄しなければならない。
+     (XXX: `length`と`value`フィールドを破棄、であろう)
+
+### Rationale
+
+The primary advantage in using TLV is that a reader is able to ignore new fields
+that it does not understand, since each field carries the exact size of the
+encoded element. Without TLV, even if a node does not wish to use a particular
+field, the node is forced to add parsing logic for that field in order to
+determine the offset of any fields that follow.
+
+TLVを使用する主な利点は、各フィールドがエンコードされた要素の正確なサイズを保持するため、
+理解できない新しいフィールドを無視できることである。
+TLVを使用しない場合、ノードが特定のフィールドを使用しない場合でも、
+後続のフィールドのオフセットを判断するために、そのフィールドの解析ロジックを追加する必要がある。
+
+The monotonicity constraint ensures that all `type`s are unique and can appear
+at most once. Fields that map to complex objects, e.g. vectors, maps, or
+structs, should do so by defining the encoding such that the object is
+serialized within a single `tlv_record`. The uniqueness constraint, among other
+things, enables the following optimizations:
+ - canonical ordering is defined independent of the encoded `value`s.
+ - canonical ordering can be known at compile-time, rather that being determined
+   dynamically at the time of encoding.
+ - verifying canonical ordering requires less state and is less-expensive.
+ - variable-size fields can reserve their expected size up front, rather than
+   appending elements sequentially and incurring double-and-copy overhead.
+
+単調性制約は、すべての`type`が一意であり、一度だけ現れることを保証する。
+ベクトル、マップ、または構造体などの複雑なオブジェクトにマップするフィールドは、
+オブジェクトが単一の`tlv_record`内で直列化されるようにエンコーディングを定義することによって、
+そのようにする必要がある。一意性制約は、特に次の最適化を可能にする。
+ - 正規順序は、エンコードされた`value`sとは無関係に定義される。
+ - 正規順序は、エンコード時に動的に決定されるのではなく、コンパイル時に認識される。
+ - 正規順序を検証は、必要な状態が少なくなり、コストが削減される。
+ - 可変サイズのフィールドは、要素を順番に追加して二重コピーのオーバーヘッドを発生させるのではなく、
+ 前もって期待されるサイズを予約することができる。
+
+The use of a varint for `type` and `length` permits a space savings for small
+`type`s or short `value`s. This potentially leaves more space for application
+data over the wire or in an onion payload.
+
+`type`と`length`にvarintを使用することで、小さな`type`や短い`value`sのスペースを節約できる。
+これにより、wire上またはオニオン・ペイロード内にアプリケーション・データのためのスペースが増える可能性がある。
+
+All `type`s must appear in increasing order to create a canonical encoding of
+the underlying `tlv_record`s. This is crucial when computing signatures over a
+`tlv_stream`, as it ensures verifiers will be able to recompute the same message
+digest as the signer. Note that the canonical ordering over the set of fields
+can be enforced even if the verifier does not understand what the fields
+contain.
+
+すべての`type`は、基本となる`tlv_record`の正規エンコーディングを作成するために、昇順に出現する必要がある。
+これは、検証者が署名者と同じメッセージダイジェストを再計算できるようにするため、
+`tlv_stream`上で署名を計算するときに重要である。
+検証者がフィールドが何を含んでいるかを理解していない場合でも、
+フィールドの集合に対する標準的な順序付けを強制できることに注意されたい。
+
+Writers should avoid using redundant, variable-length encodings in a
+`tlv_record` since this results in encoding the length twice and complicates
+computing the outer length. As an example, when writing a variable length byte
+array, the `value` should contain only the raw bytes and forgo an additional
+internal length since the `tlv_record` already carries the number of bytes that
+follow. On the other hand, if a `tlv_record` contains multiple, variable-length
+elements then this would not be considered redundant, and is needed to allow the
+receiver to parse individual elements from `value`.
+
+`tlv_record`で冗長な可変長符号化を使用することは、結果として長さを2回符号化することになり、
+外側の長さの計算を複雑にするので、ライタは避けるべきである。
+たとえば、可変長のバイト配列を書き込む場合、`tlv_record`はすでに後続のバイト数を保持しているため、
+`value`にはrawバイトのみを含め、内部の長さを追加する必要はない。
+一方、`tlv_record`が複数の可変長要素を含む場合、これは冗長とは見なされず、
+受信側が`value`から個々の要素を解析できるようにするために必要である。
+（XXX: writerに対比させるならreceiverじゃなくてreaderだろ）
 
 ## Setup Messages
 
