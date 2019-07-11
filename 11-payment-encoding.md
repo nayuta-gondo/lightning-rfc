@@ -470,13 +470,13 @@ Little Bobby Tablesの学校のようにしないでください。
 # Payer / Payee Interactions
 
 These are generally defined by the rest of the Lightning BOLT series,
-but it's worth noting that [BOLT #5](05-onchain.md) specifies that the payee SHOULD
+but it's worth noting that [BOLT #4](04-onion-routing.md#requirements-2) specifies that the payee SHOULD
 accept up to twice the expected `amount`, so the payer can make
 payments harder to track by adding small variations.
 
 これらは通常Lightning BOLTシリーズの他の部分で定義されているが、
 注目すべきは、
-BOLT＃5が、payeeが期待されるamountの２倍までは受け入れるべきであると指定しており、
+BOLT＃4が、payeeが期待されるamountの２倍までは受け入れるべきであると指定しており、
 payerは小額のバリエーションを追加することで支払いの追跡を困難にすることができる。
 
 The intent is that the payer recover the payee's node ID from the
