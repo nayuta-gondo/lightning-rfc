@@ -82,6 +82,23 @@ block height、 transaction index、 およびoutput indexの順番で
 たとえば、short_channel_idは、539268x845x1と書かれていて、
 高さ539268のブロックのインデックス845にあるトランザクションの出力1のチャネルを示す。
 
+### Rationale
+
+The `short_channel_id` human readable format is designed
+so that double-clicking or double-tapping it will select the entire ID
+on most systems.
+Humans prefer decimal when reading numbers,
+so the ID components are written in decimal.
+The small letter `x` is used since on most fonts,
+the `x` is visibly smaller than decimal digits,
+making it easy to visibly group each component of the ID.
+
+人間が読める形式のshort_channel_idは、ダブルクリックまたはダブルタップすることにより、
+ほとんどのシステムでID全体が選択されるように設計されている。
+人間は数字を読むときに10進数を使うので、IDコンポーネントは10進数で書かれる。
+ほとんどのフォントでは、xが10進数より視覚的に小さいので、
+IDの各コンポーネントを視覚的に簡単にグループ化できるので、小さな文字xが使用される。
+
 ## The `announcement_signatures` Message
 
 This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
@@ -180,21 +197,6 @@ this behavior.
 時期尚早なannouncement_signaturesの延期を許可する理由は、
 以前のバージョンの仕様は、funding lockedの受領を待つ必要がなく：
 無視するのではなく延期することにより、この動作との互換性が可能になるからである。
-
-The `short_channel_id` human readable format is designed
-so that double-clicking or double-tapping it will select the entire ID
-on most systems.
-Humans prefer decimal when reading numbers,
-so the ID components are written in decimal.
-The small letter `x` is used since on most fonts,
-the `x` is visibly smaller than decimal digits,
-making it easy to visibly group each component of the ID.
-
-人間が読める形式のshort_channel_idは、ダブルクリックまたはダブルタップすることにより、
-ほとんどのシステムでID全体が選択されるように設計されている。
-人間は数字を読むときに10進数を使うので、IDコンポーネントは10進数で書かれる。
-ほとんどのフォントでは、xが10進数より視覚的に小さいので、
-IDの各コンポーネントを視覚的に簡単にグループ化できるので、小さな文字xが使用される。
 
 ## The `channel_announcement` Message
 

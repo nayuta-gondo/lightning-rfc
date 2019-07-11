@@ -179,7 +179,7 @@ outputを生成してはならない（したがって、fundsはfeesに追加�
 This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CHECKSEQUENCEVERIFY`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
 
 この出力は、このcommitment transactionの所有者に資金を送り返すため、
-OP_CSVを使用してタイムロックしなければならない。
+OP_CHECKSEQUENCEVERIFYを使用してタイムロックしなければならない。
 それは、revocation private keyを知っていれば、相手方が遅滞なく主張することができる。
 出力は、version-0 P2WSHで、witness scriptがある：
 
