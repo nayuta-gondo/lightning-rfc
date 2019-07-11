@@ -18,6 +18,7 @@ normal operation、
 # Table of Contents
 
   * [Channel](#channel)
+    * [Definition of `channel_id`](#definition-of-channel-id)
     * [Channel Establishment](#channel-establishment)
       * [The `open_channel` Message](#the-open_channel-message)
       * [The `accept_channel` Message](#the-accept_channel-message)
@@ -39,6 +40,42 @@ normal operation、
   * [Authors](#authors)
 
 # Channel
+
+## Definition of `channel_id`
+
+Some messages use a `channel_id` to identify the channel. It's
+derived from the funding transaction by combining the `funding_txid`
+and the `funding_output_index`, using big-endian exclusive-OR
+(i.e. `funding_output_index` alters the last 2 bytes).
+
+一部のメッセージでは、チャネルを識別するために`channel_id`が使用される。
+これは、ビッグエンディアンの排他的論理和を使用して、
+`funding_txid`と`funding_output_index`を結合することによってfunding transactionから導出される
+(つまり`funding_output_index`は最後の2バイトを変更する)。
+
+Prior to channel establishment, a `temporary_channel_id` is used,
+which is a random nonce.
+
+チャネルを確立する前に、ランダムなナンスである`temporary_channel_id`が使用される。
+
+Note that as duplicate `temporary_channel_id`s may exist from different
+peers, APIs which reference channels by their channel id before the funding
+transaction is created are inherently unsafe. The only protocol-provided
+identifier for a channel before funding_created has been exchanged is the
+(source_node_id, destination_node_id, temporary_channel_id) tuple. Note that
+any such APIs which reference channels by their channel id before the funding
+transaction is confirmed are also not persistent - until you know the script
+pubkey corresponding to the funding output nothing prevents duplicative channel
+ids.
+
+重複したtemporary_channel_idが異なるピアから存在するかもしれないので、
+funding transactionが作成される前にchannel idによってチャンネルを参照するAPIは本質的に安全ではない。
+funding_createdが交換される前にチャネルに提供される唯一のプロトコル提供の識別子は、
+（source_node_id、destination_node_id、temporary_channel_id）タプルである。
+funding transactionが確認される前にchannel idでchannelを参照するそのようなAPIも永続的ではないことに注意。
+あなたが、funding output（XXX: funding txのoutput。P2WSHのマルチシグ）に対応するscript pubkeyを知るまで、
+ 重複するchannel idを妨げるものは何もない
+ （XXX: channel_idはfunding txのtxidとindexよりなるが、まだfunding txを確認する前ではそのchannel_idは嘘かもしれない）。
 
 ## Channel Establishment
 
@@ -124,26 +161,26 @@ the funding transaction and both versions of the commitment transaction.
 
 1. type: 32 (`open_channel`)
 2. data:
-   * [`32`:`chain_hash`]
-   * [`32`:`temporary_channel_id`]
-   * [`8`:`funding_satoshis`]
-   * [`8`:`push_msat`]
-   * [`8`:`dust_limit_satoshis`]
-   * [`8`:`max_htlc_value_in_flight_msat`]
-   * [`8`:`channel_reserve_satoshis`]
-   * [`8`:`htlc_minimum_msat`]
-   * [`4`:`feerate_per_kw`]
-   * [`2`:`to_self_delay`]
-   * [`2`:`max_accepted_htlcs`]
-   * [`33`:`funding_pubkey`]
-   * [`33`:`revocation_basepoint`]
-   * [`33`:`payment_basepoint`]
-   * [`33`:`delayed_payment_basepoint`]
-   * [`33`:`htlc_basepoint`]
-   * [`33`:`first_per_commitment_point`]
-   * [`1`:`channel_flags`]
-   * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
-   * [`shutdown_len`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
+   * [`chain_hash`:`chain_hash`]
+   * [`32*byte`:`temporary_channel_id`]
+   * [`u64`:`funding_satoshis`]
+   * [`u64`:`push_msat`]
+   * [`u64`:`dust_limit_satoshis`]
+   * [`u64`:`max_htlc_value_in_flight_msat`]
+   * [`u64`:`channel_reserve_satoshis`]
+   * [`u64`:`htlc_minimum_msat`]
+   * [`u32`:`feerate_per_kw`]
+   * [`u16`:`to_self_delay`]
+   * [`u16`:`max_accepted_htlcs`]
+   * [`pubkey`:`funding_pubkey`]
+   * [`point`:`revocation_basepoint`]
+   * [`point`:`payment_basepoint`]
+   * [`point`:`delayed_payment_basepoint`]
+   * [`point`:`htlc_basepoint`]
+   * [`point`:`first_per_commitment_point`]
+   * [`byte`:`channel_flags`]
+   * [`u16`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len*byte`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
@@ -447,27 +484,6 @@ Details for how to handle a channel failure can be found in [BOLT 5:Failing a Ch
 
 チャネル障害を処理する方法の詳細は「BOLT 5:Failing a Channel」にある。
 
-#### Practical Considerations for temporary_channel_id
-
-Note that as duplicate `temporary_channel_id`s may exist from different
-peers, APIs which reference channels by their channel id before the funding
-transaction is created are inherently unsafe. The only protocol-provided
-identifier for a channel before funding_created has been exchanged is the
-(source_node_id, destination_node_id, temporary_channel_id) tuple. Note that
-any such APIs which reference channels by their channel id before the funding
-transaction is confirmed are also not persistent - until you know the script
-pubkey corresponding to the funding output nothing prevents duplicative channel
-ids.
-
-重複したtemporary_channel_idが異なるピアから存在するかもしれないので、
-funding transactionが作成される前にchannel idによってチャンネルを参照するAPIは本質的に安全ではない。
-funding_createdが交換される前にチャネルに提供される唯一のプロトコル提供の識別子は、
-（source_node_id、destination_node_id、temporary_channel_id）タプルである。
-funding transactionが確認される前にchannel idでchannelを参照するそのようなAPIも永続的ではないことに注意。
- - あなたが、funding output（XXX: funding txのoutput。P2WSHのマルチシグ）に対応するscript pubkeyを知るまで、
- 重複するchannel idを妨げるものは何もない
- （XXX: channel_idはfunding txのtxidとindexよりなる。いまいち意味がわからない）。
-
 #### Future
 
 It would be easy to have a local feature bit which indicated that a
@@ -488,22 +504,22 @@ funding transaction and both versions of the commitment transaction.
 
 1. type: 33 (`accept_channel`)
 2. data:
-   * [`32`:`temporary_channel_id`]
-   * [`8`:`dust_limit_satoshis`]
-   * [`8`:`max_htlc_value_in_flight_msat`]
-   * [`8`:`channel_reserve_satoshis`]
-   * [`8`:`htlc_minimum_msat`]
-   * [`4`:`minimum_depth`]
-   * [`2`:`to_self_delay`]
-   * [`2`:`max_accepted_htlcs`]
-   * [`33`:`funding_pubkey`]
-   * [`33`:`revocation_basepoint`]
-   * [`33`:`payment_basepoint`]
-   * [`33`:`delayed_payment_basepoint`]
-   * [`33`:`htlc_basepoint`]
-   * [`33`:`first_per_commitment_point`]
-   * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
-   * [`shutdown_len`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
+   * [`32*byte`:`temporary_channel_id`]
+   * [`u64`:`dust_limit_satoshis`]
+   * [`u64`:`max_htlc_value_in_flight_msat`]
+   * [`u64`:`channel_reserve_satoshis`]
+   * [`u64`:`htlc_minimum_msat`]
+   * [`u32`:`minimum_depth`]
+   * [`u16`:`to_self_delay`]
+   * [`u16`:`max_accepted_htlcs`]
+   * [`pubkey`:`funding_pubkey`]
+   * [`point`:`revocation_basepoint`]
+   * [`point`:`payment_basepoint`]
+   * [`point`:`delayed_payment_basepoint`]
+   * [`point`:`htlc_basepoint`]
+   * [`point`:`first_per_commitment_point`]
+   * [`u16`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len*byte`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 #### Requirements
 
@@ -561,10 +577,10 @@ funding_signedを通してピアの署名を受け取った後、それはfundin
 
 1. type: 34 (`funding_created`)
 2. data:
-    * [`32`:`temporary_channel_id`]
-    * [`32`:`funding_txid`]
-    * [`2`:`funding_output_index`]
-    * [`64`:`signature`]
+    * [`32*byte`:`temporary_channel_id`]
+    * [`sha256`:`funding_txid`]
+    * [`u16`:`funding_output_index`]
+    * [`signature`:`signature`]
 
 #### Requirements
 
@@ -633,8 +649,8 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 
 1. type: 35 (`funding_signed`)
 2. data:
-    * [`32`:`channel_id`]
-    * [`64`:`signature`]
+    * [`channel_id`:`channel_id`]
+    * [`signature`:`signature`]
 
 #### Requirements
 
@@ -671,8 +687,8 @@ This message indicates that the funding transaction has reached the `minimum_dep
 
 1. type: 36 (`funding_locked`)
 2. data:
-    * [`32`:`channel_id`]
-    * [`33`:`next_per_commitment_point`]
+    * [`channel_id`:`channel_id`]
+    * [`point`:`next_per_commitment_point`]
 
 #### Requirements
 
@@ -765,9 +781,9 @@ along with the `scriptpubkey` it wants to be paid to.
 
 1. type: 38 (`shutdown`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`2`:`len`]
-   * [`len`:`scriptpubkey`]
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`scriptpubkey`]
 
 #### Requirements
 
@@ -916,9 +932,9 @@ closing transactionに署名し
 
 1. type: 39 (`closing_signed`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`fee_satoshis`]
-   * [`64`:`signature`]
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`fee_satoshis`]
+   * [`signature`:`signature`]
 
 #### Requirements
 
@@ -1428,12 +1444,12 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 
 1. type: 128 (`update_add_htlc`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`id`]
-   * [`8`:`amount_msat`]
-   * [`32`:`payment_hash`]
-   * [`4`:`cltv_expiry`]
-   * [`1366`:`onion_routing_packet`]
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`id`]
+   * [`u64`:`amount_msat`]
+   * [`sha256`:`payment_hash`]
+   * [`u32`:`cltv_expiry`]
+   * [`1366*byte`:`onion_routing_packet`]
 
 #### Requirements
 
@@ -1614,9 +1630,9 @@ preimageを供給するには：
 
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`id`]
-   * [`32`:`payment_preimage`]
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`id`]
+   * [`preimage`:`payment_preimage`]
 
 For a timed out or route-failed HTLC:
 
@@ -1624,10 +1640,10 @@ For a timed out or route-failed HTLC:
 
 1. type: 131 (`update_fail_htlc`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`id`]
-   * [`2`:`len`]
-   * [`len`:`reason`]
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`reason`]
 
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
@@ -1649,10 +1665,10 @@ For an unparsable HTLC:
 
 1. type: 135 (`update_fail_malformed_htlc`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`id`]
-   * [`32`:`sha256_of_onion`]
-   * [`2`:`failure_code`]
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`id`]
+   * [`sha256`:`sha256_of_onion`]
+   * [`u16`:`failure_code`]
 
 #### Requirements
 
@@ -1760,10 +1776,10 @@ commitment_signedメッセージを送信できる。
 
 1. type: 132 (`commitment_signed`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`64`:`signature`]
-   * [`2`:`num_htlcs`]
-   * [`num_htlcs*64`:`htlc_signature`]
+   * [`channel_id`:`channel_id`]
+   * [`signature`:`signature`]
+   * [`u16`:`num_htlcs`]
+   * [`num_htlcs*signature`:`htlc_signature`]
 
 （XXX: signatureはマルチシグの署名（signature_for_pubkey1またはsignature_for_pubkey2））
 （XXX: htlc_signatureはremotehtlcsigであろう）
@@ -1881,9 +1897,9 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 
 1. type: 133 (`revoke_and_ack`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`32`:`per_commitment_secret`]
-   * [`33`:`next_per_commitment_point`]
+   * [`channel_id`:`channel_id`]
+   * [`secret`:`per_commitment_secret`]
+   * [`point`:`next_per_commitment_point`]
 
 #### Requirements
 
@@ -1957,8 +1973,8 @@ fee rateからfeeを導出するために使用される正確な計算は、BOL
 
 1. type: 134 (`update_fee`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`4`:`feerate_per_kw`]
+   * [`channel_id`:`channel_id`]
+   * [`u32`:`feerate_per_kw`]
 
 #### Requirements
 
@@ -2066,11 +2082,11 @@ initの後に送信される（すべてのメッセージがそうである）�
 
 1. type: 136 (`channel_reestablish`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`8`:`next_local_commitment_number`]
-   * [`8`:`next_remote_revocation_number`]
-   * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect)
-   * [`33`:`my_current_per_commitment_point`] (option_data_loss_protect)
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`next_local_commitment_number`]
+   * [`u64`:`next_remote_revocation_number`]
+   * [`secret`:`your_last_per_commitment_secret`] (option_data_loss_protect)
+   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
 `next_local_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters

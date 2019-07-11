@@ -247,10 +247,10 @@ The overall structure of the packet is as follows:
 
 1. type: `onion_packet`
 2. data:
-   * [`1`:`version`]
-   * [`33`:`public_key`]
-   * [`20*65`:`hops_data`]
-   * [`32`:`hmac`]
+   * [`byte`:`version`]
+   * [`pubkey`:`public_key`]
+   * [`1300*byte`:`hops_data`]
+   * [`32*byte`:`hmac`]
 
 For this specification (_version 0_), `version` has a constant value of `0x00`.
 
@@ -265,9 +265,9 @@ hops_dataフィールドには、次のhopのアドレス、転送情報、お�
 
 1. type: `hops_data`
 2. data:
-   * [`1`:`realm`]
-   * [`32`:`per_hop`]
-   * [`32`:`HMAC`]
+   * [`byte`:`realm`]
+   * [`32*byte`:`per_hop`]
+   * [`32*byte`:`HMAC`]
    * ...
    * `filler`
 
@@ -289,10 +289,10 @@ realmバイトは、per_hopフィールドの形式を決定する；
 
 1. type: `per_hop` (for `realm` 0)
 2. data:
-   * [`8`:`short_channel_id`]
-   * [`8`:`amt_to_forward`]
-   * [`4`:`outgoing_cltv_value`]
-   * [`12`:`padding`]
+   * [`short_channel_id`:`short_channel_id`]
+   * [`u64`:`amt_to_forward`]
+   * [`u32`:`outgoing_cltv_value`]
+   * [`12*byte`:`padding`]
 
 Using the `per_hop` field, the origin node is able to precisely specify the path and
 structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
@@ -1098,11 +1098,11 @@ consisting of the following fields:
 エラーメッセージを生成しているノード（erring node）は、次のフィールドで構成される戻りパケットを生成する。
 
 1. data:
-   * [`32`:`hmac`]
-   * [`2`:`failure_len`]
-   * [`failure_len`:`failuremsg`]
-   * [`2`:`pad_len`]
-   * [`pad_len`:`pad`]
+   * [`32*byte`:`hmac`]
+   * [`u16`:`failure_len`]
+   * [`failure_len*byte`:`failuremsg`]
+   * [`u16`:`pad_len`]
+   * [`pad_len*byte`:`pad`]
 
 Where `hmac` is an HMAC authenticating the remainder of the packet, with a key
 generated using the above process, with key type `um`, `failuremsg` as defined
@@ -1254,7 +1254,7 @@ processing nodeには、このonionにない機能を必要とする。
 
 1. type: BADONION|PERM|4 (`invalid_onion_version`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The `version` byte was not understood by the processing node.
 
@@ -1262,7 +1262,7 @@ versionバイトは、processing nodeによって理解されなかった。
 
 1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The HMAC of the onion was incorrect when it reached the processing node.
 
@@ -1270,7 +1270,7 @@ onionのHMACは、processing nodeに到達したとき正しくなかった。
 
 1. type: BADONION|PERM|6 (`invalid_onion_key`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The ephemeral key was unparsable by the processing node.
 
@@ -1278,8 +1278,8 @@ ephemeral keyは、processing nodeによって解析できなかった。
 
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The channel from the processing node was unable to handle this HTLC,
 but may be able to handle it, or others, later.
@@ -1309,9 +1309,9 @@ onionが指定するshort_channel_idは、processing nodeから導かれるも�
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
-   * [`8`:`htlc_msat`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u64`:`htlc_msat`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The HTLC amount was below the `htlc_minimum_msat` of the channel from
 the processing node.
@@ -1320,9 +1320,9 @@ HTLCの量は、processing nodeからのチャネルのhtlc_minimum_msatより�
 
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
-   * [`8`:`htlc_msat`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u64`:`htlc_msat`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The fee amount was below that required by the channel from the
 processing node.
@@ -1331,9 +1331,9 @@ feeは、processing nodeからのチャネルによって要求されたもの�
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
-   * [`4`:`cltv_expiry`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u32`:`cltv_expiry`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The `cltv_expiry` does not comply with the `cltv_expiry_delta` required by
 the channel from the processing node: it does not satisfy the following
@@ -1346,8 +1346,8 @@ cltv_expiryは、processing nodeからのチャネルによって要求された
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The CLTV expiry is too close to the current block height for safe
 handling by the processing node.
@@ -1356,7 +1356,7 @@ processing nodeによる安全な処理のために、CLTV expiryが現在のブ
 
 1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
 2. data:
-   * [`8`:`htlc_msat`]
+   * [`u64`:`htlc_msat`]
 
 The `payment_hash` is unknown to the final node or the amount for that
 `payment_hash` is incorrect.
@@ -1392,7 +1392,7 @@ final nodeによる安全な処理のために、CLTV expiryは現在のブロ�
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
-   * [`4`:`cltv_expiry`]
+   * [`u32`:`cltv_expiry`]
 
 The CLTV expiry in the HTLC doesn't match the value in the onion.
 
@@ -1401,7 +1401,7 @@ HTLCのCLTV expiryはonionの値と一致しない。
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
-   * [`8`:`incoming_htlc_amt`]
+   * [`u64`:`incoming_htlc_amt`]
 
 The amount in the HTLC doesn't match the value in the onion.
 
@@ -1409,9 +1409,9 @@ HTLCの量がonionの値と一致しない。
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
-   * [`2`: `flags`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`: `flags`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The channel from the processing node has been disabled.
 
