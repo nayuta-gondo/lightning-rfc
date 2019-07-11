@@ -1389,7 +1389,7 @@ A fulfilling node:
   - MUST fail (and not forward) an HTLC whose fulfillment deadline is already past.
   - if an HTLC it has fulfilled is in either node's current commitment
   transaction, AND is past this fulfillment deadline:
-    - MUST fail the connection.
+    - MUST fail the channel.
 
 実行する（fulfilling）ノード：
 （XXX: TODO: 重要そうなところだがこれでいいのか？）
@@ -1403,11 +1403,10 @@ A fulfilling node:
   （XXX: ここのfulfillした状態というのがどのような状態かよくわからない。
   commitment transactionにあるということは、まだコミットされていない？）
   かつ実行（fulfillment）のタイムアウトのデッドラインを過ぎている：
-    - 接続に失敗しなければならない。
+    - チャネルに失敗しなければならない。
     （XXX: TODO: incoming/outgoingどっち？
     どっちがタイムアウトしている？
-    どちらかfulfillとタイムアウトのレース状態になっていないか？
-    再接続ではなくチャンネル失敗しなくて良いのか？）
+    どちらかfulfillとタイムアウトのレース状態になっていないか？）
 
 ### Adding an HTLC: `update_add_htlc`
 
