@@ -176,7 +176,7 @@ outputを生成してはならない（したがって、fundsはfeesに追加�
 
 #### `to_local` Output
 
-This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CHECKSEQUENCEVERIFY`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
 
 この出力は、このcommitment transactionの所有者に資金を送り返すため、
 OP_CSVを使用してタイムロックしなければならない。
@@ -188,7 +188,7 @@ OP_CSVを使用してタイムロックしなければならない。
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
@@ -440,7 +440,7 @@ outputのwieness scriptは次のとおりである：
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
