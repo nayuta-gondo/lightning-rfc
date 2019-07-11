@@ -362,16 +362,16 @@ to_remote outputは完全にremote nodeの仕事なので、無視すること�
 
 ## HTLC Output Handling: Local Commitment, Local Offers
 
-Each HTLC output can only be spent by either a local offerer, by using the HTLC-timeout
-transaction after it's timed out, or a remote recipient, if it has the payment
-preimage.
+Each HTLC output can only be spent by either the *local offerer*, by using the
+HTLC-timeout transaction after it's timed out, or the *remote recipient*, if it
+has the payment preimage.
 
 それぞれのHTLC outputは、
 localの提供者がタイムアウト後にHTLC-timeout transactionを使用するか、
 またはpayment preimageを持っていればremoteの受信者によって、
 それらの場合によってのみ消費される。
 
-There can be HTLCs which are not represented by an output: either
+There can be HTLCs which are not represented by any outputs: either
 because they were trimmed as dust, or because the transaction has only been
 partially committed.
 
@@ -379,10 +379,10 @@ outputによって表されていないHTLCsがある可能性がある：
 それらがdustとして切り取られたか、
 またはtransactionが部分的にコミットされただけであるためである。
 
-The HTLC has *timed out* once the depth of the latest block is equal to
+The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
 
-HTLCは、最新のブロックの深さがHTLCのcltv_expiry以上になるとtimed outになる。
+HTLC outputは、最新のブロックの深さがHTLCのcltv_expiry以上になるとtimed outになる。
 
 ### Requirements
 
@@ -673,24 +673,25 @@ local nodeはremote nodeのper_commitment_pointを所有するため
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
-Each HTLC output can only be spent by the *offerer*, after it's timed out, or by
-the *recipient*, if it has the payment preimage.
+Each HTLC output can only be spent by either the *local offerer*, after it's
+timed out, or by the *remote recipient*, by using the HTLC-success transaction
+if it has the payment preimage.
 
-各HTLC outputは、期限切れになった後にoffererによって消費されるか、
-またはpayment preimageがある場合はrecipientによって消費される。
-
-The HTLC output has *timed out* once the depth of the latest block is equal to
-or greater than the HTLC `cltv_expiry`.
-
-最新のブロックの深度がHTLC cltv_expiry以上になると、HTLC outputがtimed outする。。
+各HTLC outputは、期限切れになった後にlocal offererによって消費されるか、
+またはpayment preimageがある場合はremote recipientによって消費される。
 
 There can be HTLCs which are not represented by any outputs: either
-because the outputs were trimmed as dust or because the remote node has two
+because the outputs were trimmed as dust, or because the remote node has two
 *valid* commitment transactions with differing HTLCs.
 
 outputsがdustとしてトリミングされたか、
 またはremote nodeにHTLCsが異なる2つの有効なcommitment transactionsがあるため、
 outputsによってHTLCsが現れない可能性がある。
+
+The HTLC output has *timed out* once the depth of the latest block is equal to
+or greater than the HTLC `cltv_expiry`.
+
+最新のブロックの深度がHTLC cltv_expiry以上になると、HTLC outputがtimed outする。
 
 ### Requirements
 
@@ -787,15 +788,6 @@ HTLCを含むcommitment transactionに切り替わらないか確認する必要
 （XXX: ？）
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
-
-Each HTLC output can only be spent by the recipient if it uses the payment
-preimage. If a node does not possess the preimage (and doesn't discover
-it), it's the offerer's responsibility to spend the HTLC output once it's timed
-out.
-
-各HTLC outputは、payment preimageを使用する場合にのみ受取人が費やすことができる。
-nodeがpreimageを所有していない（そしてそれを発見していない）場合は、
-期限切れになるとHTLC outputを費やすことは提供者の責任である。
 
 The remote HTLC outputs can only be spent by the local node if it has the
 payment preimage. If the local node does not have the preimage (and doesn't
