@@ -30,6 +30,7 @@ All data fields are unsigned big-endian unless otherwise specified.
     * [The `error` Message](#the-error-message)
   * [Control Messages](#control-messages)
     * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
+  * [Appendix B: BigSize Test Vectors](#appendix-b-bigsize-test-vectors)
   * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
@@ -175,6 +176,15 @@ A `tlv_record` represents a single field, encoded in the form:
 * [`varint`: `length`]
 * [`length`: `value`]
 
+A `varint` is a variable-length, unsigned integer encoding using the
+[BigSize](#appendix-b-bigsize-test-vectors) format, which resembles the bitcoin
+CompactSize encoding but uses big-endian for multi-byte values rather than
+little-endian.
+
+varintはBigSizeフォーマットを使用した可変長符号なし整数エンコーディングで、
+Bitcoin CompactSizeエンコーディングに似ているが、
+リトルエンディアンではなくビッグエンディアンをマルチバイト値に使用する。
+
 A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
 concatenation of the encoded `tlv_record`s. When used to extend existing
 messages, a `tlv_stream` is typically placed after all currently defined fields.
@@ -184,17 +194,17 @@ messages, a `tlv_stream` is typically placed after all currently defined fields.
 既存のメッセージを拡張するために使用される場合、
 `tlv_stream`は通常、現在定義されているすべてのフィールドの後に配置される。
 
-The `type` is a varint encoded using the bitcoin CompactSize format. It
-functions as a message-specific, 64-bit identifier for the `tlv_record`
-determining how the contents of `value` should be decoded.
+The `type` is a varint encoded using the BigSize format. It functions as a
+message-specific, 64-bit identifier for the `tlv_record` determining how the
+contents of `value` should be decoded.
 
-`type`はビットコインCompactSizeフォーマットを用いて符号化されたvarintである。
-`value`の内容をデコードする方法を決定する `tlv_record`のメッセージ固有の64ビット識別子として機能する。
+typeは、BigSizeフォーマットを使用してvarintエンコードされる。
+これは、valueの内容をデコードする方法を決定するtlv_recordのメッセージ固有の64ビット識別子として機能する。
 
-The `length` is a varint encoded using the bitcoin CompactSize format
-signaling the size of `value` in bytes.
+The `length` is a varint encoded using the BigSize format signaling the size of
+`value` in bytes.
 
-`length`は、ビットコインCompactSizeフォーマットを使用して符号化されたvarintであり、
+`length`は、BigSizeフォーマットを使用して符号化されたvarintであり、
 バイト単位で`value'のサイズを示す。
 
 The `value` depends entirely on the `type`, and should be encoded or decoded
@@ -695,6 +705,229 @@ Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](08-transport.md).
 
 最後に、周期的なpingメッセージの使用は、BOLT＃8で指定されているように、頻繁なキーローテーションを促進する。
+
+## Appendix B: BigSize Test Vectors
+
+The following test vectors can be used to assert the correctness of a BigSize
+implementation used in the TLV format. The format is identical to the
+CompactSize encoding used in bitcoin, but replaces the little-endian encoding of
+multi-byte values with big-endian.
+
+Values encoded with BigSize will produce an encoding of either 1, 3, 5, or 9
+bytes depending on the size of the integer. The encoding is a piece-wise
+function that takes a `uint64` value `x` and produces:
+```
+        uint8(x)                if x < 0xfd
+        0xfd + be16(uint16(x))  if x < 0x10000
+        0xfe + be32(uint32(x))  if x < 0x100000000
+        0xff + be64(x)          otherwise.
+```
+
+Here `+` denotes concatenation and `be16`, `be32`, and `be64` produce a
+big-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
+
+A value is said to be _minimally encoded_ if it could have been encoded using a
+smaller representation. For example, a BigSize encoding that occupies 5 bytes
+but whose value is less than 0x10000 is not minimally encoded. All values
+decoded with BigSize should be checked to ensure they are minimally encoded.
+
+### BigSize Decoding Tests
+
+The following is an example of how to execute the BigSize decoding tests.
+```golang
+func testReadVarInt(t *testing.T, test varIntTest) {
+        var buf [8]byte
+        r := bytes.NewReader(test.Bytes)
+        val, err := tlv.ReadVarInt(r, &buf)
+        if err != nil && err.Error() != test.ExpErr {
+                t.Fatalf("expected decoding error: %v, got: %v",
+                        test.ExpErr, err)
+        }
+
+        // If we expected a decoding error, there's no point checking the value.
+        if test.ExpErr != "" {
+                return
+        }
+
+        if val != test.Value {
+                t.Fatalf("expected value: %d, got %d", test.Value, val)
+        }
+}
+```
+
+A correct implementation should pass against these test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fd00fd"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00010000"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000100000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    },
+    {
+        "name": "two byte not canonical",
+        "value": 0,
+        "bytes": "fd00fc",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "four byte not canonical",
+        "value": 0,
+        "bytes": "fe0000ffff",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "eight byte not canonical",
+        "value": 0,
+        "bytes": "ff00000000ffffffff",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "two byte short read",
+        "value": 0,
+        "bytes": "fd00",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte short read",
+        "value": 0,
+        "bytes": "feffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte short read",
+        "value": 0,
+        "bytes": "ffffffffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "one byte no read",
+        "value": 0,
+        "bytes": "",
+        "exp_error": "EOF"
+    },
+    {
+        "name": "two byte no read",
+        "value": 0,
+        "bytes": "fd",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte no read",
+        "value": 0,
+        "bytes": "fe",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte no read",
+        "value": 0,
+        "bytes": "ff",
+        "exp_error": "unexpected EOF"
+    }
+]
+```
+
+### BigSize Encoding Tests
+
+The following is an example of how to execute the BigSize encoding tests.
+```golang
+func testWriteVarInt(t *testing.T, test varIntTest) {
+        var (
+                w   bytes.Buffer
+                buf [8]byte
+        )
+        err := tlv.WriteVarInt(&w, test.Value, &buf)
+        if err != nil {
+                t.Fatalf("unable to encode %d as varint: %v",
+                        test.Value, err)
+        }
+
+        if bytes.Compare(w.Bytes(), test.Bytes) != 0 {
+                t.Fatalf("expected bytes: %v, got %v",
+                        test.Bytes, w.Bytes())
+        }
+}
+```
+
+A correct implementation should pass against the following test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fd00fd"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00010000"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000100000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    }
+]
+```
 
 ## Acknowledgments
 
