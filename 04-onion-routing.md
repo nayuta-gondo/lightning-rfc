@@ -484,12 +484,16 @@ using an alternate channel.
 
 When building the route, the origin node MUST use a payload for
 the final node with the following values:
-* `outgoing_cltv_value`: set to the final expiry specified by the recipient
-* `amt_to_forward`: set to the final amount specified by the recipient
+* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
+  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
+* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
+  from a [BOLT #11](11-payment-encoding.md) payment invoice)
 
 ルートを構築する場合、origin nodeは、次の値を持つfinal nodeのペイロードを使用しなければならない：
 outgoing_cltv_value：受信者によって指定されたfinal expiryに設定される
+（e.g. BOLT #11 payment invoiceのmin_final_cltv_expiry)
 amt_to_forward：受信者によって指定された最終金額に設定される
+（e.g. BOLT #11 payment invoiceのamount）
 
 This allows the final node to check these values and return errors if needed,
 but it also eliminates the possibility of probing attacks by the second-to-last
