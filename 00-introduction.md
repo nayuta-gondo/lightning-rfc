@@ -140,16 +140,15 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
 ## Glossary and Terminology Guide
 
-* *Announcement*:
-   * A gossip message sent between *peers* intended to aid the discovery of a *channel* or a *node*.
+* #### *Announcement*:
+   * A gossip message sent between *[peers](#peers)* intended to aid the discovery of a *[channel](#channel)* or a *[node](#node)*.
 
-
-* Announcement：
+* #### *Announcement*:
    * channelまたはnodeの発見を支援するためのpeers間で送信されるgossip message。
 
-* `chain_hash`:
+* #### `chain_hash`:
    * The uniquely identifying hash of the target blockchain (usually the genesis hash).
-     This allows *nodes* to create and reference *channels* on
+     This allows *[nodes](#node)* to create and reference *channels* on
      several blockchains. Nodes are to ignore any messages that reference a
      `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
      not reversed but is used directly.
@@ -158,7 +157,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
      (encoded in hex):
      `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
-* chain_hash：
+* #### `chain_hash`:
    * target blockchainを一意に識別するhash（通常はgenesis hash）。
      これにより、nodesは複数のblockchains上にchannelsを作成し、参照することができる。
      nodesは、それらにとって未知のchain_hashを参照するmessagesを無視する。
@@ -168,50 +167,49 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
      (XXX: BTCとBCHのgenesis hashは同じだろうから、BCHはLNで使えないのだろうか？)
 
-* *Channel*:
-   * A fast, off-chain method of mutual exchange between two *peers*.
-   To transact funds, peers exchange signatures to create an updated *commitment transaction*.
-   * _See closure methods: mutual close, revoked transaction close, unilateral close_
-   * _See related: route_
+* #### *Channel*:
+   * A fast, off-chain method of mutual exchange between two *[peers](#peers)*.
+   To transact funds, peers exchange signatures to create an updated *[commitment transaction](#commitment-transaction)*.
+   * _See closure methods: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
+   * _See related: [route](#route)_   
 
-* Channel：
+* #### *Channel*:
    * 2つのpeers間の相互交換の、高速でoff-chainの手法。
    資金を取引するために、peersは署名を交換して最新のcommitment transactionを作成する。
    * closure methodsを参照：mutual close、revoked transaction close、unilateral close
    * _See related: route_
 
+* #### *Closing transaction*:
+   * A transaction generated as part of a *[mutual close](#mutual-close)*. A closing transaction is similar to a _commitment transaction_, but with no pending payments.
+   * _See related: [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
 
-* *Closing transaction*:
-   * A transaction generated as part of a _mutual close_. A closing transaction is similar to a _commitment transaction_, but with no pending payments.
-   * _See related: commitment transaction, funding transaction, penalty transaction_
-
-* Closing transaction：
+* #### *Closing transaction*:
    * mutual closeの一部として生成されたtransaction。
    closing transactionは、commitment transactionに似ているが、未払いの支払いはない。
    * _See related: commitment transaction, funding transaction, penalty transaction_
 
-* *Commitment number*:
-   * A 48-bit incrementing counter for each *commitment transaction*; counters
+* #### *Commitment number*:
+   * A 48-bit incrementing counter for each *[commitment transaction](#commitment-transaction)*; counters
     are independent for each *peer* in the *channel* and start at 0.
-   * _See container: commitment transaction_
-   * _See related: closing transaction, funding transaction, penalty transaction_
+   * _See container: [commitment transaction](#commitment-transaction)_
+   * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
 
-* Commitment number：
+* #### *Commitment number*:
    * それぞれのcommitment transactionのための、48ビットの増分カウンタ。
    カウンタはchannel内の各peerに対して独立しており、0から開始する。
    * _See container: commitment transaction_
    * _See related: closing transaction, funding transaction, penalty transaction_
 
-* *Commitment revocation private key*:
-   * Every *commitment transaction* has a unique commitment revocation private-key
+* #### *Commitment revocation private key*:
+   * Every *[commitment transaction](#commitment-transaction)* has a unique commitment revocation private-key
     value that allows the other *peer* to spend all outputs
     immediately: revealing this key is how old commitment
     transactions are revoked. To support revocation, each output of the
     commitment transaction refers to the commitment revocation public key.
-   * _See container: commitment transaction_
-   * _See originator: per-commitment secret_
+   * _See container: [commitment transaction](#commitment-transaction)_
+   * _See originator: [per-commitment secret](#per-commitment-secret)_
 
-* Commitment revocation private key：
+* #### *Commitment revocation private key*:
    * すべてのcommitment transactionには、
    他のpeerがすべてのアウトプットを即座に費やすことを可能にするユニークなcommitment revocation private-keyの値がある。
    （XXX: 当方じゃなく「他の」方であるということが大事）
@@ -220,16 +218,16 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See container: commitment transaction_
    * _See originator: per-commitment secret_
 
-* *Commitment transaction*:
-   * A transaction that spends the *funding transaction*.
+* #### *Commitment transaction*:
+   * A transaction that spends the *[funding transaction](#funding-transaction)*.
    Each *peer* holds the other peer's signature for this transaction, so that each
    always has a commitment transaction that it can spend. After a new
    commitment transaction is negotiated, the old one is *revoked*.
-   * _See parts: commitment number, commitment revocation private key, HTLC, per-commitment secret, outpoint_
-   * _See related: closing transaction, funding transaction, penalty transaction_
-   * _See types: revoked commitment transaction_
+   * _See parts: [commitment number](#commitment-number), [commitment revocation private key](#commitment-revocation-private-key), [HTLC](#HTLC-Hashed-Time-Locked-Contract), [per-commitment secret](#per-commitment-secret), [outpoint](#outpoint)_
+   * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
+   * _See types: [revoked commitment transaction](#revoked-commitment-transaction)_
 
-* Commitment transaction：
+* #### *Commitment transaction*:
    * funding transactionを費やすtransaction。
    各peerは、このtransactionのために他のpeerの署名を保持するので、それぞれは常に、それが費やすことができるcommitment transactionがある。
    新しいcommitment transactionがネゴシエートされると、古いものはrevokedになる。
@@ -237,45 +235,45 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: closing transaction, funding transaction, penalty transaction_
    * _See types: revoked commitment transaction_
 
-* *Final node*:
-   * The final recipient of a packet that is routing a payment from an _origin node_ through some number of _hops_. It is also the final *receiving peer* in a chain.
-   * _See category: node_
-   * _See related: origin node, processing node_
+* #### *Final node*:
+   * The final recipient of a packet that is routing a payment from an *[origin node](#origin-node)* through some number of *[hops](#hop)*. It is also the final *[receiving peer](#receiving-peer)* in a chain.
+   * _See category: [node](#node)_
+   * _See related: [origin node](#origin-node), [processing node](#processing-node)_
 
-* Final node：
+* #### *Final node*:
    * original nodeからいくつかのhopsを経た支払いをルーティングしているパケットの最終的な受信者。
    それはチェーン内の最後のreceiving peerでもあります。
    * _See category: node_
    * _See related: origin node, processing node_
 
-* *Funding transaction*:
-   * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
+* #### *Funding transaction*:
+   * An irreversible on-chain transaction that pays to both *[peers](#peers)* on a *[channel](#channel)*.
    It can only be spent by mutual consent.
-   * _See related: closing transaction, commitment transaction, penalty transaction_
+   * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [penalty transaction](#penalty-transaction)_
 
-* Funding transaction：
+* #### *Funding transaction*:
    * channel上の両方のpeersに支払いのある不可逆的なオンチェーンのtransaction。
    それは相互の同意によってのみ費やすことができる。
    * _See related: closing transaction, commitment transaction, penalty transaction_
 
-* *Hop*:
-   * A *node*. Generally, an intermediate node lying between an *origin node* and a *final node*.
-   * _See category: node_
+* #### *Hop*:
+   * A *[node](#node)*. Generally, an intermediate node lying between an *[origin node](#origin-node)* and a *[final node](#final-node)*.
+   * _See category: [node](#node)_
 
 * Hop：
    * node。一般に、origin nodeとfinal nodeとの間に位置するintermediate node。
    * _See category: node_
 
-* *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two *peers*: the recipient can spend
+* #### *HTLC*: Hashed Time Locked Contract.
+   * A conditional payment between two *[peers](#peers)*: the recipient can spend
     the payment by presenting its signature and a *payment preimage*,
     otherwise the payer can cancel the contract by spending it after
     a given time. These are implemented as outputs from the
-    *commitment transaction*.
-   * _See container: commitment transaction_
-   * _See parts: Payment hash, Payment preimage_
+    *[commitment transaction](#commitment-transaction)*.
+   * _See container: [commitment transaction](#commitment-transaction)_
+   * _See parts: [Payment hash](#Payment-hash), [Payment preimage](#Payment-preimage)_
 
-* HTLC： Hashed Time Locked Contract.
+* #### *HTLC*: Hashed Time Locked Contract.
    * 2つのpeers間の条件付き支払い：
    受取人は、その署名とpayment preimageを提示することによって支払いを費やすことができ、
    そうでなければ、支払人は所定時間後にcontractを取り消すことができる。
@@ -283,134 +281,133 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See container: commitment transaction_
    * _See parts: Payment hash, Payment preimage_
 
-* *Invoice*: A request for funds on the Lightning Network, possibly
+* #### *Invoice*: A request for funds on the Lightning Network, possibly
     including payment type, payment amount, expiry, and other
     information. This is how payments are made on the Lightning
     Network, rather than using Bitcoin-style addresses.
 
-* Invoice：
-   * Lightning Network上の資金の要求。
+* #### *Invoice*: Lightning Network上の資金の要求。
    支払いの種類、支払い金額、有効期限、その他の情報が含まれる可能性がある。
    Bitcoin形式のアドレスを使用するのではなく、Lightning Networkで支払いを行う方法である。
 
-* *It's ok to be odd*:
+* #### *It's ok to be odd*:
    * A rule applied to some numeric fields that indicates either optional or
      compulsory support for features. Even numbers indicate that both endpoints
      MUST support the feature in question, while odd numbers indicate
      that the feature MAY be disregarded by the other endpoint.
 
-* It's ok to be odd：
+* #### *It's ok to be odd*:
    * 機能がオプションであるか強制サポートであるかを示す数値フィールドに適用されるルール。
    偶数は、問題の機能を両方のエンドポイントがサポートしなければならないことを示すが、
    奇数は機能が他のエンドポイントによって無視しても良いことを示す。
 
-* *MSAT*:
+* #### *MSAT*:
    * A millisatoshi, often used as a field name.
 
-* MSAT：
+* #### *MSAT*:
    * millisatoshi、しばしばフィールド名として使われる。
 
-* *Mutual close*:
-   * A cooperative close of a *channel*, accomplished by broadcasting an unconditional
-    spend of the *funding transaction* with an output to each *peer*
+* #### *Mutual close*:
+   * A cooperative close of a *[channel](#channel)*, accomplished by broadcasting an unconditional
+    spend of the *[funding transaction](#funding-transaction)* with an output to each *peer*
     (unless one output is too small, and thus is not included).
-   * _See related: revoked transaction close, unilateral close_
+   * _See related: [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
 
-* Mutual close：
+* #### *Mutual close*:
    * （1つの出力が小さすぎて、故に含まれない場合を除いて、）
    各peersへの出力を伴う、funding transactionの条件のない消費を、ブロードキャストすることによって達成される、
    channelの協調的なclose。
    * _See related: revoked transaction close, unilateral close_
 
-* *Node*:
+* #### *Node*:
    * A computer or other device that is part of the Lightning network.
-   * _See related: peers_
-   * _See types: final node, hop, origin node, processing node, receiving node, sending node_
+   * _See related: [peers](#peers)_
+   * _See types: [final node](#final-node), [hop](#hop), [origin node](#origin-node), [processing node](#processing-node), [receiving node](#receiving-node), [sending node](#sending-node)_
 
-* Node：
+* #### *Node*:
    * Lightning networkの一部であるコンピュータまたはその他のデバイス。
    * _See related: peers_
    * _See types: final node, hop, origin node, processing node, receiving node, sending node_
 
-* *Origin node*:
-   * The _node_ that originates a packet that will route a payment through some number of _hops_ to a _final node_. It is also the first _sending peer_ in a chain.
-   * _See category: node_
-   * _See related: final node, processing node_
+* #### *Origin node*:
+   * The *[node](#node)* that originates a packet that will route a payment through some number of [hops](#hop) to a *[final node](#final-node)*. It is also the first [sending peer](#sending-peer) in a chain.
+   * _See category: [node](#node)_
+   * _See related: [final node](#final-node), [processing node](#processing-node)_
 
-* Origin node：
+* #### *Origin node*:
    * いくつかhopsを経由してfinal nodeまで支払いを送付するパケットを発信するnode。
    それはチェーン内の最初のsending peerでもある。
    * _See category: node_
    * _See related: final node, processing node_
 
-* *Outpoint*:
+* #### *Outpoint*:
   * A transaction hash and output index that uniquely identify an unspent transaction output. Needed to compose a new transaction, as an input.
-  * _See related: funding transaction, commitment transaction_
+  * _See related: [funding transaction](#funding-transaction), [commitment transaction](#commitment-transaction)_
 
-* Outpoint:
+* #### *Outpoint*:
   * 未使用トランザクション出力を一意に識別するトランザクションハッシュおよび出力インデックス。 入力として新しいトランザクションを作成するために必要。
   * _See related: funding transaction, commitment transaction_
 
-* *Payment hash*:
-   * The *HTLC* contains the payment hash, which is the hash of the
-    *payment preimage*.
-   * _See container: HTLC_
-   * _See originator: payment preimage_
+* #### *Payment hash*:
+   * The *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contains the payment hash, which is the hash of the
+    *[payment preimage](#Payment-preimage)*.
+   * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
+   * _See originator: [Payment preimage](#Payment-preimage)_
 
-* Payment hash：
+* #### *Payment hash*:
    * HTLCはpayment preimageのhashであるpayment hashを含む。
    * _See container: HTLC_
    * _See originator: payment preimage_
 
-* *Payment preimage*:
+* #### *Payment preimage*:
    * Proof that payment has been received, held by
     the final recipient, who is the only person who knows this
     secret. The final recipient releases the preimage in order to
-    release funds. The payment preimage is hashed as the *payment hash*
-    in the *HTLC*.
-   * _See container: HTLC_
-   * _See derivation: payment hash_
+    release funds. The payment preimage is hashed as the *[payment hash](#Payment-hash)*
+    in the *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*.
+   * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
+   * _See derivation: [payment hash](#Payment-hash)_
 
-* Payment preimage：
+* #### *Payment preimage*:
    * このsecretを知っている唯一の人である最終受取人が支払いを受けたことの証明。
    最終的な受信者は、資金を解放するためにpreimageを解放する。
    payment preimageは 、HTLCのpayment hashとしてハッシュされる。
    * _See container: HTLC_
    * _See derivation: payment hash_
 
-* *Peers*:
-   * Two *nodes* that are in communication with each other.
+* #### *Peers*:
+   * Two *[nodes](#node)* that are in communication with each other.
       * Two peers may gossip with each other prior to setting up a channel.
-      * Two peers may establish a *channel* through which they transact.
-   * _See related: node_
+      * Two peers may establish a *[channel](#channel)* through which they transact.
+   * _See related: [node](#node)_
 
-* Peers：
+* #### *Peers*:
    * 互いに通信する2つのnodes。
       * channelを設定する前に、2人のpeersがお互いにgossipするであろう。
       * 2つのpeersは、それらが取引するchannelを確立するであろう。
       (XXX: gossipはchannel確立と独立して行って良い)
    * _See related: node_
 
-* *Penalty transaction*:
-   * A transaction that spends all outputs of a *revoked commitment
-    transaction*, using the *commitment revocation private key*. A *peer* uses this
-    if the other peer tries to "cheat" by broadcasting a *revoked
-    commitment transaction*.
-   * _See related: closing transaction, commitment transaction, funding transaction_
+* #### *Penalty transaction*:
+   * A transaction that spends all outputs of a *[revoked commitment
+      transaction](#revoked-commitment-transaction)*, using the *commitment revocation private key*. A *[peer](#peers)* uses this
+      if the other peer tries to "cheat" by broadcasting a *[revoked commitment
+      transaction](#revoked-commitment-transaction)*.
+   * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction)_
 
-* Penalty transaction：
+* #### *Penalty transaction*:
    * commitment revocation private keyを使用して、revoked commitment transactionのすべての出力を費やすtransaction。
    peerは、他のpeerがcommitment transactionをブロードキャストしてずる「cheat」しようとすると、これを使用する。
    * _See related: closing transaction, commitment transaction, funding transaction_
 
-* *Per-commitment secret*:
-   * Every *commitment transaction* derives its keys from a per-commitment secret,
+* #### *Per-commitment secret*:
+   * Every *[commitment transaction](#commitment-transaction)* derives its keys from a per-commitment secret,
      which is generated such that the series of per-commitment secrets
      for all previous commitments can be stored compactly.
-   * _See container: commitment transaction_
-   * _See derivation: commitment revocation private key_
+   * _See container: [commitment transaction](#commitment-transaction)_
+   * _See derivation: [commitment revocation private key](#commitment-revocation-private-key)_
 
-* Per-commitment secret：
+* #### *Per-commitment secret*:
    * すべてのcommitment transactionはper-commitment secretからそのキーを導出する。
    per-commitment secretは、コンパクトに格納できるように、
    すべての以前のcommitmentsのための一連のper-commitment secretから生成される。
@@ -418,96 +415,97 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See container: commitment transaction_
    * _See derivation: commitment revocation private key_
 
-* *Processing node*:
-   * A *node* that is processing a packet that originated with an *origin node* and that is being sent toward a *final node* in order to route a payment. It acts as a _receiving peer_ to receive the message, then a _sending peer_ to send on the packet.
-   * _See category: node_
-   * _See related: final node, origin node_
+* #### *Processing node*:
+   * A *[node](#node)* that is processing a packet that originated with an *[origin node](#origin-node)* and that is being sent toward a *[final node](#final-node)* in order to route a payment. It acts as a *[receiving peer](#receiving-peer)* to receive the message, then a [sending peer](#sending-peer) to send on the packet.
+   * _See category: [node](#node)_
+   * _See related: [final node](#final-node), [origin node](#origin-node)_
 
-* Processing node：
+* #### *Processing node*:
    origin nodeで起こり、final nodeへの支払いを送付するために送信されるパケットを処理しているnode。
    これは、メッセージを受信するreceiving peerとして機能し、それからパケットを送信するsending peerとして機能する。
    * _See category: node_
    * _See related: final node, origin node_
 
-* *Receiving node*:
-   * A *node* that is receiving a message.
-   * _See category: node_
-   * _See related: sending node_
+* #### *Receiving node*:
+   * A *[node](#node)* that is receiving a message.
+   * _See category: [node](#node)_
+   * _See related: [sending node](#sending-node)_
 
-* Receiving node：
+* #### *Receiving node*:
    * メッセージを受信しているnode。
    * _See category: node_
    * _See related: sending node_
 
-* *Receiving peer*:
-   * A *node* that is receiving a message from a directly connected *peer*.
-   * _See category: peer_
-   * _See related: sending peer_
+* #### *Receiving peer*:
+   * A *[node](#node)* that is receiving a message from a directly connected *peer*.
+   * _See category: [peer](#Peers)_
+   * _See related: [sending peer](#sending-peer)_
 
-* Receiving peer：
+* #### *Receiving peer*:
    * 直接接続しているpeerからメッセージを受信しているnode。
    * _See category: peer_
    * _See related: sending peer_
 
-* *Revoked commitment transaction*:
-   * An old *commitment transaction* that has been revoked because a new commitment transaction has been negotiated.
-   * _See category: commitment transaction_
+* #### *Revoked commitment transaction*:
+   * An old *[commitment transaction](#commitment-transaction)* that has been revoked because a new commitment transaction has been negotiated.
+   * _See category: [commitment transaction](#commitment-transaction)_
 
-* Revoked commitment transaction：
+* #### *Revoked commitment transaction*:
    * 新しいcommitment transactionがネゴシエートされたために取り消された古いcommitment transaction。
    * _See related: mutual close, unilateral close_
 
-* *Revoked transaction close*:
-   * An invalid close of a *channel*, accomplished by broadcasting a *revoked
+* #### *Revoked transaction close*:
+   * An invalid close of a *[channel](#channel)*, accomplished by broadcasting a *revoked
     commitment transaction*. Since the other *peer* knows the
-    *commitment revocation secret key*, it can create a *penalty transaction*.
-   * _See related: mutual close, unilateral close_
+    *commitment revocation secret key*, it can create a *[penalty transaction](#penalty-transaction)*.
+   * _See related: [mutual close](#mutual-close), [unilateral close](#unilateral-close)_
 
-* Revoked transaction close：
+* #### *Revoked transaction close*:
    * revoked commitment transactionをブロードキャストすることによって達成される、
    不正なchannelのclose。
    他方のpeerはcommitment revocation secret keyを知っているので、
    penalty transactionを作成することができる。
    * _See related: mutual close, unilateral close_
 
-* *Route*: A path across the Lightning Network that enables a payment
-    from an *origin node* to a *final node* across one or more
-    *hops*.
-  * _See related: channel_
+* #### *Route*:
+   * A path across the Lightning Network that enables a payment
+    from an *origin node* to a *[final node](#final-node)* across one or more
+    *[hops](#hop)*.
+   * _See related: [channel](#channel)_
 
-* Route：
+* #### *Route*:
   * 1つ以上のhopsを横断し、origin nodeからfinal nodeまでの支払いを可能にするLightning Networkのパス。
   * _See related: channel_
 
-* *Sending node*:
-   * A *node* that is sending a message.
-   * _See category: node_
-   * _See related: receiving node_
+* #### *Sending node*:
+   * A *[node](#node)* that is sending a message.
+   * _See category: [node](#node)_
+   * _See related: [receiving node](#receiving-node)_
 
-* Sending node：
+* #### *Sending node*:
    * メッセージを送信しているnode。
    * _See category: node_
    * _See related: receiving node_
 
-* *Sending peer*:
-   * A *node* that is sending a message to a directly connected *peer*.
-   * _See category: peer_
-   * _See related: receiving peer_.
+* #### *Sending peer*:
+   * A *[node](#node)* that is sending a message to a directly connected *peer*.
+   * _See category: [peer](#Peers)_
+   * _See related: [receiving peer](#receiving-peer)_.
 
-* Sending peer：
+* #### *Sending peer*:
    * 直接接続しているpeerへにメッセージを送信しているnode。
    * _See category: peer_
    * _See related: receiving peer_.
 
-* *Unilateral close*:
-   * An uncooperative close of a *channel*, accomplished by broadcasting a
-    *commitment transaction*. This transaction is larger (i.e. less
-    efficient) than a *closing transaction*, and the *peer* whose
+* #### *Unilateral close*:
+   * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a
+    *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less
+    efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peers)* whose
     commitment is broadcast cannot access its own outputs for some
     previously-negotiated duration.
-   * _See related: mutual close, revoked transaction close_
+   * _See related: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close)_
 
-* Unilateral close：
+* #### *Unilateral close*:
    * commitment transactionをブロードキャストすることによって達成される、非協力的なchannelのclose。
    このtransactionは、closing transactionよりも大きく（すなわち、非効率）、
    commitmentがブロードキャストされているpeerは、
