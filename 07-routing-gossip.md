@@ -966,37 +966,41 @@ The receiving node:
   - 指定されたchain_hash値が不明な場合（指定されたチェーン上で（XXX: そのノードが）アクティブでないことを意味する）
     - channel updateを無視しなければならない。
 
-  - if `timestamp` is NOT greater than that of the last-received
+  - if the `timestamp` is equal to the last-received `channel_update` for this
+    `short_channel_id` AND `node_id`:
+  	- if the fields below `timestamp` differ:
+      - MAY blacklist this `node_id`.
+      - MAY forget all channels associated with it.
+  	- if the fields below `timestamp` are equal:
+      - SHOULD ignore this message
+
+  - timestampがこのshort_channel_idとnode_idの最後に受信したchannel_updateと等しい場合：
+    - timestampの下のフィールドが異なる場合:
+      - このnode_idをブラックリストに載せても良い。
+      - 関連付けられているすべてのチャネルを忘れて良い。
+    - timestampの下のフィールドが等しい場合:
+      - このメッセージを無視すべきである
+
+  - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
 
-  - timestampが、最後に受信したこのshort_channel_idとnode_idのchannel_updateよりも大きくない場合：
-    - messageを無視すべきである。
+  - timestampが、このshort_channel_idのnode_idの最後に受信したchannel_updateのtimestampよりも小さい場合:
+    - このメッセージを無視すべきである
 
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_update`
-    AND the fields (other than `signature`) differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
+    - if the `timestamp` is unreasonably far in the future:
+      - MAY discard the `channel_update`.
+    - otherwise:
+      - SHOULD queue the message for rebroadcasting.
+      - MAY choose NOT to for messages longer than the minimum expected length.
 
   - そうでなければ：
-    - timestampが、最後に受信にしたchannel_updateに等しく、 かつ（signature以外の）フィールドが異なる場合：
-      - このnode_idをブラックリストに入れてよい。
-      - それに関連する全てのchannelsを忘れてよい。
-
-  - if the `timestamp` is unreasonably far in the future:
-    - MAY discard the `channel_update`.
-
-  - timestampが不合理に未来に遠い場合は：
-    - そのchannel_updateを捨てても良い。
-
-  - otherwise:
-    - SHOULD queue the message for rebroadcasting.
-    - MAY choose NOT to for messages longer than the minimum expected length.
-
-  - そうでなければ：
-    - rebroadcastingのためにmessagesをキューに入れるべきである。
-    - 期待される最小の長さ以上のmessagesを待ち行列に入れないことを選択してもよい。
+    - timestampが不合理に未来に遠い場合は：
+      - そのchannel_updateを捨てても良い。
+    - そうでなければ：
+      - rebroadcastingのためにmessagesをキューに入れるべきである。
+      - 期待される最小の長さ以上のmessagesを待ち行列に入れないことを選択してもよい。
 
   - if the `option_channel_htlc_max` bit of `message_flags` is 0:
     - MUST consider `htlc_maximum_msat` not to be present.
@@ -1030,6 +1034,27 @@ of two `channel_update`s within a single second.
 nodesによって使用される。
 UNIX timestamp（つまり、UTC 1970-01-01以降の秒数）にすることは理にかなっている。
 1秒間に2つchannel_updateがあるとしても、これは厳しい要件ではありません。
+
+It is assumed that more than one `channel_update` message changing the channel
+parameters in the same second may be a DoS attempt, and therefore, the node responsible
+for signing such messages may be blacklisted. However, a node may send a same
+`channel_update` message with a different signature (changing the nonce in signature
+signing), and hence fields apart from signature are checked to see if the channel
+parameters have changed for the same timestamp. It is also important to note that
+ECDSA signatures are malleable. So, an intermediate node who received the `channel_update`
+message can rebroadcast it just by changing the `s` component of signature with `-s`.
+This should however not result in the blacklist of the `node_id` from where
+the message originated.
+
+同じ秒でチャネルパラメータを変更する複数のchannel_updateメッセージはDoSの試みであると想定され
+したがって、そのようなメッセージに署名する責任のあるノードはブラックリストに載せられる可能性がある。
+しかし、ノードが異なる署名（署名のナンスの変更）で同じchannel_updateメッセージを送信する可能性があるため、
+署名以外のフィールドがチェックされて、同じtimestampでチャネルパラメータが変更されたかどうかが確認される。
+（XXX: 決定性、RFC6979ではないかもしれない）
+ECDSAの署名は展性があることにも留意することが重要である。
+したがって、channel_updateメッセージを受信した中間ノードは、-sで署名のsコンポーネントを変更するだけで、
+メッセージを再ブロードキャストできる。
+ただし、これによって、メッセージの発信元であるnode_idがブラックリストに載せられることはない。
 
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
