@@ -232,8 +232,14 @@ The receiving node:
    - MUST fail to parse the `tlv_stream`.
  - if decoded `type`s are not monotonically-increasing:
    - MUST fail to parse the `tlv_stream`.
+ - if `length` exceeds the number of bytes remaining in the message:
+   - MUST fail to parse the `tlv_stream`.
  - if `type` is known:
    - MUST decode the next `length` bytes using the known encoding for `type`.
+   - if `length` is not exactly equal to that required for the known encoding for `type`:
+     - MUST fail to parse the `tlv_stream`.
+   - if variable-length fields within the known encoding for `type` are not minimal:
+     - MUST fail to parse the `tlv_stream`.
  - otherwise, if `type` is unknown:
    - if `type` is even:
      - MUST fail to parse the `tlv_stream`.
@@ -247,8 +253,14 @@ The receiving node:
    - `tlv_stream`の解析に失敗しなければならない。
  - デコードされた`type`sが単調に増加していない場合:
    - `tlv_stream`の解析に失敗しなければならない。
+ - `length`がメッセージの残りのバイト数を超えた場合:
+   - `tlv_stream`の解析に失敗しなければならない。
  - `type`がわかっている場合:
    - 次の`length`バイトを`type`の既知のエンコーディングを使ってデコードしなければならない。
+   - `length`が`type`の既知のエンコーディングに必要な長さと正確に一致しない場合:
+     - `tlv_stream`の解析に失敗しなければならない。
+   - `type`の既知のエンコーディング内の可変長フィールドが最小でない場合:
+     - `tlv_stream`の解析に失敗しなければならない。
  - そうではなく、`type`が未知の場合:
    - `type`が偶数の場合:
      - `tlv_stream`の解析に失敗しなければならない。
