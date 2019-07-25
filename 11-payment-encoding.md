@@ -276,7 +276,7 @@ A writer:
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
   - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
-  - MAY include one `n` field.
+  - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
     - for Bitcoin payments:
@@ -309,7 +309,7 @@ A writer:
   - 1つのcフィールドを含めることができる。
     - ルートの最後のHTLCで受け入れる最小のcltv_expiryを設定しなければならない。
   - xとcのフィールドに可能な限り最小のdata_lengthを使うべきである。
-  - 1つのnフィールドを含めることができる。
+  - 1つのnフィールドを含めることができる。（それ以外の場合は、署名の回復を実行する必要がある）
     - signatureを作成するために使用されたpublic keyに設定されなければならない。
   - 1つ以上のfフィールドを含めることができる。
     - bitcoinの支払いの場合
