@@ -165,6 +165,8 @@ A node:
       - announcement_signatures messageを再送すべきである。
 
 A recipient node:
+  - if the `short_channel_id` is NOT correct:
+    - SHOULD fail the channel.
   - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
@@ -175,6 +177,8 @@ A recipient node:
       - MUST ignore it.
 
 A recipient node:
+  - short_channel_idが正しくない場合:
+    - channelに失敗すべきである。
   - node_signatureもしくはbitcoin_signatureが正しくない場合：
   （XXX: これらはchannel_announcementに入るもの）
     - channelを失敗させてよい。
@@ -968,11 +972,11 @@ The receiving node:
 
   - if the `timestamp` is equal to the last-received `channel_update` for this
     `short_channel_id` AND `node_id`:
-  	- if the fields below `timestamp` differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
-  	- if the fields below `timestamp` are equal:
-      - SHOULD ignore this message
+  - if the fields below `timestamp` differ:
+    - MAY blacklist this `node_id`.
+    - MAY forget all channels associated with it.
+  - if the fields below `timestamp` are equal:
+    - SHOULD ignore this message
 
   - timestampがこのshort_channel_idとnode_idの最後に受信したchannel_updateと等しい場合：
     - timestampの下のフィールドが異なる場合:
