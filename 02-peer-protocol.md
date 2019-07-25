@@ -1534,7 +1534,7 @@ A receiving node:
     - チャネルに失敗しなければならない。
   - 同じpayment_hashの複数のHTLCsを許さなければならない。
   - 送信者が以前にそのHTLCのコミットメントを認めなかった場合：
-  （XXX: 送信者のchannel_reestablishのnext_local_commitment_numberでコミットされているHTLCを知る）
+  （XXX: 送信者のchannel_reestablishのnext_commitment_numberでコミットされているHTLCを知る）
     - 再接続後には、繰り返しのidの値を無視しなければならない。
     （XXX: 「繰り返しのid」をエラーにしないというだけで、メッセージを無視するわけではない。
     またすでにコミットされているHTLCとのidの重複は許されない（この条件が抜けている）。
@@ -2083,18 +2083,18 @@ initの後に送信される（すべてのメッセージがそうである）�
 1. type: 136 (`channel_reestablish`)
 2. data:
    * [`channel_id`:`channel_id`]
-   * [`u64`:`next_local_commitment_number`]
-   * [`u64`:`next_remote_revocation_number`]
+   * [`u64`:`next_commitment_number`]
+   * [`u64`:`next_revocation_number`]
    * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect)
    * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
-`next_local_commitment_number`: A commitment number is a 48-bit
+`next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
 They're only explicitly relayed to the other node in the case of
 re-establishment, otherwise they are implicit.
 
-next_local_commitment_number：
+next_commitment_number：
 commitment numberは、各commitment transactionの48ビット増分カウンタである。
 カウンタはチャネル内の各ピアに対して独立しており、0から開始する。
 re-establishmentの場合には、他のノードに明示的に中継されるだけであり、
@@ -2170,9 +2170,9 @@ A node:
       他のノードのchannel_reestablishメッセージを受信するのを待たなければならない。
 
 The sending node:
-  - MUST set `next_local_commitment_number` to the commitment number of the
+  - MUST set `next_commitment_number` to the commitment number of the
   next `commitment_signed` it expects to receive.
-  - MUST set `next_remote_revocation_number` to the commitment number of the
+  - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
   - if it supports `option_data_loss_protect`:
     - if `next_remote_revocation_number` equals 0:
@@ -2183,57 +2183,57 @@ The sending node:
 
 送信ノード：
 （XXX: 送信するどのフィールドもメッセージ受信に関わる。commitment_signedとrevoke_and_ackの受信）
-  - next_local_commitment_numberは、
+  - next_commitment_numberは、
   受け取る予定の次のcommitment_signedのcommitment numberに設定しなければならない。
-  - next_remote_revocation_numberは、
+  - next_revocation_numberは、
   受け取る予定の次のrevoke_and_ackメッセージのcommitment numberに設定しなければならない。
   - それがoption_data_loss_protectをサポートしている場合：
-    - next_remote_revocation_numberが0の場合：
+    - next_revocation_numberが0の場合：
       - your_last_per_commitment_secretを、すべて0に設定しなければならない
     - そうでなければ：
       - your_last_per_commitment_secretを、
       受信した最後のper_commitment_secretに設定しなければならない
 
 A node:
-  - if `next_local_commitment_number` is 1 in both the `channel_reestablish` it
+  - if `next_commitment_number` is 1 in both the `channel_reestablish` it
   sent and received:
     - MUST retransmit `funding_locked`.
   - otherwise:
     - MUST NOT retransmit `funding_locked`.
   - upon reconnection:
     - MUST ignore any redundant `funding_locked` it receives.
-  - if `next_local_commitment_number` is equal to the commitment number of
+  - if `next_commitment_number` is equal to the commitment number of
   the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
   - otherwise:
-    - if `next_local_commitment_number` is not 1 greater than the
+    - if `next_commitment_number` is not 1 greater than the
   commitment number of the last `commitment_signed` message the receiving
   node has sent:
       - SHOULD fail the channel.
-    - if it has not sent `commitment_signed`, AND `next_local_commitment_number`
+    - if it has not sent `commitment_signed`, AND `next_commitment_number`
     is not equal to 1:
       - SHOULD fail the channel.
-  - if `next_remote_revocation_number` is equal to the commitment number of
+  - if `next_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
     - MUST re-send the `revoke_and_ack`.
   - otherwise:
-    - if `next_remote_revocation_number` is not equal to 1 greater than the
+    - if `next_revocation_number` is not equal to 1 greater than the
     commitment number of the last `revoke_and_ack` the receiving node has sent:
       - SHOULD fail the channel.
-    - if it has not sent `revoke_and_ack`, AND `next_remote_revocation_number`
+    - if it has not sent `revoke_and_ack`, AND `next_revocation_number`
     is not equal to 0:
       - SHOULD fail the channel.
 
 ノード：
 （XXX: 送信するどのフィールドもメッセージ受信に関わる。commitment_signedとrevoke_and_ackの受信）
-  - 送受信された両方のchannel_reestablishのnext_local_commitment_numberが1の場合
+  - 送受信された両方のchannel_reestablishのnext_commitment_numberが1の場合
     - funding_lockedを再送しなければならない。
   - そうでなければ：
     - funding_lockedを再送してはならない。
   - 再接続時：
     - 冗長なfunding_lockedの受信を無視しなければならない。
-  - 受信したnext_local_commitment_numberが、
+  - 受信したnext_commitment_numberが、
   受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberに等しい場合：
   （XXX: 送信したcommitment_signedが届いていない可能性がある）
     - そのcommitment numberを次のcommitment_signedに再利用しなければならない。
@@ -2250,34 +2250,34 @@ A node:
     またその前にremoteがunlrateral closeをした場合、複数のどのremote commit txが展開されたかは気にする必要はない。
     そのtxをパースしてcommitment numberを取り出し、各種鍵を導出して出力を消費すればいい）
   - そうでなければ：
-    - next_local_commitment_numberが、
+    - next_commitment_numberが、
     受信ノードが送信した最後のcommitment_signedメッセージのcommitment numberよりも1だけ大きくない場合：
     （XXX: 1だけ大きいのが普通）
       - チャネルを失敗すべきである。
-    - もしそれがcommitment_signedを送ったことがなくnext_local_commitment_numberが1ではない場合、
+    - もしそれがcommitment_signedを送ったことがなくnext_commitment_numberが1ではない場合、
       - チャネルを失敗すべきである。
-  - 受信したnext_remote_revocation_numberが、
+  - 受信したnext_revocation_numberが、
   受信ノードが送信した最後のrevoke_and_ackのcommitment numberと等しく、
   （XXX: 送信したrevoke_and_ackが届いていない可能性がある）
   受信ノードはまだclosing_signedを受信していない場合
   （XXX: closing_signedを受信しているということはrevoke_and_ackは届いていると判断される。後述。）：
     - revoke_and_ackを再送しなければならない。
   - そうでなければ：
-    - next_remote_revocation_numberが、
+    - next_revocation_numberが、
     受信ノードが送信した最後のrevoke_and_ackのcommitment numberより1だけ大きくない場合：
     （XXX: 1だけ大きいのが普通）
       - チャネルを失敗すべきである。
-    - revoke_and_ackを送信しておらず、next_remote_revocation_numberが0でない場合：
+    - revoke_and_ackを送信しておらず、next_revocation_numberが0でない場合：
       - チャネルを失敗すべきである。
-    - もしそれがrevoke_and_ackを送ったことがなくnext_remote_revocation_numberが0ではない場合、
+    - もしそれがrevoke_and_ackを送ったことがなくnext_revocation_numberが0ではない場合、
       - チャネルを失敗すべきである。
 
  A receiving node:
   - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
   fields are present:
-    - if `next_remote_revocation_number` is greater than expected above, AND
+    - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
-    `next_remote_revocation_number` minus 1:
+    `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
       - SHOULD fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
@@ -2289,9 +2289,9 @@ A node:
 受信ノード：
   - option_data_loss_protectがサポートしており、
   option_data_loss_protectフィールドが存在する場合：
-    - next_remote_revocation_numberが上記の期待値より大きく
+    - next_revocation_numberが上記の期待値より大きく
     your_last_per_commitment_secret（XXX: 相手に持ってる最後のrevoke_and_ackのnumber）が、
-    そのnext_remote_revocation_numberマイナス1に対して、正しい場合：（XXX: 自分の側でデータがロスしている）
+    そのnext_revocation_numberマイナス1に対して、正しい場合：（XXX: 自分の側でデータがロスしている）
       - それのcommitment transactionをブロードキャストしてはならない
       - チャネルに失敗すべきである。
       - 送信ノードがオンチェーンにcommitment transactionをブロードキャストする場合に資金を回収するために、
@@ -2398,26 +2398,26 @@ revoke_and_ackの再送は、closing_signedが受信された後に決して求�
 （XXX: ここではrevoke_and_ackを受信できていないとclosing_signedできないような記述。
 おそらくclosing_signedの前提として全てのupdateがirrevocably committedなのであろう）
 
-Note that the `next_local_commitment_number` starts at 1, since
+Note that the `next_commitment_number` starts at 1, since
 commitment number 0 is created during opening.
-`next_remote_revocation_number` will be 0 until the
-`commitment_signed` for commitment number 1 is received, at which
-point the revocation for commitment number 0 is sent.
+`next_revocation_number` will be 0 until the
+`commitment_signed` for commitment number 1 is send and then
+the revocation for commitment number 0 is received.
 
 開始時にcommitment number 0が作成されるため、
-next_local_commitment_numberは1から始まることに注意すること。
-next_remote_revocation_numberは、
+next_commitment_numberは1から始まることに注意すること。
+next_revocation_numberは、
 commitment number 1のcommitment_signed受信まで0になり、
 そのときcommitment number 0の取り消しが送信される。
 
 `funding_locked` is implicitly acknowledged by the start of normal
 operation, which is known to have begun after a `commitment_signed` has been
-received — hence, the test for a `next_local_commitment_number` greater
+received — hence, the test for a `next_commitment_number` greater
 than 1.
 
 funding_lockedは、normal operationの開始によって暗黙的に確認される、
 それは、commitment_signedが受信された後に開始されたことが知られている。
-従って、next_local_commitment_numberが1より大きい値であるテストである。
+従って、next_commitment_numberが1より大きい値であるテストである。
 （XXX: そのテストが通れば、funding_lockedはもう不要）
 
 A previous draft insisted that the funder "MUST remember ...if it has
