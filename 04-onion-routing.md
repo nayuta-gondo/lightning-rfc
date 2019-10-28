@@ -644,15 +644,15 @@ shared secret ss_kと
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
 ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors,
-and `r` 65-byte `per_hop` payloads. The construction returns a single 1366-byte
-packet along with the first receiving peer's address.
+and `r` variable length `hop_payload` payloads.
+The construction returns a single 1366-byte packet along with the first receiving peer's address.
 
 送信者が上記の必要な情報をすべて取得するとパケットを構築できる。
 r個のhops経由でルーティングされるパケットを構築するには、
 r個の32バイトephemeral public keys（XXX: epk_1-epk_r）、
 r個の32バイトshared secrets（XXX: ss_1-ss_r）、
 r個の32バイトblinding factors（XXX: bf_1-bf_r）、
-およびr個の65バイトper_hopペイロードが必要である。
+およびr個の可変長hop_payloadペイロードが必要である。
 この構成では、最初の受信ピアのアドレスとともに1つの1366バイトのパケットが返される。
 （XXX: onion_packet）
 
@@ -666,10 +666,9 @@ The packet is initialized with 1366 `0x00`-bytes.
 
 パケットは1366 0x00-bytesで初期化される。
 
-A 65-byte filler is generated (see [Filler Generation](#filler-generation))
-using the shared secret.
+A filler is generated (see [Filler Generation](#filler-generation)) using the shared secret.
 
-shared secretを使用して、65バイトfillerが生成される（Filler Generation参照）。
+shared secretを使用して、fillerが生成される（Filler Generation参照）。
 
 For each hop in the route, in reverse order, the sender applies the
 following operations:
@@ -677,10 +676,10 @@ following operations:
 ルート内の各hopに対して、逆順で、送信側は次の操作を適用する。
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - The `hops_data` field is right-shifted by 65 bytes, discarding the last 65
+ - `shift_size` is defined as the length of the `hop_payload` plus the varint encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the varint encoding of `l`.
+ - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The `version`, `short_channel_id`, `amt_to_forward`, `outgoing_cltv_value`,
-   `padding`, and `HMAC` are copied into the following 65 bytes.
+ - The varint-serialized length, serialized `hop_payload` and `HMAC` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
  which is then applied, with `XOR`, to the `hops_data` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
@@ -691,8 +690,11 @@ following operations:
 （XXX: 区切り）
 
  - rho-keyとmu-keyはhopのshared secretを使用して生成される。
- - hops_dataフィールド（XXX: 1300-byte）は65バイト右にシフトされ、1300バイトのサイズを超えた最後の65バイトは破棄される。
- - version、short_channel_id、amt_to_forward、outgoing_cltv_value、padding、およびHMACが続く65バイトにコピーされる。
+ - shift_sizeは、hop_payloadの長さに、lengthのvarint符号化とそのHMACの長さを加えたものとして定義される。
+ したがって、ペイロード長がlの場合、shift_sizeはl < 253に対して1 + l + 32となる。
+ それ以外の場合は、varint符号化がlであるため、3 + l + 32となる。（XXX: 一旦BOLT4を全部見直す）
+ - hop_payloadフィールドはshift_sizeバイト右シフトされ、その1300バイトサイズを超える最後のshift_sizeバイトが破棄される。
+ - varintにシリアル化されたlength、シリアル化されたhop_payload、およびHMACは、続くshift_sizeバイトにコピーされる。
  - rho-keyは1300バイトのpseudo-random byte streamを生成するために使用される、
  これはその後hops_dataフィールドとXORされる。
  - これが最後のhop、すなわち最初のイテレーションである場合、
@@ -893,36 +895,35 @@ At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
-To do so, the processing node copies the `hops_data` field, appends 65 `0x00`-bytes,
-generates 1365 pseudo-random bytes (using the _rho_-key), and applies the result
-,using `XOR`, to the copy of the `hops_data`.
-The first 65 bytes of the resulting routing information become the `per_hop`
-field used for the next hop. The next 1300 bytes are the `hops_data` for the
-outgoing packet.
+To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
+generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
+The first few bytes correspond to the varint-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
+The next 1300 bytes are the `hop_payloads` for the outgoing packet.
 
-その後、ルーティング情報は逆難読化され、次のhopに関する情報が抽​​出される。
-これを行うには、processing nodeはhops_dataフィールドをコピーし、65個の0x00-bytesを追加し、
-（XXX: 0x00を追加する意味は、次のhops_dataをそのまま作成するため）
-（rho-keyを使用して）1365個のpseudo-random bytesを生成し、そしてその結果をhops_dataのコピーにXORを使用して適用する。
-結果のルーティング情報の最初の65バイトは次のhopに使用されるper_hopフィールドになる。
-次の1300バイトは出力パケット用のhops_dataである。
+その後、ルーティング情報は逆難読化され、次のhopに関する情報が抽出される。
+これを行うには、processing nodeはhop_payloadsフィールドをコピーし、1300個の0x00-bytesを追加し、
+（XXX: 0x00を追加する意味は、次のhop_payloadsをそのまま作成するため）
+（rho-keyを使用して）2*1300個のpseudo-random bytesを生成し、そしてその結果をhop_payloadsのコピーにXORを使用して適用する。
+最初の数バイトは、hop_payloadの可変長符号化された長さlに対応し、
+その後に、結果として得られるルーティング情報のlバイトがhop_payloadとなり、
+32バイトのHMACとなる。
+次の1300バイトは出力パケット用のhop_payloadsである。
 
-A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
-processing hop is the intended recipient and that the packet should not be forwarded.
+A special `HMAC` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
 
-特別なper_hop HMAC値の32個の0x00-bytesは、現在のprocessing hopが意図された受信者であり、
+特別なHMAC値の32個の0x00-bytesは、現在のprocessing hopが意図された受信者であり、
 パケットが転送されるべきでないことを示す。
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
 processing node; then the new packet is assembled. Packet assembly is accomplished
 by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hops_data`.
+shared secret, and by serializing the `hop_payloads`.
 The resulting packet is then forwarded to the addressed peer.
 
 HMACが経路終端を示さず（XXX: all zeroではない）、次のhopがprocessing nodeのpeerである場合、
 新しいパケットが組み立てられる。
 パケットの組み立ては、ephemeral keyをprocessing nodeのpublic keyとshared secretでブラインドし、
-hops_dataをシリアライズすることによって達成される。
+hops_payloadsをシリアライズすることによって達成される。
 （XXX: ？）
 結果として得られたパケットは、次に、アドレス指定されたpeerに転送される。
 （XXX:<br>
@@ -987,7 +988,7 @@ Since the padding is part of the HMAC, the origin node will have to pre-generate
 identical padding (to that which each hop will generate) in order to compute the
 HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
-route is shorter than the maximum allowed route length of 20.
+route is shorter than 1300 bytes.
 
 （XXX: Filler、詰め物）
 パケットを受信すると、processing nodeは、
@@ -997,29 +998,29 @@ routing informationとper-hopのペイロードから、それに向けられた
 このため、フィールドは転送前に事前にパディングされる。
 パディングはHMACの一部であるので、origin nodeは、各hopに対してHMACを正しく計算するために、
 （各hopが生成する）パディングを前もって生成しなければならない。
-詰め物は、選択されたルートが最大許容ルート長の20よりも短い場合にも、フィールド長を埋めるためにも使用される。
+詰め物は、選択されたルートが1300バイトよりも短い場合にも、フィールド長を埋めるためにも使用される。
 
-Before deobfuscating the `hops_data`, the processing node pads it with 65
-`0x00`-bytes, such that the total length is `(20 + 1) * 65`.
+Before deobfuscating the `hop_payloads`, the processing node pads it with 1300
+`0x00`-bytes, such that the total length is `2*1300`.
 It then generates the pseudo-random byte stream, of matching length, and applies
-it with `XOR` to the `hops_data`.
+it with `XOR` to the `hop_payloads`.
 This deobfuscates the information destined for it, while simultaneously
 obfuscating the added `0x00`-bytes at the end.
 
-hops_dataを逆難読化する前に、processing nodeは65個の0x00-bytesでそれをパディングし、
-その合計の長さは(20 + 1) * 65になる。
-次に、一致する長さのpseudo-random byte streamを生成し、それをhops_dataにXORで適用する。
+hop_payloadsを逆難読化する前に、processing nodeは1300個の0x00-bytesでそれをパディングし、
+その合計の長さは2*1300になる。
+次に、一致する長さのpseudo-random byte streamを生成し、それをhop_payloadsにXORで適用する。
 これにより、最後に追加された0x00-bytesを難読化すると同時に、それに向けられた情報が逆難読化される。
 
 In order to compute the correct HMAC, the origin node has to pre-generate the
-`hops_data` for each hop, including the incrementally obfuscated padding added
+`hop_payloads` for each hop, including the incrementally obfuscated padding added
 by each hop. This incrementally obfuscated padding is referred to as the
 `filler`.
 
-正しいHMACを計算するために、origin nodeはhops_data、
+正しいHMACを計算するために、origin nodeは、
 各hopによって追加された段階的に難読化されたパディングを含む、
-各hopに対するhops_dataを前もって生成しなければならない。
-この段階的に難読化されたパディングを詰め物と呼ばれる。
+各hopに対するhop_payloadsを前もって生成しなければならない。
+この段階的に難読化されたパディングをfillerと呼ばれる。
 
 The following example code shows how the filler is generated in Go:
 
