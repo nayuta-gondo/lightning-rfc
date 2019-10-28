@@ -212,19 +212,16 @@ The packet consists of four sections:
  - a `version` byte
  - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
    generation
- - a 1300-byte `hops_data` consisting of twenty fixed-size packets, each containing
-   information to be used by its associated hop during message forwarding
+ - a 1300-byte `hop_payloads` consisting of multiple, variable length,
+   `hop_payload` payloads or up to 20 fixed sized legacy `hop_data` payloads.
  - a 32-byte `HMAC`, used to verify the packet's integrity
 
 パケットは4つのセクションで構成される：
 
  - versionバイト
  - 33バイトの圧縮されたsecp256k1 public_key、shared secretの生成の間に使用される
- - 1300バイトのhops_data、
- メッセージ転送中に関連するhopによって使用される情報をそれぞれ含む、
- 20個の固定サイズパケットで構成される（XXX: 65*20）
- （XXX: TODO: これは以下でrouting informationと呼ばれている？
- もしくは難読化する前のhops_dataのことをrouting informationと呼んでいる？）
+ - 複数の可変長のhop_payloadペイロード、または最大20個の固定サイズのレガシーhop_dataペイロードで構成される1300バイトのhop_payload。
+ （XXX: TODO: これは以下でrouting informationと呼ばれている？）
  - 32バイトのHMAC、パケットの完全性を検証するために使用される
 
 The network format of the packet consists of the individual sections
@@ -250,67 +247,71 @@ For this specification (_version 0_), `version` has a constant value of `0x00`.
 
 この仕様（version 0）ではversionは定数値0x00を持つ。
 
-The `hops_data` field is a structure that holds obfuscations of the next hop's
-address, transfer information, and its associated HMAC. It is 1300 bytes (`20x65`) long
-and has the following structure:
+The `hop_payloads` field is a structure that holds obfuscated routing information, and associated HMAC.
+It is 1300 bytes long and has the following structure:
 
-hops_dataフィールドには、次のhopのアドレス、転送情報、およびその関連するHMACの難読化されたものを保持する構造体である。
-これは1300バイト長（20x65）で、次の構造を持つ。
+hop_payloadsフィールドは、難読化されたルーティング情報および関連するHMACを保持する構造である。
+このフィールドの長さは1300バイトで、次の構造を持つ。
 
-1. type: `hops_data`
+1. type: `hop_payloads`
 2. data:
-   * [`byte`:`realm`]
-   * [`32*byte`:`per_hop`]
+   * [`varint`:`length`]
+   * [`hop_payload_length`:`hop_payload`]
    * [`32*byte`:`HMAC`]
    * ...
    * `filler`
 
-Where, the `realm`, `per_hop` (with contents dependent on `realm`), and `HMAC`
-are repeated for each hop; and where, `filler` consists of obfuscated,
-deterministically-generated padding, as detailed in
-[Filler Generation](#filler-generation). Additionally, `hops_data` is
-incrementally obfuscated at each hop.
+Where, the `length`, `hop_payload` (with contents dependent on `length`), and `HMAC` are repeated for each hop;
+and where, `filler` consists of obfuscated, deterministically-generated padding, as detailed in [Filler Generation](#filler-generation).
+Additionally, `hop_payloads` is incrementally obfuscated at each hop.
 
-realm、per_hop（realmに依存する内容）、そしてHMACが各hopのために繰り返される;
-Filler Generationで詳述されているように、filterは、難読化され決定的に生成されたパディングで構成されている 。
-さらに、hops_dataは各hopで段階的に難読化される。
+ここで、length、hop_payload（内容はlengthに依存する）、およびHMACは、各ホップについて繰り返される;
+fillerは、Filler Generationで説明されているように、難読化された決定論的に生成されたパディングで構成されている。
+また、hop_payloadsは各ホップで段階的に難読化される。
 
-The `realm` byte determines the format of the `per_hop` field; currently, only `realm`
-0 is defined, for which the `per_hop` format follows:
+Using the `hop_payload` field, the origin node is able to specify the path and structure of the HTLCs forwarded at each hop.
+As the `hop_payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
 
-realmバイトは、per_hopフィールドの形式を決定する；
-現在のところ、realm 0 のみが定義されており、そのper_hop形式は次のとおりである。
+origin nodeは、hop_payloadフィールドを使用して、各ホップで転送されるHTLCのパスと構造を指定できる。
+hop_payloadはパケット全体のHMACの下で保護されるので、
+そこに含まれる情報は、HTLC送信側（origin node）とパス内の各ホップとの間の各ペアごとの関係によって完全に認証されます。
 
-1. type: `per_hop` (for `realm` 0)
+Using this end-to-end authentication, each hop is able to cross-check the HTLC
+parameters with the `hop_payload`'s specified values and to ensure that the
+sending peer hasn't forwarded an ill-crafted HTLC.
+
+このエンドツーエンド認証を使用すると、各hopはhop_payloadで指定された値でHTLCパラメータ
+（XXX: 入力update_add_htlcの他のフィールド）をクロスチェックし、
+送信ピアが不正なHTLCを転送していないことを確認できる。
+
+The `length` field determines both the length and the format of the `hop_payload` field; the following formats are defined:
+
+lengthフィールドは、hop_payloadフィールドの長さと形式の両方を決定する;
+次の形式が定義されている。
+
+ - Legacy `hop_data` format, identified by a single `0x00` byte for length. In this case the `hop_payload_length` is defined to be 32 bytes.
+ - `tlv_payload` format, identified by any length over `1`. In this case the `hop_payload_length` is equal to the numeric value of `length`.
+ - A single `0x01` byte for length is reserved for future use to signal a different payload format. This is safe since no TLV value can ever be shorter than 2 bytes. In this case the `hop_payload_length` MUST be defined in the future specification making use of this `length`.
+
+ - 従来のhop_dataフォーマット。長さは1つの0x00バイトで識別される。この場合、hop_payload_lengthは32バイトとして定義される。
+ - tlv_payloadフォーマット。1を超える任意の長さとして識別される。 この場合、hop_payload_lengthはlengthの数値と等しくなる。
+ - lengthのための単一の0x01バイトは、異なるペイロード・フォーマットを通知するために将来使用するために予約されている。
+ TLVの値が2バイトより短くなることはないため、これは安全である。この場合、hop_payload_lengthは、このlengthを利用して将来の仕様で定義されなければならない。
+
+## Legacy `hop_data` payload format
+
+The `hop_data` format is identified by a single `0x00`-byte length, for backward compatibility.
+It's payload is defined as:
+
+hop_dataフォーマットは、下位互換性のために、単一の0x00バイト長で識別される。
+ペイロードは次のように定義される。
+
+1. type: `hop_data` (for `realm` 0)
 2. data:
    * [`short_channel_id`:`short_channel_id`]
    * [`u64`:`amt_to_forward`]
    * [`u32`:`outgoing_cltv_value`]
    * [`12*byte`:`padding`]
-
-Using the `per_hop` field, the origin node is able to precisely specify the path and
-structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
-under the packet-wide HMAC, the information it contains is fully authenticated
-with each pair-wise relationship between the HTLC sender (origin node) and each
-hop in the path.
-
-per_hopフィールドを使用して、origin nodeは、各hopで転送されるHTLCの経路および構造を正確に指定することができる。
-per_hopはパケット全体のHMACで保護されて、
-それに含まれる情報は、
-HTLC送信者（origin node）とパス内の各hopの間の、
-それぞれの対の関係で十分に認証される。
-
-Using this end-to-end authentication,
-each
-hop is able to
-cross-check the HTLC parameters with the `per_hop`'s specified values
-and to ensure that the sending peer hasn't forwarded an
-ill-crafted HTLC.
-
-このエンドツーエンド認証を使用すると、
-各hopはper_hopで指定された値でHTLCパラメータ
-（XXX: 入力update_add_htlcの他のフィールド）をクロスチェックし、
-送信ピアが不正なHTLCを転送していないことを確認できる。
 
 Field descriptions:
 
@@ -349,7 +350,7 @@ Field descriptions:
      leaking its position in the route.
 
    * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
-     `per_hop`s won't change the overall `hops_data` size.
+     `hop_data`s won't change the overall `hop_payloads` size.
 
 フィールドの説明：
 
@@ -388,15 +389,18 @@ Field descriptions:
      （XXX: ？）
 
    * padding：このフィールドは将来の使用のためであり、
-   将来のnon-0-realm per_hopが全体のhops_dataサイズを変更しないことを保証するためのフィールドである。
+   将来のnon-0-realm hop_dataが全体のhops_dataサイズを変更しないことを保証するためのフィールドである。
 
-When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
-`per_hop` above; otherwise, deviation from the specified HTLC parameters
-may lead to extraneous routing failure.
+When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified
+within `hop_data` above; otherwise, deviation from the specified HTLC
+parameters may lead to extraneous routing failure.
 
-HTLCsを転送するとき、
-nodesは上記のようにper_hop内で指定されたように、出力HTLCを構築しなければならない。
+HTLCsを転送するとき、nodesは上記のようにhop_data内で指定されたように、出力HTLCを構築しなければならない。
 そうしないと、指定されたHTLCパラメータからの逸脱が無関係なルーティング障害につながる可能性がある。
+
+### `tlv_payload` payload format
+
+TBD
 
 ## Non-strict Forwarding
 
@@ -478,6 +482,7 @@ using an alternate channel.
 
 When building the route, the origin node MUST use a payload for
 the final node with the following values:
+
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
   `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
