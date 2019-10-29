@@ -406,6 +406,7 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
 
 1. tlvs: `tlv_payload`
 2. types:
+    1. type: 0 (`destination_signal`)
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -422,19 +423,19 @@ The writer:
   - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
   - MUST include `short_channel_id` for every non-final node.
   - MUST NOT include `short_channel_id` for the final node.
+  - MUST include the `destination_signal` for the final node.
 
 The writer:
   - すべてのノードにamt_to_forwardとoutgoing_cltv_valueを含めなければならない。
   - 全ての非最終ノードに対してshort_channel_idを含まなければならない。
   - 最後のノードにshort_channel_idを含めてはならない。
+  - 最終ノードのためのdestination_signalを含まなければならない。
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
-  - MUST return an error if it is not the final node and `short_channel_id` is not present.
 
 The reader:
   - amt_to_forwardまたはoutgoing_cltv_valueが存在しない場合は、エラーを返さなければならない。
-  - それが最終ノードではなく、short_channel_idが存在しない場合は、エラーを返さなければならない。
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
 
