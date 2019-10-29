@@ -54,9 +54,20 @@ These flags may only be used in the `init` message:
 
 ## Assigned `globalfeatures` flags
 
-There are currently no `globalfeatures` flags.
+The following `globalfeatures` bits are currently assigned by this specification:
 
-現在、globalfeaturesフラグはない。
+次のglobalfeaturesビットは、現在この仕様によって割り当てられている。
+
+|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Bits | Name              | Description                                                 | Link                                                                                                             |
+|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| 8/9  | `var_onion_optin` | This node requires/supports variable payload routing onions | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
+
+|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Bits | Name              | Description                                                 | Link                                                                                                             |
+|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| 8/9  | `var_onion_optin` | このノードは、可変ペイロードルーティングオニオンを必要/サポートする | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
+
 
 ## Requirements
 
