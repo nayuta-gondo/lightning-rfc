@@ -1445,8 +1445,7 @@ lower values or expiry heights to potential destinations and check the response.
 それによって転送のためにHTLCを受け取るノードは、
 同じハッシュだがもっと低い値や有効期限の高さで支払いを潜在的な宛先に送ってレスポンスをチェックすることによって、
 その最終宛先に関しての推測をチェックすることができる。<br>
-（XXX: このような攻撃を行うのはfinal nodeのひとつまえのnodeであろう。
-しかし、この対応でそれを防ぐことができるのであろうか？
+（XXX: この対応でプロービング攻撃を防ぐことができるのであろうか？
 通常未知のpayment_hashエラーも不正確な最終金額エラーも起きない。
 そう考えると、意図的に最終金額を少なくしたときにincorrect_or_unknown_payment_detailsが
 発生した場合、最終金額が不正確であったためにこのエラーが起きたことは自明であり、
