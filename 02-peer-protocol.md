@@ -2175,6 +2175,9 @@ The sending node:
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
   - if it supports `option_data_loss_protect`:
+    - MUST set `my_current_per_commitment_point` to its commitment point for
+      the last signed commitment it received from its channel peer (i.e. the commitment_point 
+      corresponding to the commitment transaction the sender would use to unilaterally close).
     - if `next_revocation_number` equals 0:
       - MUST set `your_last_per_commitment_secret` to all zeroes
     - otherwise:
@@ -2188,6 +2191,9 @@ The sending node:
   - next_revocation_numberは、
   受け取る予定の次のrevoke_and_ackメッセージのcommitment numberに設定しなければならない。
   - それがoption_data_loss_protectをサポートしている場合：
+    - my_current_per_commitment_pointを、
+    そのチャネルピアから受信した最後の署名済みコミットメントのためのコミットメントポイントに設定しなければならない
+    （すなわち、送信者がunilateral closeで閉じるために使用するコミットメントトランザクションに対応するcommitment_point）。
     - next_revocation_numberが0の場合：
       - your_last_per_commitment_secretを、すべて0に設定しなければならない
     - そうでなければ：
