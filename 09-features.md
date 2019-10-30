@@ -38,33 +38,32 @@ These flags may only be used in the `init` message:
 
 これらのフラグは、initメッセージ内でのみ使用できる：
 
-| Bits | Name                             | Description                                                               | Link                   |
-|------|----------------------------------|---------------------------------------------------------------------------|------------------------|
-| 0/1  | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields                   | [BOLT #2][bolt02]      |
-| 3    | `initial_routing_sync`           | Indicates that the sending node needs a complete routing information dump | [BOLT #7][bolt07]      |
-| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2][bolt02open]  |
-| 6/7  | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07query] |
+| Bits | Name                             | Description                                                               | Link                         |
+|------|----------------------------------|---------------------------------------------------------------------------|------------------------------|
+| 0/1  | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields                   | [BOLT #2][bolt02-retransmit] |
+| 3    | `initial_routing_sync`           | Indicates that the sending node needs a complete routing information dump | [BOLT #7][bolt07-sync]       |
+| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2][bolt02-open]       |
+| 6/7  | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07-query]      |
 
 | Bits | Name                             | Description                                                               | Link                   |
 |------|----------------------------------|---------------------------------------------------------------------------|------------------------|
-| 0/1  | `option_data_loss_protect`       | 追加のchannel_reestablishフィールドが必要もしくはサポートされている               | [BOLT #2][bolt02]      |
-| 3    | `initial_routing_sync`           | 送信nodeが完全なルーティング情報のダンプを必要としていることを示す                  | [BOLT #7][bolt07]      |
-| 4/5  | `option_upfront_shutdown_script` | channelを開くときにshutdown scriptpubkeyをコミットする                        | [BOLT #2][bolt02open]  |
-| 6/7  | `gossip_queries`                 | より洗練されたgossip操作                                                     | [BOLT #7][bolt07query] |
+| 0/1  | `option_data_loss_protect`       | 追加のchannel_reestablishフィールドが必要もしくはサポートされている               | [BOLT #2][bolt02-retransmit]      |
+| 3    | `initial_routing_sync`           | 送信nodeが完全なルーティング情報のダンプを必要としていることを示す                  | [BOLT #7][bolt07-sync]      |
+| 4/5  | `option_upfront_shutdown_script` | channelを開くときにshutdown scriptpubkeyをコミットする                        | [BOLT #2][bolt02-open]  |
+| 6/7  | `gossip_queries`                 | より洗練されたgossip操作                                                     | [BOLT #7][bolt07-query] |
 
 ## Assigned `globalfeatures` flags
 
 The following `globalfeatures` bits are currently assigned by this specification:
 
 次のglobalfeaturesビットは、現在この仕様によって割り当てられている。
+| Bits | Name              | Description                                                        | Link                                  |
+|------|-------------------|--------------------------------------------------------------------|---------------------------------------|
+| 8/9  | `var_onion_optin` | This node requires/supports variable-length routing onion payloads | [Routing Onion Specification][bolt04] |
 
 | Bits | Name              | Description                                                 | Link                                  |
 |------|-------------------|-------------------------------------------------------------|---------------------------------------|
-| 8/9  | `var_onion_optin` | This node requires/supports variable payload routing onions | [routing onion specification][bolt04] |
-
-| Bits | Name              | Description                                                 | Link                                  |
-|------|-------------------|-------------------------------------------------------------|---------------------------------------|
-| 8/9  | `var_onion_optin` | このノードは、可変ペイロードルーティングオニオンを必要/サポートする    | [routing onion specification][bolt04] |
+| 8/9  | `var_onion_optin` | このノードは、可変ペイロードルーティングオニオンを必要/サポートする    | [Routing Onion Specification][bolt04] |
 
 ## Requirements
 
@@ -89,8 +88,9 @@ local nodeはremote nodeが準拠しているか判断することはできず�
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-[bolt02]: 02-peer-protocol.md#message-retransmission
-[bolt02open]: 02-peer-protocol.md#the-open_channel-message
+
+[bolt02-retransmit]: 02-peer-protocol.md#message-retransmission
+[bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt04]: 04-onion-routing.md
-[bolt07]: 07-routing-gossip.md#initial-sync
-[bolt07query]: 07-routing-gossip.md#query-messages
+[bolt07-sync]: 07-routing-gossip.md#initial-sync
+[bolt07-query]: 07-routing-gossip.md#query-messages
