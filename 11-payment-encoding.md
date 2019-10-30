@@ -11,6 +11,7 @@ Lightning上の支払いを要求するためのシンプルで拡張可能なQR
   * [Human-Readable Part](#human-readable-part)
   * [Data Part](#data-part)
     * [Tagged Fields](#tagged-fields)
+    * [Feature Bits](#feature-bits)
   * [Payer / Payee Interactions](#payer--payee-interactions)
     * [Payer / Payee Requirements](#payer--payee-requirements)
   * [Implementation](#implementation)
@@ -232,6 +233,9 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `9` (5): `data_length` variable. One or more 5-bit values containing features
+  supported or required for receiving this payment.
+  See [Feature Bits](#feature-bits).
 
 現在定義されているタグ付きフィールドは次のとおりである：
 
@@ -256,6 +260,8 @@ private routeに関する追加のルーティング情報を含む1つまたは
    * fee_base_msat（32 bits, big-endian）
    * fee_proportional_millionths（32 bits, big-endian）
    * cltv_expiry_delta（16 bits, big-endian）
+* 9（5）：data_length variable。
+この支払いを受け取るためにサポートまたは必要な機能を含む1つまたは複数の5ビット値。Feature Bitsを参照。
 
 ### Requirements
 
@@ -272,10 +278,13 @@ A writer:
       through some unspecified means.
         - SHOULD use a complete description of the purpose of the payment.
   - MAY include one `x` field.
+    - if `x` is included:
+      - SHOULD use the minimum `data_length` possible.
   - MAY include one `c` field.
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
-  - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+    - if `c` is included:
+      - SHOULD use the minimum `data_length` possible.
   - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
@@ -291,6 +300,10 @@ A writer:
         `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as
         specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message).
     - MAY include more than one `r` field to provide multiple routing options.
+  - if `9` contains non-zero bits:
+    - SHOULD use the minimum `data_length` possible.
+  - otherwise:
+    - MUST omit the `9` field altogether.
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
@@ -306,9 +319,12 @@ A writer:
       - 不特定の手段によって利用可能なハッシュされた記述の原像を作成しなければならない。
         - 支払いの目的の完全に記述を使用すべきである。
   - 1つのxフィールドを含めることができる。
+    - xが含まれている場合。
+      - 可能な限り最小のdata_lengthを使うべきである。
   - 1つのcフィールドを含めることができる。
     - ルートの最後のHTLCで受け入れる最小のcltv_expiryを設定しなければならない。
-  - xとcのフィールドに可能な限り最小のdata_lengthを使うべきである。
+    - cが含まれている場合。
+      - 可能な限り最小のdata_lengthを使うべきである。
   - 1つのnフィールドを含めることができる。（それ以外の場合は、署名の回復を実行する必要がある）
     - signatureを作成するために使用されたpublic keyに設定されなければならない。
   - 1つ以上のfフィールドを含めることができる。
@@ -326,6 +342,10 @@ A writer:
         fee_base_msat、fee_proportional_millionths、およびcltv_expiry_deltaは、
         BOLT＃7で指定されたとおりである。
     - 複数のルーティングオプションを提供するために複数のフィールドを含めることができる。
+  - 9が0でないbitを含む場合：
+    - 可能な限り最小のdata_lengthを使うべきである。
+  - そうでなければ：
+    - 9フィールドはすべて取り除かなければならない。
   - フィールドデータを0を使って5ビットの倍数にパディングしなければならない。
   - 作者が複数のフィールドタイプを提供する場合
     - 最も優先順位の高いフィールドを最初に指定しなければならず、
@@ -334,6 +354,11 @@ A writer:
 A reader:
   - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or
   `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
+  - if the `9` field contains unknown _odd_ bits that are non-zero:
+    - MUST ignore the bit.
+  - if the `9` field contains unknown _even_ bits that are non-zero:
+    - MUST fail the payment.
+	- SHOULD indicate the unknown bit to the user.
   - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
@@ -343,6 +368,11 @@ A reader:
   - 未知のフィールド、未知のバージョンを持つfフィールド、
   またはdata_length 52、52または53をそれぞれ持たないp、h、
   またはnフィールドをそれぞれスキップしなければならない。
+  - 9フィールドに0以外の未知の奇数ビットが含まれている場合：
+    - そのビットを無視しなければならない。
+  - 9フィールドに0以外の未知の偶数ビットが含まれている場合：
+    - 支払を失敗しなければならない。
+       - ユーザに未知のビットを示すべきである。
   - hフィールドのSHA2 256がハッシュされた記述と正確に一致することをチェックしなければならない。
   - 有効なnフィールドが提供されている場合
     - 署名を検証するためにnフィールドを使用しなければならない、
@@ -466,6 +496,23 @@ Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 
 Little Bobby Tablesの学校のようにしないでください。
 （XXX: SQL Injectionの例）
+
+## Feature Bits
+
+Feature bits allow forward and backward compatibility, and follow the
+_it's ok to be odd_ rule.
+
+機能ビットは、前方互換性と後方互換性を可能にし、「it's ok to be odd」に従う。
+
+The field is big-endian.  The least-significant bit is numbered 0,
+which is _even_, and the next most significant bit is numbered 1,
+which is _odd_.
+
+このフィールドはビッグエンディアンである。
+最下位ビットには0 (偶数) の番号が付けられ、
+最上位ビットの次には1 (奇数) の番号が付けられる。
+（XXX: なにこれ？）
+（XXX: next least-significant bitの間違い？）
 
 # Payer / Payee Interactions
 
@@ -748,6 +795,44 @@ Breakdown:
   * `0` (int) recovery flag contained in `signature`
   * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810243500c318a1e0a628b34025e8c9019ab6d09b64c2b3c66a693d0dc63194b02481931000` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
+
+> ### Please send $30 for coffee beans to the same peer, which supports features 1 and 9
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9qzsze992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq73t7cl
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `25m`: amount (25 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `9`: features
+  * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
+  * `sz`: b1000000010
+* `e992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq`: signature
+* `73t7cl`: Bech32 checksum
+
+> # Same, but using invalid unknown feature 100
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9q4pqqqqqqqqqqqqqqqqqqszk3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sphzfxz7
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `25m`: amount (25 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `9`: features
+  * `q4`: `data_length` (`q` = 0, `4` = 21; 0 * 32 + 21 == 21)
+  * `pqqqqqqqqqqqqqqqqqqsz`: b00001...(90 zeroes)...1000000010
+* `k3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sp`: signature
+* `hzfxz7`: Bech32 checksum
 
 # Authors
 
