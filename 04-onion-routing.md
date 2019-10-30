@@ -1398,38 +1398,59 @@ processing nodeによる安全な処理のために、CLTV expiryが現在のブ
 1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
 2. data:
    * [`u64`:`htlc_msat`]
+   * [`u32`:`height`]   
 
-The `payment_hash` is unknown to the final node or the amount for that
-`payment_hash` is incorrect.
+The `payment_hash` is unknown to the final node, the amount for that
+`payment_hash` is incorrect or the CLTV expiry of the htlc is too close to the
+current block height for safe handling.
 
-payment_hashがfinal nodeに知られていないか、そのpayment_hashのための金額が正しくない。
+（XXX: エラーコード変更）<br>
+payment_hashが最終ノードに認識されていないか、
+payment_hashの金額が正しくないか、
+htlcのCLTV有効期限が現在のブロック高さに近すぎて安全に処理できない。
 
-Note: Originally PERM|16 (`incorrect_payment_amount`) was
-used to differentiate incorrect final amount from unknown payment
-hash. Sadly, sending this response allows for probing attacks whereby a node
-which receives an HTLC for forwarding can check guesses as to its final
-destination by sending payments with the same hash but much lower values to
-potential destinations and check the response.
+The `htlc_msat` parameter is superfluous, but left in for backwards
+compatibility. The value of `htlc_msat` always matches the amount specified in
+the final hop onion payload. It therefore does not have any informative value to
+the sender. A penultimate hop sending a different amount or expiry for the htlc
+is handled through `final_incorrect_cltv_expiry` and
+`final_incorrect_htlc_amount`.
 
-注意： もともとPERM|16（incorrect_payment_amount）は、
-不正確な最終金額と未知のpayment hashを区別するために使用されていた。
+htlc_msatパラメータは不要だが、後方互換性のために残されている。
+htlc_msatの値は、常に最終ホップのオニオン・ペイロードで指定された量と一致する。
+したがって、それは送信者に何の情報価値もない。
+htlcに対して異なる量または有効期限を送信する最後から2番目のホップは、
+final_incorrect_cltv_expiryとfinal_incorrect_htlc_amountによって処理される。
+
+The `height` parameter is set by the final node to the best known block height
+at the time of receiving the htlc. This can be used by the sender to distinguish
+between sending a payment with the wrong final CLTV expiry and an intermediate
+hop delaying the payment so that the receiver's invoice CLTV delta requirement
+is no longer met.
+
+heightパラメータは、htlcを受信した時点で、最後のノードによって最適なブロックの高さに設定される。
+これは、送信側が、誤ったfinal CLTV expiryによる支払の送信と、
+受信側のinvoice CLTV delta要件が満たされなくなるように支払を遅延させる中間ホップとを区別するために使用できる。
+
+Note: Originally PERM|16 (`incorrect_payment_amount`) and PERM|17
+(`final_expiry_too_soon`) were used to differentiate incorrect htlc parameters
+from unknown payment hash. Sadly, sending this response allows for probing
+attacks whereby a node which receives an HTLC for forwarding can check guesses
+as to its final destination by sending payments with the same hash but much
+lower values or expiry heights to potential destinations and check the response.
+
+注意： もともとPERM|16（incorrect_payment_amount）とPERM|17（final_expiry_too_soon）は、
+未知のpayment hashによる不正なHTLCパラメータを区別するために使用されていた。
 残念なことに、この応答を送ることでプロービング攻撃が可能になり、
 それによって転送のためにHTLCを受け取るノードは、
-同じハッシュだがもっと低い値で支払いを潜在的な宛先に送ってレスポンスをチェックすることによって、
-その最終宛先に関しての推測をチェックすることができる。
+同じハッシュだがもっと低い値や有効期限の高さで支払いを潜在的な宛先に送ってレスポンスをチェックすることによって、
+その最終宛先に関しての推測をチェックすることができる。<br>
 （XXX: このような攻撃を行うのはfinal nodeのひとつまえのnodeであろう。
 しかし、この対応でそれを防ぐことができるのであろうか？
 通常未知のpayment_hashエラーも不正確な最終金額エラーも起きない。
 そう考えると、意図的に最終金額を少なくしたときにincorrect_or_unknown_payment_detailsが
 発生した場合、最終金額が不正確であったためにこのエラーが起きたことは自明であり、
-そうであればプロービング攻撃は可能であると思う）。
-
-1. type: 17 (`final_expiry_too_soon`)
-
-The CLTV expiry is too close to the current block height for safe
-handling by the final node.
-
-final nodeによる安全な処理のために、CLTV expiryは現在のブロックの高さに近すぎる。
+そうであればプロービング攻撃は可能であると思う）
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
@@ -1593,7 +1614,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
       altering the amount while not allowing for accidental gross overpayment.
   - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
-    - MUST return a `final_expiry_too_soon` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
   the final node's HTLC:
     - MUST return `final_incorrect_cltv_expiry` error.
