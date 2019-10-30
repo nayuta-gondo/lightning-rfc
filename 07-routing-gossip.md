@@ -828,6 +828,7 @@ flagsの最下位ビットが0の場合はnode_id_1で、そうでない場合�
 
 The origin node:
 
+  - MUST NOT send a created `channel_update` before `funding_locked` has been received.
   - MAY create a `channel_update` to communicate the channel parameters to the
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
@@ -836,6 +837,7 @@ The origin node:
     - Note: such a `channel_update`, one not preceded by a
     `channel_announcement`, is invalid to any other peer and would be discarded.
 
+  - funding_lockedを受信する前に、作成したchannel_updateを送信してはならない。
   - channelがまだannounceされていなくてもchannel_updateを
   channel peerにchannelパラメータを伝えるために作成してよい（すなわち、announce_channelビットがセットされていなくても）。
     - プライバシーの理由から、そのようなchannel_updateを他のpeersに転送してはいけない。
