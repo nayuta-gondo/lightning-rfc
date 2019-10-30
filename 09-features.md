@@ -37,7 +37,7 @@ see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 These flags may only be used in the `init` message:
 
 これらのフラグは、initメッセージ内でのみ使用できる：
-          |
+
 | Bits | Name                             | Description                                                               | Link                   |
 |------|----------------------------------|---------------------------------------------------------------------------|------------------------|
 | 0/1  | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields                   | [BOLT #2][bolt02]      |
@@ -45,12 +45,12 @@ These flags may only be used in the `init` message:
 | 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2][bolt02open]  |
 | 6/7  | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07query] |
 
-| Bits | Name             |Description                                     | Link                                                                |
-|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
-| 0/1  | `option_data_loss_protect` | 追加の`channel_reestablish`フィールドが必要もしくはサポートされている | [BOLT #2](02-peer-protocol.md#message-retransmission) |
-| 3  | `initial_routing_sync` | 送信nodeが完全なルーティング情報のダンプを必要としていることを示す | [BOLT #7](07-routing-gossip.md#initial-sync) |
-| 4/5  | `option_upfront_shutdown_script` | channelを開くときにshutdown scriptpubkeyをコミットする | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 6/7  | `gossip_queries`           | より洗練されたgossip操作 | [BOLT #7](07-routing-gossip.md#query-messages) |
+| Bits | Name                             | Description                                                               | Link                   |
+|------|----------------------------------|---------------------------------------------------------------------------|------------------------|
+| 0/1  | `option_data_loss_protect`       | 追加のchannel_reestablishフィールドが必要もしくはサポートされている               | [BOLT #2][bolt02]      |
+| 3    | `initial_routing_sync`           | 送信nodeが完全なルーティング情報のダンプを必要としていることを示す                  | [BOLT #7][bolt07]      |
+| 4/5  | `option_upfront_shutdown_script` | channelを開くときにshutdown scriptpubkeyをコミットする                        | [BOLT #2][bolt02open]  |
+| 6/7  | `gossip_queries`                 | より洗練されたgossip操作                                                     | [BOLT #7][bolt07query] |
 
 ## Assigned `globalfeatures` flags
 
@@ -62,11 +62,9 @@ The following `globalfeatures` bits are currently assigned by this specification
 |------|-------------------|-------------------------------------------------------------|---------------------------------------|
 | 8/9  | `var_onion_optin` | This node requires/supports variable payload routing onions | [routing onion specification][bolt04] |
 
-|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| Bits | Name              | Description                                                 | Link                                                                                                             |
-|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| 8/9  | `var_onion_optin` | このノードは、可変ペイロードルーティングオニオンを必要/サポートする | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
-
+| Bits | Name              | Description                                                 | Link                                  |
+|------|-------------------|-------------------------------------------------------------|---------------------------------------|
+| 8/9  | `var_onion_optin` | このノードは、可変ペイロードルーティングオニオンを必要/サポートする    | [routing onion specification][bolt04] |
 
 ## Requirements
 
