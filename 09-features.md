@@ -37,13 +37,13 @@ see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 These flags may only be used in the `init` message:
 
 これらのフラグは、initメッセージ内でのみ使用できる：
-
-| Bits | Name                             | Description                                                               | Link                                                    |
-|------|----------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------|
-| 0/1  | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields                   | [BOLT #2](02-peer-protocol.md#message-retransmission)   |
-| 3    | `initial_routing_sync`           | Indicates that the sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync)            |
-| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 6/7  | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7](07-routing-gossip.md#query-messages)          |
+          |
+| Bits | Name                             | Description                                                               | Link                   |
+|------|----------------------------------|---------------------------------------------------------------------------|------------------------|
+| 0/1  | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields                   | [BOLT #2][bolt02]      |
+| 3    | `initial_routing_sync`           | Indicates that the sending node needs a complete routing information dump | [BOLT #7][bolt07]      |
+| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2][bolt02open]  |
+| 6/7  | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07query] |
 
 | Bits | Name             |Description                                     | Link                                                                |
 |------|------------------|------------------------------------------------|---------------------------------------------------------------------|
@@ -58,10 +58,9 @@ The following `globalfeatures` bits are currently assigned by this specification
 
 次のglobalfeaturesビットは、現在この仕様によって割り当てられている。
 
-|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| Bits | Name              | Description                                                 | Link                                                                                                             |
-|------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| 8/9  | `var_onion_optin` | This node requires/supports variable payload routing onions | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
+| Bits | Name              | Description                                                 | Link                                  |
+|------|-------------------|-------------------------------------------------------------|---------------------------------------|
+| 8/9  | `var_onion_optin` | This node requires/supports variable payload routing onions | [routing onion specification][bolt04] |
 
 |------|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | Bits | Name              | Description                                                 | Link                                                                                                             |
@@ -92,3 +91,8 @@ local nodeはremote nodeが準拠しているか判断することはできず�
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+[bolt02]: 02-peer-protocol.md#message-retransmission
+[bolt02open]: 02-peer-protocol.md#the-open_channel-message
+[bolt04]: 04-onion-routing.md
+[bolt07]: 07-routing-gossip.md#initial-sync
+[bolt07query]: 07-routing-gossip.md#query-messages
