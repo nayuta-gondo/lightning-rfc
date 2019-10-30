@@ -266,17 +266,22 @@ revoked commitment transactionが発行された場合、remote nodeは次のwit
 
     <revocation_sig> <revocationpubkey>
 
-The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below.
+The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below. This is the only way that the local node can timeout the HTLC, and this branch requires `<remotehtlcsig>`, which ensures that the local node cannot prematurely timeout the HTLC since the HTLC-timeout transaction has `cltv_expiry` as its specified `locktime`. The local node must also wait `to_self_delay` before accessing these funds, allowing for the remote node to claim these funds if the transaction has been revoked.
 
 送信ノード（XXX: local node）は、後述するように、HTLCが期限切れになると、
-HTLC-timeout transactionを使用してHTLCを期限切れにさせることができる。
+HTLC-timeout transactionを使用してHTLCを期限切れにさせることができる。<br>
 （XXX: HTLC-timeout transaction参照。`0 <remotehtlcsig> <localhtlcsig> 0`
 最初の0はOP_CHECKMULTISIGの終端。
 最後の0はpayment_preimageまたはrevocationpubkeyのダミーなので、
 条件文で弾かれOP_DROPでdropされHTLC-timeout transactionの結果となる。
 ここだけマルチシグになっているのは、この先がHTLC transactionであるから。
 HTLC transactionのlocktimeやoutputのredeem scriptを両者でコミットするため。
-）
+）<br>
+これは、ローカルノードがHTLCをタイムアウトできる唯一の方法であり、この分岐には<remotehtlcsig>が必要である。
+これは、HTLC-timeout txが指定されたlocktimeとしてcltv_expiryを持つため、
+ローカルノードがHTLCを早期にタイムアウトできないことを保証する。
+ローカルノードは、これらの資金にアクセスする前にto_self_delayも待機する必要があり、
+トランザクションがrevokeされた場合にリモートノードがこれらの資金を要求できるようにする。
 
 #### Received HTLC Outputs
 
@@ -317,9 +322,13 @@ revoked commitment transactionが発行された場合、remote nodeは次のwit
 
     <revocation_sig> <revocationpubkey>
 
-To redeem the HTLC, the HTLC-success transaction is used as detailed below.
+To redeem the HTLC, the HTLC-success transaction is used as detailed below. This is the only way that the local node can spend the HTLC, since this branch requires `<remotehtlcsig>`, which ensures that the local node must wait `to_self_delay` before accessing these funds allowing for the remote node to claim these funds if the transaction has been revoked.
 
 HTLCを償還するには、後述するようにHTLC-success transactionを使用する。
+これは、ローカルノードがHTLCを消費できる唯一の方法である。
+この分岐は<remotehtlcsig>を必要とするためである。
+これにより、ローカルノードはこれらの資金にアクセスする前に_self_delayまで待機する必要があり、
+トランザクションがrevokeされた場合にリモートノードがこれらの資金を要求できるようになる。
 
 （XXX: 0 \<remotehtlcsig\> \<localhtlcsig\> \<payment_preimage\>）
 

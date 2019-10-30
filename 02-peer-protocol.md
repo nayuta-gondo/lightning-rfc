@@ -1869,6 +1869,12 @@ output HTLCs are fully resolved.
 commit_signedが送信されると、送信側はHTLCにバインドされているとみなし、
 出力HTLCが完全に解決されるまで、関連する入力HTLCを失敗することはできない。
 
+Note that the `htlc_signature` implicitly enforces the time-lock mechanism in the case of offered HTLCs being timed out or received HTLCs being spent. This is done to reduce fees by creating smaller scripts compared to explicitly stating time-locks on HTLC outputs.
+
+htlc_signatureは、offered HTLCがタイムアウトした場合、またはreceived HTLCが消費された場合に、
+暗黙的にタイムロックメカニズム（XXX: HTLC transactionのto_self_delay）を強制することに注意すること。
+これは、HTLC outputに（XXX: 要はcommitment tx本体に）明示的にタイムロックを指定するよりも小さなスクリプトを作成することで、feeを削減するために行われる。
+
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
 Once the recipient of `commitment_signed` checks the signature and knows
