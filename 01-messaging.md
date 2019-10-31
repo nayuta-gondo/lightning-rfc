@@ -197,10 +197,18 @@ messages, a `tlv_stream` is typically placed after all currently defined fields.
 
 The `type` is a varint encoded using the BigSize format. It functions as a
 message-specific, 64-bit identifier for the `tlv_record` determining how the
-contents of `value` should be decoded.
+contents of `value` should be decoded. `type` identifiers below 2^16 are
+reserved for use in this specification. `type` identifiers greater than or equal
+to 2^16 are available for custom records. Any record not defined in this
+specification is considered a custom record. This includes experimental and
+application-specific messages.
 
 typeは、BigSizeフォーマットを使用してvarintエンコードされる。
 これは、valueの内容をデコードする方法を決定するtlv_recordのメッセージ固有の64ビット識別子として機能する。
+2^16未満のtype識別子は、この仕様で使用するために予約されている。
+カスタムレコードでは、2^16以上のタイプ識別子を使用できる。
+この仕様で定義されていないレコードは、カスタムレコードとみなされる。
+これには、実験的なメッセージとアプリケーション固有のメッセージが含まれる。
 
 The `length` is a varint encoded using the BigSize format signaling the size of
 `value` in bytes.
@@ -219,11 +227,23 @@ according to the message-specific format determined by `type`.
 The sending node:
  - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
  - MUST minimally encode `type` and `length`.
+ - When defining custom record `type` identifiers:
+   - SHOULD pick random `type` identifiers to avoid collision with other
+     custom types.
+   - SHOULD pick odd `type` identifiers when regular nodes should ignore the
+     additional data.
+   - SHOULD pick even `type` identifiers when regular nodes should reject the
+     full tlv stream containing the custom record.
  - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
 
 The sending node:
  - `tlv_stream`s内の`tlv_record`を単調に増加する`type`で順序付けしなければならない。
  - `type`と`length`は最低限の長さでエンコードしなければならない。
+ - カスタムレコードtype識別子を定義する場合：
+   - 他のカスタムタイプとの衝突を避けるために、ランダムなタイプ識別子を選ぶべきである。
+   - 通常のノードが追加データを無視すべき時、奇数のタイプ識別子を選ぶべきである。
+   - 通常のノードがカスタムレコードを含む完全なtlvストリームを拒否すべき場合は、
+   偶数のtype識別子を選ぶべきである。
  - 冗長な可変長符号化を`tlv_record`で使用すべきではありません。
 
 The receiving node:
