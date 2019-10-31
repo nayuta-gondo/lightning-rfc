@@ -1027,11 +1027,11 @@ secret is stored:
 
     # a.k.a. count trailing 0s
     where_to_put_secret(I):
-		for B in 0 to 47:
-			if testbit(I) in B == 1:
-				return B
+        for B in 0 to 47:
+            if testbit(I) in B == 1:
+                return B
         # I = 0, this is the seed.
-		return 48
+        return 48
 
 （XXX: Iが0のとき、generate_from_seedの値はseedになる）
 
@@ -1042,17 +1042,17 @@ if this check fails, the secrets were not generated from the same seed:
 このチェックが失敗した場合、secretsは同じシードから生成されていない：
 
     insert_secret(secret, I):
-		B = where_to_put_secret(secret, I)
+        B = where_to_put_secret(secret, I)
 
         # This tracks the index of the secret in each bucket across the traversal.
-		for b in 0 to B:
-			if derive_secret(secret, B, known[b].index) != known[b].secret:
-				error The secret for I is incorrect
-				return
+        for b in 0 to B:
+            if derive_secret(secret, B, known[b].index) != known[b].secret:
+                error The secret for I is incorrect
+                return
 
         # Assuming this automatically extends known[] as required.
-		known[B].index = I
-		known[B].secret = secret
+        known[B].index = I
+        known[B].secret = secret
 
 （XXX: 例えば0xFFFFFFFFFFF0のsecretの場合、
 0xFFFFFFFFFFF8、
@@ -1071,13 +1071,13 @@ can be used to derive the unknown secret:
 最も簡単な方法は、全ての既知のsecretsを繰り返し、
 それぞれが未知のsecretを導出するために使用できるかどうかをテストすることである。
 
-	derive_old_secret(I):
-		for b in 0 to len(secrets):
-		    # Mask off the non-zero prefix of the index.
-		    MASK = ~((1 << b) - 1)
-			if (I & MASK) == secrets[b].index:
-				return derive_secret(known, i, I)
-	    error Index 'I' hasn't been received yet.
+    derive_old_secret(I):
+        for b in 0 to len(secrets):
+            # Mask off the non-zero prefix of the index.
+            MASK = ~((1 << b) - 1)
+            if (I & MASK) == secrets[b].index:
+                return derive_secret(known, i, I)
+        error Index 'I' hasn't been received yet.
 
 This looks complicated, but remember that the index in entry `b` has
 `b` trailing 0s; the mask and compare simply checks if the index
