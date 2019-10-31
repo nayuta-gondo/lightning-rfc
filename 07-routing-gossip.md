@@ -1125,6 +1125,20 @@ contents could decompress to more then 3669960 bytes.
 各重複は少なくとも2ビットを用し、有効なコンテンツは3669960バイト以上に展開されることはない。
 （XXX: short_channel_idは8バイト）
 
+Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
+
+クエリメッセージは、オプションフィールドを使用して拡張できる。
+オプションフィールドを使用すると、次の機能を有効にすることで、ルーティングテーブルの同期に必要なメッセージ数を減らすことができる。
+
+- timestamp-based filtering of `channel_update` messages: only ask for `channel_update` messages that are newer than the ones you already have.
+- checksum-based filtering of `channel_update` messages: only ask for `channel_update` messages that carry different information from the ones you already have.
+
+- タイムスタンプベースのchannel_updateメッセージのフィルタリング：
+既存のメッセージよりも新しいchannel_updateメッセージだけを要求する。
+（XXX: そもそもタイムスタンプベースではなかったか）
+- channel_updateメッセージのチェックサムに基づくフィルタリング：
+既に持っている情報とは異なる情報を持つchannel_updateメッセージだけを要求する。
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
@@ -1132,6 +1146,46 @@ contents could decompress to more then 3669960 bytes.
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
+    * [`tlvs`:`query_short_channel_ids_tlvs`]
+
+1. tlvs: `query_short_channel_ids_tlv`
+2. types:
+    1. type: 1 (`query_flags`)
+    2. data:
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_query_flags`]
+
+（XXX: たぶん思った通りの番号になっていない）<br>
+（XXX: types内のlenはvarintのlenであろう。だけどなぜ`(len-1)*byte`と書かないのか？）
+
+`encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
+
+encoded_query_flagsはビットフィールドの配列で、
+ビットフィールドごとに1つのvarint、
+short_channel_idごとに1つのビットフィールドがある。
+ビットの意味は次のとおり。
+
+| Bit Position  | Meaning                                  |
+| ------------- | ---------------------------------------- |
+| 0             | Sender wants `channel_announcement`      |
+| 1             | Sender wants `channel_update` for node 1 |
+| 2             | Sender wants `channel_update` for node 2 |
+| 3             | Sender wants `node_announcement` for node 1 |
+| 4             | Sender wants `node_announcement` for node 2 |
+
+| Bit Position  | Meaning                                  |
+| ------------- | ---------------------------------------- |
+| 0             | 送信者は `channel_announcement` を望む        |
+| 1             | 送信者は mode 1 の `channel_update` を望む    |
+| 2             | 送信者は node 2 の `channel_update` を望む    |
+| 3             | 送信者は node 1 の `node_announcement` を望む |
+| 4             | 送信者は node 2 の `node_announcement` を望む |
+
+Query flags must be minimally encoded, which means that one flag will be encoded with a single byte.
+
+Query flagsは最小限に符号化されなければならない。
+これは、1つのフラグが1バイトで符号化されることを意味する。<br>
+（XXX: varintだと<= 0xfcだとそのままの値）
 
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
@@ -1187,6 +1241,16 @@ The sender:
   - 参照されたchannelがUTXOでない場合、これを送信すべきではない。
   （XXX: encoded_short_idsにshort_channel_idを含めて送ってはいけない）
 
+  - MAY include an optional `query_flags`. If so:
+    - MUST set `encoding_type`, as for `encoded_short_ids`.
+    - Each query flag is a minimally-encoded varint.
+    - MUST encode one query flag per `short_channel_id`.
+
+  - オプションのquery_flagsを含めてもよい。その場合：
+    - encoded_short_idsと同様に、encoding_typeを設定しなければならない。
+    - 各query flagは最小符号化されたvarintである。
+    - short_channel_idごとに1つのquery flagをエンコードしなければならない。  
+
 The receiver:
 
   - if the first byte of `encoded_short_ids` is not a known encoding type:
@@ -1207,12 +1271,45 @@ The receiver:
     - MAY fail the connection.
 
   - この送信者から前に受信したquery_short_channel_idに対してreply_short_channel_ids_endを送信していない場合：
-    - 接続に失敗して良い。
+    - 接続に失敗して良い。    
 
-  - MUST respond to each known `short_channel_id` with a `channel_announcement`
-    and the latest `channel_update` for each end
+  - if the incoming message includes `query_short_channel_ids_tlvs`:
+    - if `encoding_type` is not a known encoding type:
+      - MAY fail the connection
+    - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
+      - MAY fail the connection.
 
-  - 既知のshort_channel_idそれぞれに、channel_announcementと各端の最新のchannel_updateを持って応答しなければならない
+  - 着信メッセージにquery_short_channel_ids_tlvsが含まれる場合：
+    - encoding_typeが既知の符号化タイプでない場合：
+      - 接続に失敗して良い。
+    - encoded_query_flagsがshort_channel_idごとに1つのフラグにデコードされない場合：
+      - 接続に失敗して良い
+
+  - MUST respond to each known `short_channel_id`:
+    - if the incoming message does not include `encoded_query_flags`:
+      - with a `channel_announcement` and the latest `channel_update` for each end
+    - otherwise:
+      - We define `query_flag` for the Nth `short_channel_id` in
+        `encoded_short_ids` to be the Nth varint of the decoded
+        `encoded_query_flags`.
+      - if bit 0 of `query_flag` is set:
+        - MUST reply with a `channel_announcement`
+      - if bit 1 of `query_flag` is set and it has received a `channel_update` from `node_id_1`:
+        - MUST reply with the latest `channel_update` for `node_id_1`
+      - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
+        - MUST reply with the latest `channel_update` for `node_id_2`
+
+  - それぞれの既知のshort_channel_idに応答しなければならない：
+    - 着信メッセージにencoded_query_flagsが含まれていない場合：
+      - channel_announcementと各端の最新のchannel_updateを以って
+    - そうでなければ:
+      - encoded_short_idsのN番目のshort_channel_idのquery_flagを、デコードされたencoded_query_flagsのN番目のvarintとして定義する。
+      - query_flagのビット0が設定されている場合：
+        - channel_announcementで応答しなければならない。（XXX: これも受信している場合、という条件が必要）
+      - query_flagのビット1が設定され、node_id_1からchannel_updateを受信している場合：
+        - node_id_1の最新のchannel_updateで応答しなければならない。
+      - query_flagのビット2が設定され、node_id_2からchannel_updateを受信している場合：
+        - node_id_2の最新のchannel_updateで応答しなければならない。
 
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
 
@@ -1270,6 +1367,30 @@ timeouts.  It also causes a natural rate limiting of queries.
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
+    * [`tlvs`:`query_channel_range_tlvs`]
+
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`query_option`)
+    2. data:
+        * [`1`:`query_option_flags`]
+
+`query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
+
+query_option_flagsは、最小限にエンコードされたvarintで表されるビットフィールドである。
+ビットの意味は次のとおり：
+
+| Bit Position  | Meaning                 |
+| ------------- | ----------------------- |
+| 0             | Sender wants timestamps |
+| 1             | Sender wants checksums  |
+
+Though it is possible, it would not be very useful to ask for checksums without asking for timestamps too: the receiving node may have an older `channel_update` with a different checksum, asking for it would be useless. And if a `channel_update` checksum is actually 0 (which is quite unlikely) it will not be queried.
+
+それは可能ですが、タイムスタンプを要求せずにチェックサムを要求することはあまり有用ではない：
+受信ノードが異なるチェックサムを持つ古いchannel_updateを持つかもしれず、それを要求することは役に立たないだろう。
+また、channel_updateのチェックサムが実際には0（それはとてもありそうにない）の場合、クエリは行われない。
+（XXX: これはなに？）
 
 1. type: 264 (`reply_channel_range`) (`gossip_queries`)
 2. data:
@@ -1279,8 +1400,61 @@ timeouts.  It also causes a natural rate limiting of queries.
     * [`byte`:`complete`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
+    * [`tlvs`:`reply_channel_range_tlvs`]
 
-This allows a query for channels within specific blocks.
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`timestamps_tlv`)
+    2. data:
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_timestamps`]
+    1. type: 3 (`checksums_tlv`)
+    2. data:
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_checksums`]
+
+For a single `channel_update`, timestamps are encoded as:
+
+channel_updateが1つの場合、タイムスタンプは次のようにエンコードされる：
+（XXX: ２つの場合は？）
+
+1. subtype: `channel_update_timestamps`
+2. data:
+    * [`u32`:`timestamp_node_id_1`]
+    * [`u32`:`timestamp_node_id_2`]
+
+Where:
+* `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `timestamp_node_id_2` is the timestamp of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+ここで：
+* timestamp_node_id_1はnode_id_1のchannel_updateのタイムスタンプで、そのノードからchannel_updateがなかった場合は0である。
+* timestamp_node_id_2はnode_id_2のchannel_updateのタイムスタンプで、そのノードからchannel_updateがなかった場合は0である。
+
+For a single `channel_update`, checksums are encoded as:
+
+channel_updateが1つの場合、チェックサムは次のようにエンコードされる：
+（XXX: ２つの場合は？）
+
+1. subtype: `channel_update_checksums`
+2. data:
+    * [`u32`:`checksum_node_id_1`]
+    * [`u32`:`checksum_node_id_2`]
+
+Where:
+* `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `checksum_node_id_2` is the checksum of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+ここで：
+* checksum_node_id_1はnode_id_1のchannel_updateのチェックサムで、そのノードからchannel_updateがなかった場合は0である。
+* checksum_node_id_2はnode_id_2のchannel_updateのチェックサムで、そのノードからchannel_updateがなかった場合は0である。
+
+The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) of this `channel_update` without its `signature` and `timestamp` fields.
+
+channel_updateのチェックサムは、RFC3720で指定されているCRC32Cチェックサムで、
+このchannel_updateの署名フィールドとタイムスタンプフィールドを除く。
+
+This allows to query for channels within specific blocks.
 
 これにより、特定のブロック内のchannelsのクエリが可能になる。
 
@@ -1305,6 +1479,10 @@ The sender of `query_channel_range`:
   - MUST set `number_of_blocks` to 1 or greater.
 
   - number_of_blocksは、1以上に設定しなければならない。
+
+  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.  
+
+  - 受信したい拡張情報のタイプを指定するquery_channel_range_tlvを追加してよい。
 
 The receiver of `query_channel_range`:
 
@@ -1351,6 +1529,14 @@ The receiver of `query_channel_range`:
     - そうでなければ：
       - completeに、1を設定すべきである。
 
+If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
+- if bit 0 in `query_option_flags` is set, the receive MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receive MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+
+もし着信メッセージがquery_optionを含んでいるなら、受信者は応答に追加情報を追加してもよい：
+- query_option_flagsのビット0が設定されている場合、受信側はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateタイムスタンプを含むtimestamps_tlvを追加してもよい。
+- query_option_flagsのビット1がセットされている場合、受信側はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateチェックサムを含むchecksums_tlvを追加してもよい。
+
 #### Rationale
 
 A single response might be too large for a single packet, and also a peer can
@@ -1362,6 +1548,10 @@ peerは1000ブロックの範囲で封じた結果を格納し、
 単純に要求の範囲と重複する各応答を提供する可能性がある。（XXX: say？）
 （XXX: TODO: 最初と末尾でrangeをオーバーしてもいいのか？だめだろう？）
 （XXX: gossip_timestamp_filterがあるため複数のノードに対して応答の使い回しはできない？）
+
+The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
+
+タイムスタンプフィールドとチェックサムフィールドの追加により、ピアは冗長な更新のクエリを省略できる。
 
 ### The `gossip_timestamp_filter` Message
 
