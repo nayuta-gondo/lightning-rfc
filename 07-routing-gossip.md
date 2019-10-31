@@ -900,7 +900,7 @@ The origin node:
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit  set to 0 to
+    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
 
   - channelの一時的な利用不可能性（例えば、接続性の欠如による）または永久的な利用不可能性（例えば、オンチェーン上の確定前）を示すために、
@@ -1124,7 +1124,7 @@ Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
-contents could decompress to more then 3669960 bytes.
+contents could decompress to more than 3669960 bytes.
 
 注：65535バイトのzlib messageは67632120バイトに展開されるが、有効な内容は一意の8バイト値だけなので、
 ストリームを通して重複するのは14バイト未満である：

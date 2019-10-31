@@ -1564,7 +1564,7 @@ Invalid amounts are a clear protocol violation and indicate a breakdown.
 If a node did not accept multiple HTLCs with the same payment hash, an
 attacker could probe to see if a node had an existing HTLC. This
 requirement, to deal with duplicates, leads to the use of a separate
-identifier; its assumed a 64-bit counter never wraps.
+identifier; it's assumed a 64-bit counter never wraps.
 
 ノードが同じpayment hashを持つ複数のHTLCを受け入れなかった場合、
 攻撃者は、ノードに既存のHTLCがあるかどうかを調べることができる。

@@ -526,9 +526,9 @@ payments harder to track by adding small variations.
 BOLT＃4が、payeeが期待されるamountの２倍までは受け入れるべきであると指定しており、
 payerは小額のバリエーションを追加することで支払いの追跡を困難にすることができる。
 
-The intent is that the payer recover the payee's node ID from the
+The intent is that the payer recovers the payee's node ID from the
 signature, and after checking that conditions such as fees,
-expiry, and block timeout are acceptable, attempt a payment. It can use `r` fields to
+expiry, and block timeout are acceptable, attempts a payment. It can use `r` fields to
 augment its routing information, if necessary to reach the final node.
 
 その意図は（XXX: ？）、payerが署名からpayeeのnode IDを復元し（XXX: ？）、
