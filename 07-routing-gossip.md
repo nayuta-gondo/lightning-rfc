@@ -1114,6 +1114,12 @@ Encoding types:
 * 0：short_channel_idタイプの非圧縮配列、昇順。
 * 1：short_channel_idタイプの配列、昇順、zlib deflateで圧縮
 
+This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps than can be either compressed (with a `1` prefix) or uncompressed (with a `0` prefix).
+
+このエンコーディングは、他の型（タイムスタンプ、フラグ、...）の配列にも使用され、encoded_prefixで指定される。
+たとえば、encoded_timestampsはタイムスタンプの配列で、圧縮（先頭に1を付けて）
+または非圧縮（先頭に0を付けて）のいずれかにできる。
+
 Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
@@ -1139,6 +1145,10 @@ Query messages can be extended with optional fields that can help reduce the num
 - channel_updateメッセージのチェックサムに基づくフィルタリング：
 既に持っている情報とは異なる情報を持つchannel_updateメッセージだけを要求する。
 
+Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
+
+ノードは、gossip_queries_ex機能ビットを使用して、拡張ゴシップクエリをサポートしていることを示すことができる。
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
@@ -1146,17 +1156,15 @@ Query messages can be extended with optional fields that can help reduce the num
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`tlvs`:`query_short_channel_ids_tlvs`]
+    * [`query_short_channel_ids_tlvs`:`tlvs`]
 
-1. tlvs: `query_short_channel_ids_tlv`
+1. tlvs: `query_short_channel_ids_tlvs`
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_query_flags`]
+        * [`...*byte`:`encoded_query_flags`]
 
 （XXX: たぶん思った通りの番号になっていない）<br>
-（XXX: types内のlenはvarintのlenであろう。だけどなぜ`(len-1)*byte`と書かないのか？）
 
 `encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
 
@@ -1288,6 +1296,7 @@ The receiver:
   - MUST respond to each known `short_channel_id`:
     - if the incoming message does not include `encoded_query_flags`:
       - with a `channel_announcement` and the latest `channel_update` for each end
+      - MUST follow with any `node_announcement`s for each `channel_announcement`
     - otherwise:
       - We define `query_flag` for the Nth `short_channel_id` in
         `encoded_short_ids` to be the Nth varint of the decoded
@@ -1297,11 +1306,17 @@ The receiver:
       - if bit 1 of `query_flag` is set and it has received a `channel_update` from `node_id_1`:
         - MUST reply with the latest `channel_update` for `node_id_1`
       - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
+
         - MUST reply with the latest `channel_update` for `node_id_2`
+      - if bit 3 of `query_flag` is set and it has received a `node_announcement` from `node_id_1`:
+        - MUST reply with the latest `node_announcement` for `node_id_1`
+      - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
+        - MUST reply with the latest `node_announcement` for `node_id_2`
 
   - それぞれの既知のshort_channel_idに応答しなければならない：
     - 着信メッセージにencoded_query_flagsが含まれていない場合：
       - channel_announcementと各端の最新のchannel_updateを以って
+      - channel_announcementごとにnode_announcementを続けなければならない
     - そうでなければ:
       - encoded_short_idsのN番目のshort_channel_idのquery_flagを、デコードされたencoded_query_flagsのN番目のvarintとして定義する。
       - query_flagのビット0が設定されている場合：
@@ -1310,20 +1325,19 @@ The receiver:
         - node_id_1の最新のchannel_updateで応答しなければならない。
       - query_flagのビット2が設定され、node_id_2からchannel_updateを受信している場合：
         - node_id_2の最新のchannel_updateで応答しなければならない。
+      - query_flagのビット3が設定され、node_id_1からnode_announcementを受信している場合：
+        - node_id_1の最新のnode_announcementで応答しなければならない。
+      - query_flagのビット4が設定され、node_id_2からnode_announcementを受信している場合：
+        - node_id_2の最新のnode_announcementで応答しなければならない。
 
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
 
   - これらを送信するために次の発信gossipのフラッシュを待つべきではない。
   (XXX: すぐに応答すべき)
 
-  - MUST follow with any `node_announcement`s for each `channel_announcement`
+  - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
 
-  - それぞれのchannel_announcementに続けて、node_announcementを送るべきである
-
-	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
-
-  - 単一のquery_short_channel_idの応答として、重複したnode_announcementの送信を避けるべきである。
-  （XXX: 異なるchannelsでnodesがかぶっても冗長に送らない）
+  - 単一のquery_short_channel_idsに応答して、重複したnode_announcementを送信することを避けるべきである。
 
   - MUST follow these responses with `reply_short_channel_ids_end`.
 
@@ -1367,13 +1381,13 @@ timeouts.  It also causes a natural rate limiting of queries.
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
-    * [`tlvs`:`query_channel_range_tlvs`]
+    * [`query_channel_range_tlvs`:`tlvs`]
 
 1. tlvs: `query_channel_range_tlvs`
 2. types:
     1. type: 1 (`query_option`)
     2. data:
-        * [`1`:`query_option_flags`]
+        * [`varint`:`query_option_flags`]
 
 `query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
 
@@ -1400,18 +1414,16 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`byte`:`complete`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`tlvs`:`reply_channel_range_tlvs`]
+    * [`reply_channel_range_tlvs`:`tlvs`]
 
 1. tlvs: `query_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_timestamps`]
+        * [`...*byte`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_checksums`]
+        * [`...*byte`:`checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
@@ -1530,12 +1542,12 @@ The receiver of `query_channel_range`:
       - completeに、1を設定すべきである。
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
-- if bit 0 in `query_option_flags` is set, the receive MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
-- if bit 1 in `query_option_flags` is set, the receive MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
 
 もし着信メッセージがquery_optionを含んでいるなら、受信者は応答に追加情報を追加してもよい：
-- query_option_flagsのビット0が設定されている場合、受信側はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateタイムスタンプを含むtimestamps_tlvを追加してもよい。
-- query_option_flagsのビット1がセットされている場合、受信側はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateチェックサムを含むchecksums_tlvを追加してもよい。
+- query_option_flagsのビット0が設定されている場合、受信者はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateタイムスタンプを含むtimestamps_tlvを追加してもよい。
+- query_option_flagsのビット1がセットされている場合、受信者はencoded_short_idsのすべてのshort_chanel_idsのchannel_updateチェックサムを含むchecksums_tlvを追加してもよい。
 
 #### Rationale
 
