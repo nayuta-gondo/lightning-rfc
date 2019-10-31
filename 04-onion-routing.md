@@ -1484,6 +1484,20 @@ The CLTV expiry in the HTLC is too far in the future.
 
 HTLCにおけるCLTV expiryは、将来的には遠すぎる。
 
+1. type: PERM|22 (`invalid_onion_payload`)
+2. data:
+   * [`varint`:`type`]
+   * [`u16`:`offset`]
+
+The decrypted onion per-hop payload was not understood by the processing node
+or is incomplete. If the failure can be narrowed down to a specific tlv type in
+the payload, the erring node may include that `type` and its byte `offset` in
+the decrypted byte stream.
+
+復号化されたonion per-hop payloadが処理ノードで理解されなかったか、不完全である。
+障害をペイロード内の特定のtlvタイプに絞り込むことができる場合、
+エラー状態のノードは、復号化されたバイトストリーム内のそのtypeとそのバイトoffsetを含むことができる。
+
 ### Requirements
 
 An _erring node_:
@@ -1501,6 +1515,9 @@ erring node：
 Any _erring node_ MAY:
   - if the `realm` byte is unknown:
     - return an `invalid_realm` error.
+  - if the per-hop payload in the onion is invalid (e.g. it is not a valid tlv stream)
+  or is missing required information (e.g. the amount was not specified):
+    - return an `invalid_onion_payload` error.
   - if an otherwise unspecified transient error occurs for the entire node:
     - return a `temporary_node_failure` error.
   - if an otherwise unspecified permanent error occurs for the entire node:
