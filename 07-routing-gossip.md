@@ -1162,6 +1162,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
+        * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_query_flags`]
 
 （XXX: たぶん思った通りの番号になっていない）<br>
@@ -1416,14 +1417,15 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
 
-1. tlvs: `query_channel_range_tlvs`
+1. tlvs: `reply_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
+	    * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
-        * [`...*byte`:`checksums`]
+        * [`...*channel_update_checksums`:`checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
@@ -1434,6 +1436,13 @@ channel_updateが1つの場合、タイムスタンプは次のようにエン�
 2. data:
     * [`u32`:`timestamp_node_id_1`]
     * [`u32`:`timestamp_node_id_2`]
+
+（XXX:
+[`...*byte`:`encoded_timestamps`]
+これは、
+[`...*channel_update_timestamps`:`encoded_timestamps`]
+と書くべき？
+)
 
 Where:
 * `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
