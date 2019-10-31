@@ -45,6 +45,7 @@ These flags may only be used in the `init` message:
 | 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel                   | [BOLT #2][bolt02-open]       |
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07-query]      |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information                         | [BOLT #7][bolt07-query]      |
+| 12/13| `option_static_remotekey`     | Static key for remote output                                              | [BOLT #3](03-transactions.md)    |
 
 | Bits  | Name                             | Description                                                               | Link                         |
 |-------|----------------------------------|---------------------------------------------------------------------------|------------------------------|
@@ -53,6 +54,7 @@ These flags may only be used in the `init` message:
 | 4/5   | `option_upfront_shutdown_script` | channelを開くときにshutdown scriptpubkeyをコミットする                        | [BOLT #2][bolt02-open]       |
 | 6/7   | `gossip_queries`                 | より洗練されたgossip操作                                                     | [BOLT #7][bolt07-query]      |
 | 10/11 | `gossip_queries_ex`              | Gossip queriesには追加情報を含めることができる                                 | [BOLT #7][bolt07-query]      |
+| 12/13| `option_static_remotekey`         | リモート出力用のstatic key                                                  | [BOLT #3](03-transactions.md)       |
 
 ## Assigned `globalfeatures` flags
 

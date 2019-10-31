@@ -654,6 +654,18 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 
 #### Requirements
 
+Both peers:
+  - if `option_static_remotekey` was negotiated:
+    - `option_static_remotekey` applies to all commitment transactions
+  - otherwise:
+    - `option_static_remotekey` does not apply to any commitment transactions
+
+両方のピア：
+  - option_static_remotekeyがネゴシエートされた場合：
+    - option_static_remotekeyは、すべてのcommitment transactionsに適用される。
+  - そうでなければ：
+    - option_static_remotekeyは、どのcommitment transactionsには適用されない。
+
 The sender MUST set:
   - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
   - `signature` to the valid signature, using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
@@ -677,6 +689,17 @@ The recipient:
   - 有効なfunding_signedを受け取る前にfunding transactionをブロードキャストしてはならない。
   - 有効なfunding_signedを受け取ったとき：
     - funding transactionをブロードキャストすべきである。
+
+#### Rationale
+
+We decide on `option_static_remotekey` at this point when we first have to generate the commitment
+transaction.  Even if a later reconnection does not negotiate this parameter, this channel will continue to use `option_static_remotekey`; we don't support "downgrading".
+This simplifies channel state, particularly penalty transaction handling.
+
+我々は最初にcommitment transactionを生成する必要がある時点で、option_static_remotekeyを決定する。
+その後の再接続でこのパラメータがネゴシエートされない場合でも、
+このチャネルはoption_static_remotekeyを使用し続ける；
+我々は「ダウングレード」をサポートしない。これは、チャネル状態、特にペナルティトランザクション処理を単純化する。
 
 ### The `funding_locked` Message
 
@@ -2091,8 +2114,8 @@ initの後に送信される（すべてのメッセージがそうである）�
    * [`channel_id`:`channel_id`]
    * [`u64`:`next_commitment_number`]
    * [`u64`:`next_revocation_number`]
-   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect)
-   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
+   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect,option_static_remotekey)
+   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect,option_static_remotekey)
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -2180,10 +2203,13 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if it supports `option_data_loss_protect`:
+  - if `option_static_remotekey` applies to the commitment transaction:
+    - MUST set `my_current_per_commitment_point` to a valid point.
+  - otherwise, if it supports `option_data_loss_protect`:
     - MUST set `my_current_per_commitment_point` to its commitment point for
-      the last signed commitment it received from its channel peer (i.e. the commitment_point 
+      the last signed commitment it received from its channel peer (i.e. the commitment_point
       corresponding to the commitment transaction the sender would use to unilaterally close).
+  - if `option_static_remotekey` applies to the commitment transaction, or the sending node supports `option_data_loss_protect`:
     - if `next_revocation_number` equals 0:
       - MUST set `your_last_per_commitment_secret` to all zeroes
     - otherwise:
@@ -2196,10 +2222,14 @@ The sending node:
   受け取る予定の次のcommitment_signedのcommitment numberに設定しなければならない。
   - next_revocation_numberは、
   受け取る予定の次のrevoke_and_ackメッセージのcommitment numberに設定しなければならない。
-  - それがoption_data_loss_protectをサポートしている場合：
+  - option_static_remotekeyがcommitment transactionに適用される場合：
+    - my_current_per_commitment_pointを有効な点に設定しなければならない。
+  - そうでなくて、それがoption_data_loss_protectをサポートしている場合：
     - my_current_per_commitment_pointを、
     そのチャネルピアから受信した最後の署名済みコミットメントのためのコミットメントポイントに設定しなければならない
     （すなわち、送信者がunilateral closeで閉じるために使用するコミットメントトランザクションに対応するcommitment_point）。
+  - option_static_remotekeyがcommitment transactionに適用される場合、
+    または送信ノードがoption_data_loss_protectをサポートしている場合
     - next_revocation_numberが0の場合：
       - your_last_per_commitment_secretを、すべて0に設定しなければならない
     - そうでなければ：
@@ -2285,7 +2315,16 @@ A node:
       - チャネルを失敗すべきである。
 
  A receiving node:
-  - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
+  - if `option_static_remotekey` applies to the commitment transaction:
+    - if `next_revocation_number` is greater than expected above, AND
+    `your_last_per_commitment_secret` is correct for that
+    `next_revocation_number` minus 1:
+      - MUST NOT broadcast its commitment transaction.
+      - SHOULD fail the channel.
+    - otherwise:
+	  - if `your_last_per_commitment_secret` does not match the expected values:
+        - SHOULD fail the channel.
+  - otherwise, if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
   fields are present:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
@@ -2299,7 +2338,16 @@ A node:
       - SHOULD fail the channel.
 
 受信ノード：
-  - option_data_loss_protectがサポートしており、
+  - option_static_remotekeyがcommitment transactionに適用される場合：
+    - next_revocation_numberが上記の期待値より大きく
+    your_last_per_commitment_secret（XXX: 相手に持ってる最後のrevoke_and_ackのnumber）が、
+    そのnext_revocation_numberマイナス1に対して、正しい場合：（XXX: 自分の側でデータがロスしている）
+      - それのcommitment transactionをブロードキャストしてはならない
+      - チャネルに失敗すべきである。
+    - そうでなければ：
+      - your_last_per_commitment_secretが期待される値と一致しない場合：
+        - チャネルを失敗させるべきである。
+  - そうでなくて、option_data_loss_protectがサポートしており、
   option_data_loss_protectフィールドが存在する場合：
     - next_revocation_numberが上記の期待値より大きく
     your_last_per_commitment_secret（XXX: 相手に持ってる最後のrevoke_and_ackのnumber）が、
@@ -2481,6 +2529,21 @@ option_data_loss_protectは、何らかの形で後退した（例えば、古�
 （しかしそれは確かではない： それは嘘つきかもしれない）
 他のノードはこれを使用して（XXX: 自分に都合のよい）以前の状態をブロードキャストできる。
 （XXX: これは賭けである）
+
+`option_static_remotekey` removes the changing `to_remote` key,
+so the `my_current_per_commitment_point` is unnecessary and thus
+ignored (for parsing simplicity, it remains and must be a valid point,
+however), but the disclosure of previous secret still allows
+fall-behind detection.  An implementation can offer both, however, and
+fall back to the `option_data_loss_protect` behavior if
+`option_static_remotekey` is not negotiated.
+
+option_static_remotekeyは、to_remoteキーの変更を取り除くので、
+my_current_per_commitment_pointは不要であり、したがって無視されるが
+（しかし、構文解析を単純にするために、これは有効な点でなければならない)、
+前のシークレットを開示しても、遅れの検出は可能である。
+実装は両方を提供できるが、option_static_remotekeyがネゴシエートされない場合、
+option_data_loss_protect動作に後退することができる。
 
 # Authors
 
